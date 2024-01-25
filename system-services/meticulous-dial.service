@@ -1,0 +1,17 @@
+[Unit]
+Description=Meticulous Dial App
+After=network.target
+Before=weston.service
+
+[Service]
+ExecStart=/usr/lib/meticulous-ui/meticulous-ui --enable-features=UseOzonePlatform --ozone-platform=wayland  --no-sandbox
+Restart=always
+User=root
+
+Environment="DISPLAY=:0"
+Environment="XDG_RUNTIME_DIR=/run/user/0"
+Environment="WAYLAND_DISPLAY=wayland-0"
+Environment="GDK_BACKEND=wayland"
+
+[Install]
+WantedBy=multi-user.target

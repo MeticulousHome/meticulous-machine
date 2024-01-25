@@ -1,0 +1,16 @@
+[Unit]
+Description=Meticulous Backend
+After=network.target
+Before=weston.service
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/python3.12 /opt/meticulous-backend/back.py
+WantedBy=multi-user.target
+User=root
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target
