@@ -50,6 +50,11 @@ echo "Cloning / Updating Backend Repository"
 get_git_src ${BACKEND_GIT} ${BACKEND_BRANCH} \
 		${BACKEND_SRC_DIR} ${BACKEND_REV}
 
+echo "Cloning / Updating Watcher Repository"
+get_git_src ${WATCHER_GIT} ${WATCHER_BRANCH} \
+		${WATCHER_SRC_DIR} ${WATCHER_REV}
+
+
 echo "Cloning / Updating Dial Repository"
 get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
 		${DIAL_SRC_DIR} ${DIAL_REV}

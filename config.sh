@@ -24,5 +24,10 @@ readonly DASH_GIT="https://github.com/ffFuego/meticulous-frontend"
 readonly DASH_BRANCH="main"
 readonly DASH_REV="HEAD"
 
+readonly WATCHER_SRC_DIR=${COMPONENTS_DIR}/"meticulous-watcher"
+readonly WATCHER_GIT="https://github.com/FFFuego/meticulous-watcher"
+readonly WATCHER_BRANCH="main"
+readonly WATCHER_REV="HEAD"
+
 readonly SYSTEM_PACKAGES="avahi-daemon"
-readonly DEVELOPMENT_PACKAGES="git"
+readonly DEVELOPMENT_PACKAGES="git rsync"
