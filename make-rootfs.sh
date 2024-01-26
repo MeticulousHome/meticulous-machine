@@ -87,7 +87,7 @@ cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
 
 # Install Watcher
 echo "Installing Watcher"
-install -m 0644 ${COMPONENTS_DIR}/watcher.py ${ROOTFS_DIR}/opt/meticulous-watcher.py
+install -m 0644 ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
 
 # install python
 echo "Installing Python"
@@ -101,6 +101,10 @@ systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install --upgrade pip
 # Install python requirements for meticulous
 echo "Installing Backend dependencies"
 systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
+
+# Install python requirements for meticulous
+echo "Installing Watcher dependencies"
+systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install -r /opt/meticulous-watcher/requirements.txt"
 
 # echo "Removing qemu"
 # rm -f ${ROOTFS_DIR}/usr/bin/qemu-aarch64-static
