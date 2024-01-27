@@ -14,7 +14,7 @@ if [ ! -f ${DEBIAN_SRC_DIR}/output/rootfs.tar.gz ]; then
 	echo "DEBIAN IMAGE DOES NOT EXIST!"
 	echo "BUILDING NOW!"
 	echo "#####################"
-	bash build-components.sh
+	bash build-components.sh --all
 fi
 
 

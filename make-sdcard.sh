@@ -11,8 +11,6 @@ if [ ! -f "meticulous-rootfs.tar.gz" ]; then
     bash make-rootfs.sh
 fi
 
-#declare    IMAGE_TARGET="sdcard.img"
-declare    IMAGE_TARGET="/dev/sdb"
 declare -i IMAGE_SIZE=16 # in GiB
 
 # Bootloader
@@ -37,17 +35,19 @@ declare -i USER_START=ROOT_B_END
 declare -i USER_END=(IMAGE_SIZE*1024*1024)-1-0x10
 declare -i USER_SIZE=USER_END-USER_START
 
-echo -e "## Planned paritioning scheme"
+function print_partition_scheme() {
+    echo -e "## Planned paritioning scheme"
 
-# Print partition table for checking
-PART_TABLE=$(echo "Number:Name:Start (KiB):Size (KiB):End (KiB):Aling (KiB):Type\n")
-PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s"       1 uboot     ${BOOTLOADER_START}     ${BOOTLOADER_SIZE}     $((${BOOTLOADER_END}-1))                     "raw"  )\n"
-PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s"       2 uboot_env ${BOOTLOADER_ENV_START} ${BOOTLOADER_ENV_SIZE} $((${BOOTLOADER_ENV_END}-1))                 "fat32")\n"
-PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 3 root_a    ${ROOT_A_START}         ${ROOT_SIZE}           $((${ROOT_A_END}-1))         $ROOT_ALIGNMENT "ext4" )\n"
-PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 4 root_b    ${ROOT_B_START}         ${ROOT_SIZE}           $((${ROOT_B_END}-1))         $ROOT_ALIGNMENT "ext4" )\n"
-PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 5 user      ${USER_START}           ${USER_SIZE}           $((${USER_END}-1))           $USER_ALIGNMENT "ext4" )\n"
+    # Print partition table for checking
+    PART_TABLE=$(echo "Number:Name:Start (KiB):Size (KiB):End (KiB):Aling (KiB):Type\n")
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s"       1 uboot     ${BOOTLOADER_START}     ${BOOTLOADER_SIZE}     $((${BOOTLOADER_END}-1))                     "raw"  )\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s"       2 uboot_env ${BOOTLOADER_ENV_START} ${BOOTLOADER_ENV_SIZE} $((${BOOTLOADER_ENV_END}-1))                 "fat32")\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 3 root_a    ${ROOT_A_START}         ${ROOT_SIZE}           $((${ROOT_A_END}-1))         $ROOT_ALIGNMENT "ext4" )\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 4 root_b    ${ROOT_B_START}         ${ROOT_SIZE}           $((${ROOT_B_END}-1))         $ROOT_ALIGNMENT "ext4" )\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 5 user      ${USER_START}           ${USER_SIZE}           $((${USER_END}-1))           $USER_ALIGNMENT "ext4" )\n"
 
-echo -e $PART_TABLE | column -s: -t --table-right 1,3,4,5
+    echo -e $PART_TABLE | column -s: -t --table-right 1,3,4,5
+}
 
 function create_unaligned_partition () {
     START=$1
@@ -157,7 +157,6 @@ function create_image () {
     sync
     umount sdcard
 
-
     if ! [ -b ${IMAGE_TARGET} ]; then
         losetup --detach ${LOOP_DEV}
         echo -e "\n## Compressing image"
@@ -169,4 +168,48 @@ function create_image () {
 
 }
 
-create_image
+function list_removable_devices() {
+    echo "Available removable devices:"
+    lsblk -d -o NAME,MODEL,SIZE,TYPE | grep -E 'disk$' | grep --invert -e 'nvme' -e '0B' | awk '{print "/dev/"$1, $2, $3}'
+}
+
+
+function show_help() {
+cat << EOF
+Usage: ${0##*/} [OPTIONS]
+Create a bootable SD card or image for the Meticulous project.
+
+OPTIONS:
+    --image                Create an image file named 'sdcard.img'
+    --dev <device_name>    Specify the device (e.g., /dev/sdb) to write to
+    --help                 Display this help text and exits
+
+If no options are provided, the script will list all available removable
+devices and prompt for a selection.
+EOF
+}
+
+# Check for command line arguments
+if [ "$#" -eq 0 ]; then
+    list_removable_devices
+    read -p "Enter the device to use (e.g. /dev/sdb) or enter an image filename (e.g. sdcard.img): " IMAGE_TARGET
+elif [ "$1" = "--image" ]; then
+    IMAGE_TARGET="sdcard.img"
+elif [ "$1" = "--dev" ]; then
+    if [ -z "$2" ]; then
+        echo "No device specified. Exiting."
+        exit 1
+    fi
+    IMAGE_TARGET=$2
+elif [ "$1" = "--help" ]; then
+    show_help
+    exit 0
+else
+    echo "Invalid argument '$1'"
+    show_help
+    exit 1
+fi
+
+echo "Using target: $IMAGE_TARGET to create image\n"
+print_partition_scheme
+#create_image
