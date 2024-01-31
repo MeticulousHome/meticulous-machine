@@ -71,7 +71,7 @@ function update_dash() {
 	echo "Cloning / Updating Dash Repository"
 	get_git_src ${DASH_GIT} ${DASH_BRANCH} \
 			${DASH_SRC_DIR} ${DASH_REV}
-	pushd $DIAL_SRC_DIR
+	pushd $DASH_SRC_DIR
 	npm install
 	popd
 }

@@ -7,7 +7,7 @@ function build_debian() {
     echo "Building debian"
 
     pushd $DEBIAN_SRC_DIR > /dev/null
-        sudo ./var_make_debian -c all
+	sudo ./var_make_debian.sh -c all
     popd > /dev/null
 }
 
