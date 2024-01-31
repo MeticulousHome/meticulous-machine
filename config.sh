@@ -27,7 +27,7 @@ readonly DASH_REV="HEAD"
 
 readonly WATCHER_SRC_DIR="${COMPONENTS_DIR}/meticulous-watcher"
 readonly WATCHER_GIT="git@github.com:FFFuego/meticulous-watcher"
-readonly WATCHER_BRANCH="main"
+readonly WATCHER_BRANCH="mimoja_dev"
 readonly WATCHER_REV="HEAD"
 
 
