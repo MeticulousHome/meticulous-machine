@@ -87,7 +87,7 @@ cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
 
 # Install Watcher
 echo "Installing Watcher"
-install -m 0644 ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
+cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
 
 # install python
 echo "Installing Python"

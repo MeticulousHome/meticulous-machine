@@ -91,9 +91,10 @@ function create_image () {
     echo -e "\n## Creating parition scheme"
 
     if [ -b ${IMAGE_TARGET} ]; then
+        IS_BLOCK=y
         declare -i DD_BLOCK_SIZE=1024*1024
         echo "${IMAGE_TARGET} is a block device, nuking partition table"
-        dd if=/dev/zero of=${IMAGE_TARGET} bs=${DD_BLOCK_SIZE} count=32 status=noxfer status=progress 2>/dev/null
+        dd if=/dev/zero of=${IMAGE_TARGET} bs=${DD_BLOCK_SIZE} count=32 status=noxfer status=progress 
     else
         if command -v qemu-img > /dev/null; then
             echo "Using qemu-img to create ${IMAGE_TARGET}"
@@ -118,10 +119,11 @@ function create_image () {
     create_partition root_b     ${ROOT_B_START}         ${ROOT_B_END}
     create_partition user       ${USER_START}           ${USER_END}
 
-    if [ -b ${IMAGE_TARGET} ]; then
+    if [ ! -z ${IS_BLOCK}} ]; then
         echo "${IMAGE_TARGET} is a block device, rescanning partitions"
         partprobe ${IMAGE_TARGET}
         PARTITION=${IMAGE_TARGET}
+        sleep 3
     else
         LOOP_DEV=$(losetup --find)
         PARTITION=${LOOP_DEV}p
@@ -210,6 +212,6 @@ else
     exit 1
 fi
 
-echo "Using target: $IMAGE_TARGET to create image\n"
+echo "Using target: $IMAGE_TARGET to create image"
 print_partition_scheme
-#create_image
+create_image
