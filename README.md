@@ -9,7 +9,7 @@ which can be transfered to the machines emmc
 
 ```bash
 update-sources.sh --all
-sudo build-components.sh --all
+build-components.sh --all
 sudo make-rootfs.sh
 sudo make-sdcard.sh --image
 ```
