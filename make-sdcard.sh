@@ -92,10 +92,12 @@ function create_image () {
 
     if [ -b ${IMAGE_TARGET} ]; then
         IS_BLOCK=y
-        declare -i DD_BLOCK_SIZE=1024*1024
+        declare -i DD_BLOCK_SIZE=1024
+        bash -c "umount ${IMAGE_TARGET}* -v || true"
         echo "${IMAGE_TARGET} is a block device, nuking partition table"
         dd if=/dev/zero of=${IMAGE_TARGET} bs=${DD_BLOCK_SIZE} count=32 status=noxfer status=progress 
     else
+        IS_BLOCK=n
         if command -v qemu-img > /dev/null; then
             echo "Using qemu-img to create ${IMAGE_TARGET}"
             qemu-img create -f raw ${IMAGE_TARGET} ${IMAGE_SIZE}G
@@ -119,7 +121,7 @@ function create_image () {
     create_partition root_b     ${ROOT_B_START}         ${ROOT_B_END}
     create_partition user       ${USER_START}           ${USER_END}
 
-    if [ ! -z ${IS_BLOCK}} ]; then
+    if [ ${IS_BLOCK} = "y" ]; then
         echo "${IMAGE_TARGET} is a block device, rescanning partitions"
         partprobe ${IMAGE_TARGET}
         PARTITION=${IMAGE_TARGET}
@@ -163,7 +165,7 @@ function create_image () {
         losetup --detach ${LOOP_DEV}
         echo -e "\n## Compressing image"
         pigz -kf ${IMAGE_TARGET}
-        echo -e "Image can be installed from ${IMAGE_TARGET} or ${IMAGE_TARGET}.gz"#
+        echo -e "Image can be installed from ${IMAGE_TARGET} or ${IMAGE_TARGET}.gz"
     fi
 
     echo -e "\n## Done"
