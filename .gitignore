@@ -1,3 +1,4 @@
 components/*
 rootfs
 meticulous-rootfs.tar.gz
+sdcard.img*
