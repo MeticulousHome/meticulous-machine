@@ -45,4 +45,4 @@ readonly HOST_PACKAGES="\
     libglib2.0-dev libarchive-dev python3-git xterm sed cvs subversion coreutils\
     texi2html docbook-utils help2man make gcc g++ desktop-file-utils libgl1-mesa-dev\
     libglu1-mesa-dev mercurial automake groff curl lzop asciidoc u-boot-tools mtd-utils\
-    libgnutls28-dev flex bison libssl-dev systemd-container"
+    libgnutls28-dev flex bison libssl-dev systemd-container pigz"

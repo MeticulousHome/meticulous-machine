@@ -155,7 +155,7 @@ function create_image () {
     dd if=${DEBIAN_SRC_DIR}/output/imx-boot-sd.bin of=${PARTITION}1 bs=1K status=noxfer status=progress 2>/dev/null
 
     echo "Installing OS                 to ${PARTITION}3"
-    pv meticulous-rootfs.tar.gz | tar -xzp -C sdcard
+    pv meticulous-rootfs.tar.gz | tar -xp -I pigz -C sdcard
 
     echo "Syncing disks..."
     sync
