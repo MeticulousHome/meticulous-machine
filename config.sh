@@ -30,6 +30,11 @@ readonly WATCHER_GIT="git@github.com:FFFuego/meticulous-watcher"
 readonly WATCHER_BRANCH="main"
 readonly WATCHER_REV="HEAD"
 
+readonly FIRMWARE_SRC_DIR="${COMPONENTS_DIR}/meticulous-firmware"
+readonly FIRMWARE_OUT_DIR="${COMPONENTS_DIR}/meticulous-firmware-build"
+readonly FIRMWARE_GIT="git@github.com:FFFuego/flow_machine_firmware"
+readonly FIRMWARE_BRANCH="dev"
+readonly FIRMWARE_REV="HEAD"
 
 readonly SYSTEM_PACKAGES="avahi-daemon rauc rauc-service"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"

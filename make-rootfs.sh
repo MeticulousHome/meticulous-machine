@@ -97,6 +97,11 @@ tar xf ${DEBIAN_SRC_DIR}/variscite/python/python3.12.tar.gz -C ${ROOTFS_DIR}
 rm -rf ${ROOTFS_DIR}/usr/lib/python3.12/site-packages/pip*
 systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m ensurepip --upgrade --altinstall"
 systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install --upgrade pip"
+# Install firmware if it exists on disk
+if [ -d $FIRMWARE_OUT_DIR ]; then
+    echo "Installing Firmware"
+    cp -r $FIRMWARE_OUT_DIR ${ROOTFS_DIR}/opt/meticulous-firmware
+fi
 
 # Install python requirements for meticulous
 echo "Installing Backend dependencies"

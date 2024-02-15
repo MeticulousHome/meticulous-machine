@@ -55,8 +55,26 @@ function build_dash() {
     echo "Building Dashboard app"
     pushd $DASH_SRC_DIR > /dev/null
         npm run build
-    popd> /dev/null
+    popd > /dev/null
 }
+
+function build_firmware() {
+    PLATFORMIO_FRAMEWORK="${HOME}/.platformio/packages/framework-arduinoespressif32"
+    if [ -d $FIRMWARE_SRC_DIR ]; then
+        echo "Building Firmware"
+        pushd $FIRMWARE_SRC_DIR > /dev/null
+            pio run -e main
+        popd > /dev/null
+        mkdir -p ${FIRMWARE_OUT_DIR}
+        cp -v ${PLATFORMIO_FRAMEWORK}/tools/sdk/esp32/bin/bootloader_qio_80m.bin ${FIRMWARE_OUT_DIR}/bootloader.bin
+        cp -v ${PLATFORMIO_FRAMEWORK}/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/main/partitions.bin ${FIRMWARE_OUT_DIR}
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/main/firmware.bin ${FIRMWARE_OUT_DIR}
+    else
+        echo "Firmware is not checked out. Skipping"
+    fi
+}
+
 
 # Function to display help text
 show_help() {
@@ -72,6 +90,7 @@ Available options:
     --debian                  Build Debian
     --dial                    Build Dial application
     --dash | --dashboard      Build Dashboard application
+    --firmware                Build ESP32 Firmware
     --help                    Displays this help and exits
 
 EOF
@@ -84,6 +103,7 @@ steps=(
     [build_debian]=0
     [build_dial]=0
     [build_dash]=0
+    [build_firmware]=0
 )
 
 # Parse command line arguments
@@ -93,6 +113,7 @@ for arg in "$@"; do
         --dial) steps[build_dial]=1 ;;
         --dash) steps[build_dash]=1 ;;
         --dashboard) steps[build_dash]=1 ;;
+        --firmware) steps[build_firmware]=1 ;;
         --help) show_help; exit 0 ;;
         # Enable all steps via special case
         --all) all_selected=1;;

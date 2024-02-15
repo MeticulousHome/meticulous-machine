@@ -32,6 +32,14 @@ if [  -n "$(uname -a | grep Ubuntu)" ]; then
         curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash - &&\
         sudo apt-get install -y nodejs
     fi
+
+    if [  -z "$(which pio)" ]; then
+        wget -O get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+        python3 get-platformio.py
+        echo "export PATH=$PATH:$HOME/.platformio/penv/bin" >> $HOME/.bashrc
+        export PATH=$PATH:$HOME/.platformio/penv/bin
+        rm get-platformio.py
+    fi
 fi
 }
 
@@ -76,6 +84,14 @@ function update_dash() {
 	popd
 }
 
+function update_firmware() {
+	echo "Cloning / Updating Firmware Repository"
+	get_git_src ${FIRMWARE_GIT} ${FIRMWARE_BRANCH} \
+			${FIRMWARE_SRC_DIR} ${FIRMWARE_REV}
+	pushd $FIRMWARE_SRC_DIR
+	pio lib install
+	popd
+}
 
 function show_help() {
 cat << EOF
@@ -86,13 +102,14 @@ By default --all functions should be used to get a full initial checkout.
 Specific components can be fetched and updated by passing their names as options.
 
 Available options:
-    --all                           Checkout / Update All repositories
+    --all                           Checkout / Update All repositories except for the firmware
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
-    --update_debian                 Checkout / Update Debian repository
-    --update_backend                Checkout / Update Backend repository
-    --update_watcher                Checkout / Update Watcher repository
-    --update_dial                   Checkout / Update Dial repository
-    --update_dash                   Checkout / Update Dash repository
+    --debian                        Checkout / Update Debian repository
+    --backend                       Checkout / Update Backend repository
+    --watcher                       Checkout / Update Watcher repository
+    --dial                          Checkout / Update Dial repository
+    --dash / --dashboard            Checkout / Update Dashboard repository
+    --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --help                          Display this help and exit
 
 EOF
@@ -100,6 +117,7 @@ EOF
 
 any_selected=0;
 all_selected=0;
+firmware_selected=0;
 declare -A steps
 
 steps=(
@@ -120,6 +138,8 @@ for arg in "$@"; do
         --watcher) steps[update_watcher]=1 ;;
         --dial) steps[update_dial]=1 ;;
         --dashboard) steps[update_dash]=1 ;;
+        --dash) steps[update_dash]=1 ;;
+        --firmware) firmware_selected=1 ;;
         # Enable all steps via special case
         --all) all_selected=1;;
         *) echo "Invalid option: $arg"; show_help; exit 1 ;;
@@ -134,6 +154,9 @@ for key in "${!steps[@]}"; do
         $key
     fi
 done
+if [ ${firmware_selected} -eq 1 ]; then
+    update_firmware
+fi
 
 # Print help if no step has been executed
 if [ $any_selected -eq 0 ]; then
