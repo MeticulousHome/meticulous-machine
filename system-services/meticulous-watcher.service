@@ -6,11 +6,10 @@ Before=weston.service
 [Service]
 Type=simple
 Restart=always
+RestartSec=10
 ExecStart=/usr/bin/python3.12 /opt/meticulous-watcher/watcher.py
 WantedBy=multi-user.target
 User=root
-StandardOutput=null
-StandardError=null
 
 [Install]
 WantedBy=multi-user.target
