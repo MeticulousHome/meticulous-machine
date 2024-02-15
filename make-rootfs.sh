@@ -47,6 +47,11 @@ install -m 0644 ${SERVICES_DIR}/meticulous-watcher.service \
 ln -s /lib/systemd/system/meticulous-watcher.service \
     ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-watcher.service
 
+install -m 0644 ${SERVICES_DIR}/meticulous-rauc.service \
+     ${ROOTFS_DIR}/lib/systemd/system
+ln -s /lib/systemd/system/meticulous-rauc.service \
+     ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-watcher.service
+
 # Install meticulous components
 # Install Dial app
 systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install /opt/meticulous-ui/meticulous-ui.deb"
@@ -71,11 +76,6 @@ tar xf ${DEBIAN_SRC_DIR}/variscite/python/python3.12.tar.gz -C ${ROOTFS_DIR}
 rm -rf ${ROOTFS_DIR}/usr/lib/python3.12/site-packages/pip*
 systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m ensurepip --upgrade --altinstall"
 systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install --upgrade pip"
-# Install firmware if it exists on disk
-if [ -d $FIRMWARE_OUT_DIR ]; then
-    echo "Installing Firmware"
-    cp -r $FIRMWARE_OUT_DIR ${ROOTFS_DIR}/opt/meticulous-firmware
-fi
 
 # Install python requirements for meticulous
 echo "Installing Backend dependencies"
@@ -85,7 +85,20 @@ systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install -r /opt/metic
 echo "Installing Watcher dependencies"
 systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install -r /opt/meticulous-watcher/requirements.txt"
 
+# Install firmware if it exists on disk
+if [ -d $FIRMWARE_OUT_DIR ]; then
+    echo "Installing Firmware"
+    cp -r $FIRMWARE_OUT_DIR ${ROOTFS_DIR}/opt/meticulous-firmware
+fi
+
 chown root:root ${ROOTFS_DIR}/opt/meticulous*
+
+echo "Installing RAUC config"
+mkdir -p ${ROOTFS_DIR}/etc/rauc/
+#install -m 0644 ${RAUC_CONFIG_DIR}/system.conf \
+#     ${ROOTFS_DIR}/etc/rauc/
+cp -v ${RAUC_CONFIG_DIR}/system.conf  ${ROOTFS_DIR}/etc/rauc/
+
 
 # echo "Removing qemu"
 # rm -f ${ROOTFS_DIR}/usr/bin/qemu-aarch64-static
