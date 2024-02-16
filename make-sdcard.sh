@@ -165,7 +165,17 @@ function create_image () {
     cp -v rauc-config/u-boot.scr sdcard-uboot/boot.scr
 
     echo "Syncing disks..."
-    sync
+    sync &
+
+    SYNC_PID=$!
+    while ps -p $SYNC_PID > /dev/null
+    do
+        echo "\r"
+        echo -n "$(grep -e Dirty /proc/meminfo)"
+        sleep 0.2
+    done
+    echo "\n"
+
     umount sdcard
     umount sdcard-uboot
 
