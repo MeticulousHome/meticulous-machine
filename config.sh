@@ -23,7 +23,7 @@ readonly DIAL_REV="HEAD"
 
 readonly DASH_SRC_DIR="${COMPONENTS_DIR}/meticulous-dashboard"
 readonly DASH_GIT="git@github.com:FFFuego/meticulous-frontend"
-readonly DASH_BRANCH="main"
+readonly DASH_BRANCH="mimoja_v10"
 readonly DASH_REV="HEAD"
 
 readonly WATCHER_SRC_DIR="${COMPONENTS_DIR}/meticulous-watcher"
