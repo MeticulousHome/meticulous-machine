@@ -10,7 +10,7 @@ which can be transfered to the machines emmc
 ```bash
 update-sources.sh --all
 build-components.sh --all
-sudo make-rootfs.sh
+sudo make-rootfs.sh --all
 sudo make-sdcard.sh --image
 ```
 
@@ -88,6 +88,15 @@ and installing the various Meticulous components with their dependencies.
 sudo ./make_rootfs.sh
 ```
 
+Run the script with the following options to build specific components:
+
+- `--clean`: Unpacks the debian rootfs for further modification and installs all systemd services
+- `--components`: Installs / Updates all components and installs their python dependencies where applicable
+- `--tar`: Compresses the rootfs to a tarbal. e.g. after manual changes
+- `--all`: All of the above
+- `--help`: Displays a help text
+
+
 #### Rootfs creation steps
 
 1) Unpacking Debian Image:
@@ -142,13 +151,13 @@ It partitions the SDcard image, formats partitions and installs the necessary bo
 
 #### SDCard partitions scheme
 
-| Partition | Name      | Mountpoint  | Start (KiB) | End (KiB) | Size     | Type  |
-|-----------|-----------|-------------|-------------|-----------|----------|-------|
-| 1         | uboot     |             | 0x000020    | 0x00201f  | 8 MiB    | raw   |
-| 2         | uboot_env | /boot/env   | 0x002020    | 0x00401f  | 8 MiB    | fat32 |
-| 3         | root_a    | /           | 0x004400    | 0x5043ff  | 5 GiB    | ext4  |
-| 4         | root_b    | /           | 0x504400    | 0xa043ff  | 5 GiB    | ext4  |
-| 5         | user      | /meticulous | 0xa04400    |           | min 6 GiB| ext4  |
+| Partition | Name      | Mountpoint       | Start (KiB) | End (KiB) | Size     | Type  |
+|-----------|-----------|------------------|-------------|-----------|----------|-------|
+| 1         | uboot     |                  | 0x000020    | 0x00201f  | 8 MiB    | raw   |
+| 2         | uboot_env | /boot/env        | 0x002020    | 0x00401f  | 8 MiB    | fat32 |
+| 3         | root_a    | /                | 0x004400    | 0x5043ff  | 5 GiB    | ext4  |
+| 4         | root_b    | /                | 0x504400    | 0xa043ff  | 5 GiB    | ext4  |
+| 5         | user      | /meticulous_user | 0xa04400    |           | min 6 GiB| ext4  |
 
 #### SDCard creation steps
 
