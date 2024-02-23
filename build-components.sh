@@ -36,6 +36,7 @@ function build_dial() {
     pushd $DIAL_SRC_DIR > /dev/null
         export DPKG_DEB_COMPRESSOR_TYPE=xz
         rm -f out/make/deb/arm64/*.deb
+        npm install
         npm run make -- --arch=arm64 --platform=linux
 
         pushd out/make/deb/arm64 > /dev/null
