@@ -3,12 +3,18 @@ set -eo pipefail
 
 source config.sh
 
+if (( $EUID != 0 )); then
+    echo "Please run as root"
+    exit
+fi
+
+
 if [ ! -f "meticulous-rootfs.tar.gz" ]; then
     echo "#####################"
     echo "ROOTFS DOES NOT EXIST!"
     echo "BUILDING NOW!"
     echo "#####################"
-    bash make-rootfs.sh
+    bash make-rootfs.sh --all
 fi
 
 declare -i IMAGE_SIZE=16 # in GiB
