@@ -3,12 +3,12 @@ set -eo pipefail
 
 source config.sh
 
-if (( $EUID != 0 )); then
+if (($EUID != 0)); then
     echo "Please run as root"
     exit
 fi
 
-function unpack_base() {
+function a_unpack_base() {
     if [ ! -f ${DEBIAN_SRC_DIR}/output/rootfs.tar.gz ]; then
         echo "#####################"
         echo "DEBIAN IMAGE DOES NOT EXIST!"
@@ -21,15 +21,14 @@ function unpack_base() {
     # Unpack the image that includes the packages for Variscite
     echo "Unpacking the debian image that includes packages for Variscite"
     rm -rf ${ROOTFS_DIR}/*
-    pv  ${DEBIAN_SRC_DIR}/output/rootfs.tar.gz | tar xz -C ${ROOTFS_DIR}
-
+    pv ${DEBIAN_SRC_DIR}/output/rootfs.tar.gz | tar xz -C ${ROOTFS_DIR}
 
     #Install user packages if any
     echo "rootfs: install user defined packages (user-stage)"
     echo "rootfs: SYSTEM_PACKAGES \"${SYSTEM_PACKAGES}\" "
     echo "rootfs: DEVELOPMENT_PACKAGES \"${DEVELOPMENT_PACKAGES}\" "
 
-    systemd-nspawn -D ${ROOTFS_DIR} apt install -y  ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
+    systemd-nspawn -D ${ROOTFS_DIR} apt install -y ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
 
     # Install meticulous services
     install -m 0644 ${SERVICES_DIR}/meticulous-dial.service \
@@ -50,11 +49,12 @@ function unpack_base() {
     install -m 0644 ${SERVICES_DIR}/meticulous-rauc.service \
         ${ROOTFS_DIR}/lib/systemd/system
     ln -s /lib/systemd/system/meticulous-rauc.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-watcher.service
+        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-rauc.service
 
 }
 
-    function copy_components() {
+function b_copy_components() {
+    echo "Copying components into existing rootfs"
     # Install meticulous components
     # Install Dial app
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install /opt/meticulous-ui/meticulous-ui.deb"
@@ -100,27 +100,26 @@ function unpack_base() {
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
     #install -m 0644 ${RAUC_CONFIG_DIR}/system.conf \
     #     ${ROOTFS_DIR}/etc/rauc/
-    cp -v ${RAUC_CONFIG_DIR}/system.conf  ${ROOTFS_DIR}/etc/rauc/
+    cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
 }
 
-function pack_tar() {
+function c_pack_tar() {
 
     echo "Packing tarball from folder ${ROOTFS_DIR}"
     chown root:root ${ROOTFS_DIR}
-    OUTPUT_TARBAL=`pwd`/meticulous-rootfs.tar.gz
+    OUTPUT_TARBAL=$(pwd)/meticulous-rootfs.tar.gz
     echo "Remove old tarball ${OUTPUT_TARBAL}"
     rm -f ${OUTPUT_TARBAL}
-    pushd ${ROOTFS_DIR} > /dev/null
+    pushd ${ROOTFS_DIR} >/dev/null
     echo "Compressing image"
     tar cf ${OUTPUT_TARBAL} . -I pigz
-    popd > /dev/null
+    popd >/dev/null
 
 }
 
-
 # Function to display help text
 show_help() {
-cat << EOF
+    cat <<EOF
 Usage: ${0##*/} [OPTIONS]
 Run various build functions for Debian, Dial and Dashboard.
 
@@ -137,31 +136,44 @@ Available options:
 EOF
 }
 
-any_selected=0;
-all_selected=0;
+any_selected=0
+all_selected=0
+
 declare -A steps
 steps=(
-    [pack_tar]=0
-    [unpack_base]=0
-    [copy_components]=0
+    [a_unpack_base]=0
+    [b_copy_components]=0
+    [c_pack_tar]=0
 )
 
 # Parse command line arguments
 for arg in "$@"; do
     case $arg in
-        --clean) steps[unpack_base]=1 ;;
-        --components) steps[copy_components]=1 ;;
-        --tar) steps[pack_tar]=1 ;;
-        --help) show_help; exit 0 ;;
-        # Enable all steps via special case
-        --all) all_selected=1;;
-        *) echo "Invalid option: $arg"; show_help; exit 1 ;;
+    --clean) steps[a_unpack_base]=1 ;;
+    --components) steps[b_copy_components]=1 ;;
+    --tar) steps[c_pack_tar]=1 ;;
+    --help)
+        show_help
+        exit 0
+        ;;
+    # Enable all steps via special case
+    --all)
+        all_selected=1
+        steps[a_unpack_base]=1
+        steps[b_copy_components]=1
+        steps[c_pack_tar]=1
+        ;;
+    *)
+        echo "Invalid option: $arg"
+        show_help
+        exit 1
+        ;;
     esac
 done
 
-for key in "${!steps[@]}"; do
-    if [ ${steps[$key]} -eq 1 ] \
-    || [ $all_selected -eq 1 ]; then
+for key in a_unpack_base b_copy_components c_pack_tar; do
+    if [ ${steps[$key]} -eq 1 ] ||
+        [ $all_selected -eq 1 ]; then
         any_selected=1
         # Execute step
         $key
