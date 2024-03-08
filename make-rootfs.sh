@@ -57,7 +57,7 @@ function b_copy_components() {
     echo "Copying components into existing rootfs"
     # Install meticulous components
     # Install Dial app
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install /opt/meticulous-ui/meticulous-ui.deb"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall /opt/meticulous-ui/meticulous-ui.deb"
 
     # Install Backend
     echo "Installing Backend"
