@@ -13,7 +13,7 @@ readonly DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
 readonly BACKEND_GIT="git@github.com:FFFuego/backend_for_esp32/"
-readonly BACKEND_BRANCH="dev"
+readonly BACKEND_BRANCH="mimoja_dev"
 readonly BACKEND_REV="HEAD"
 
 readonly DIAL_SRC_DIR="${COMPONENTS_DIR}/meticulous-dial"
