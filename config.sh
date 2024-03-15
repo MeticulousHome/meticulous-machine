@@ -18,12 +18,12 @@ readonly BACKEND_REV="HEAD"
 
 readonly DIAL_SRC_DIR="${COMPONENTS_DIR}/meticulous-dial"
 readonly DIAL_GIT="git@github.com:FFFuego/meticulous-dial"
-readonly DIAL_BRANCH="beta"
+readonly DIAL_BRANCH="new-design"
 readonly DIAL_REV="HEAD"
 
 readonly DASH_SRC_DIR="${COMPONENTS_DIR}/meticulous-dashboard"
 readonly DASH_GIT="git@github.com:FFFuego/meticulous-frontend"
-readonly DASH_BRANCH="mimoja_v10"
+readonly DASH_BRANCH="mimoja_wip"
 readonly DASH_REV="HEAD"
 
 readonly WATCHER_SRC_DIR="${COMPONENTS_DIR}/meticulous-watcher"
