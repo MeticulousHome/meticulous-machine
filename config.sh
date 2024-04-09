@@ -26,6 +26,11 @@ readonly DASH_GIT="git@github.com:FFFuego/meticulous-frontend"
 readonly DASH_BRANCH="mimoja_wip"
 readonly DASH_REV="HEAD"
 
+readonly WEB_APP_SRC_DIR="${COMPONENTS_DIR}/meticulous-web-app"
+readonly WEB_APP_GIT="git@github.com:FFFuego/meticulous-web-app"
+readonly WEB_APP_BRANCH="main"
+readonly WEB_APP_REV="HEAD"
+
 readonly WATCHER_SRC_DIR="${COMPONENTS_DIR}/meticulous-watcher"
 readonly WATCHER_GIT="git@github.com:FFFuego/meticulous-watcher"
 readonly WATCHER_BRANCH="main"

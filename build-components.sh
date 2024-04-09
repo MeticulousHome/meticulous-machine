@@ -59,6 +59,13 @@ function build_dash() {
     popd > /dev/null
 }
 
+function build_web() {
+    echo "Building WebApp"
+    pushd $WEB_APP_SRC_DIR > /dev/null
+        npm run build
+    popd > /dev/null
+}
+
 function build_firmware() {
     PLATFORMIO_FRAMEWORK="${HOME}/.platformio/packages/framework-arduinoespressif32"
     if [ -d $FIRMWARE_SRC_DIR ]; then
@@ -91,6 +98,7 @@ Available options:
     --debian                  Build Debian
     --dial                    Build Dial application
     --dash | --dashboard      Build Dashboard application
+    --web  | --webapp         Build WebApp application
     --firmware                Build ESP32 Firmware
     --help                    Displays this help and exits
 
@@ -104,6 +112,7 @@ steps=(
     [build_debian]=0
     [build_dial]=0
     [build_dash]=0
+    [build_web]=0
     [build_firmware]=0
 )
 
@@ -114,6 +123,8 @@ for arg in "$@"; do
         --dial) steps[build_dial]=1 ;;
         --dash) steps[build_dash]=1 ;;
         --dashboard) steps[build_dash]=1 ;;
+        --web) steps[build_web]=1 ;;
+        --webapp) steps[build_web]=1 ;;
         --firmware) steps[build_firmware]=1 ;;
         --help) show_help; exit 0 ;;
         # Enable all steps via special case

@@ -85,6 +85,15 @@ function update_dash() {
     popd
 }
 
+function update_web() {
+    echo "Cloning / Updating WebApp Repository"
+    get_git_src ${WEB_APP_GIT} ${WEB_APP_BRANCH} \
+        ${WEB_APP_SRC_DIR} ${WEB_APP_REV}
+    pushd $WEB_APP_SRC_DIR
+    npm install
+    popd
+}
+
 function update_firmware() {
     echo "Cloning / Updating Firmware Repository"
     get_git_src ${FIRMWARE_GIT} ${FIRMWARE_BRANCH} \
@@ -120,6 +129,7 @@ Available options:
     --watcher                       Checkout / Update Watcher repository
     --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
+    --web / --webapp                Checkout / Update WebApp repository
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
     --help                          Display this help and exit
@@ -140,6 +150,7 @@ steps=(
     [update_watcher]=0
     [update_dial]=0
     [update_dash]=0
+    [update_web]=0
 )
 
 # Parse command line arguments, enable steps when selected
@@ -152,6 +163,8 @@ for arg in "$@"; do
     --dial) steps[update_dial]=1 ;;
     --dashboard) steps[update_dash]=1 ;;
     --dash) steps[update_dash]=1 ;;
+    --web) steps[update_web]=1 ;;
+    --webapp) steps[update_web]=1 ;;
     --firmware) firmware_selected=1 ;;
     --mobile) mobile_selected=1 ;;
     # Enable all steps via special case

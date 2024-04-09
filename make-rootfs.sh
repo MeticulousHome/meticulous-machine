@@ -67,6 +67,10 @@ function b_copy_components() {
     echo "Installing Dash"
     cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
 
+    # Install WebApp
+    echo "Installing WebAoo"
+    cp -r ${WEB_APP_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-web-app
+
     # Install Watcher
     echo "Installing Watcher"
     cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
