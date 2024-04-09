@@ -18,7 +18,7 @@ readonly BACKEND_REV="HEAD"
 
 readonly DIAL_SRC_DIR="${COMPONENTS_DIR}/meticulous-dial"
 readonly DIAL_GIT="git@github.com:FFFuego/meticulous-dial"
-readonly DIAL_BRANCH="new-design"
+readonly DIAL_BRANCH="beta"
 readonly DIAL_REV="HEAD"
 
 readonly DASH_SRC_DIR="${COMPONENTS_DIR}/meticulous-dashboard"
