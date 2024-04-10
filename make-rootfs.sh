@@ -69,7 +69,7 @@ function b_copy_components() {
 
     # Install WebApp
     echo "Installing WebAoo"
-    cp -r ${WEB_APP_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-web-app
+    cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
 
     # Install Watcher
     echo "Installing Watcher"
