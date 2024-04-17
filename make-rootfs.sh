@@ -51,6 +51,7 @@ function a_unpack_base() {
     ln -s /lib/systemd/system/meticulous-rauc.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-rauc.service
 
+    echo "SystemMaxUse=1G" >>${ROOTFS_DIR}/etc/systemd/journald.conf
 }
 
 function b_copy_components() {
