@@ -170,6 +170,10 @@ function create_image () {
     cp -v rauc-config/u-boot.scr sdcard-uboot/u-boot.scr
     cp -v rauc-config/u-boot.scr sdcard-uboot/boot.scr
 
+    mkdir -p sdcard-user
+    mount ${PARTITION}5 sdcard-user
+    mkdir -p sdcard-user/syslog
+
     echo "Syncing disks..."
     sync &
 
@@ -184,6 +188,7 @@ function create_image () {
 
     umount sdcard
     umount sdcard-uboot
+    umount sdcard-user
 
     if ! [ -b ${IMAGE_TARGET} ]; then
         losetup --detach ${LOOP_DEV}
