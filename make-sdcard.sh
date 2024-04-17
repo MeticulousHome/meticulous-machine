@@ -37,7 +37,7 @@ declare -i ROOT_B_END=ROOT_A_END+ROOT_SIZE
 # user data
 declare -i USER_ALIGNMENT=ROOT_ALIGNMENT
 declare -i USER_START=ROOT_B_END
-declare -i USER_END=(IMAGE_SIZE*1024*1024) -1-0x10
+declare -i USER_END=($((IMAGE_SIZE * 1024 * 1024))-1-0x10)
 declare -i USER_SIZE=USER_END-USER_START
 
 function print_partition_scheme() {
