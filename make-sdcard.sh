@@ -3,11 +3,10 @@ set -eo pipefail
 
 source config.sh
 
-if (( $EUID != 0 )); then
+if (($EUID != 0)); then
     echo "Please run as root"
     exit
 fi
-
 
 if [ ! -f "meticulous-rootfs.tar.gz" ]; then
     echo "#####################"
@@ -20,16 +19,16 @@ fi
 declare -i IMAGE_SIZE=16 # in GiB
 
 # Bootloader
-declare -i BOOTLOADER_START=32 # in KiB
-declare -i BOOTLOADER_SIZE=8192 # in KiB
-declare -i BOOTLOADER_END=BOOTLOADER_START+BOOTLOADER_SIZE # in KiB
-declare -i BOOTLOADER_ENV_START=BOOTLOADER_END # in KiB
-declare -i BOOTLOADER_ENV_SIZE=8192 # in KiB
+declare -i BOOTLOADER_START=32                                   # in KiB
+declare -i BOOTLOADER_SIZE=8192                                  # in KiB
+declare -i BOOTLOADER_END=BOOTLOADER_START+BOOTLOADER_SIZE       # in KiB
+declare -i BOOTLOADER_ENV_START=BOOTLOADER_END                   # in KiB
+declare -i BOOTLOADER_ENV_SIZE=8192                              # in KiB
 declare -i BOOTLOADER_ENV_END=BOOTLOADER_END+BOOTLOADER_ENV_SIZE # in KiB
 
 # root disks
 declare -i ROOT_ALIGNMENT=1024
-declare -i ROOT_SIZE=$((5*1024*1024 / ROOT_ALIGNMENT))*ROOT_ALIGNMENT  # in KiB
+declare -i ROOT_SIZE=$((5 * 1024 * 1024 / ROOT_ALIGNMENT))*ROOT_ALIGNMENT # in KiB
 declare -i ROOT_A_START=$((BOOTLOADER_ENV_END / ROOT_ALIGNMENT + 1))*ROOT_ALIGNMENT
 declare -i ROOT_A_END=ROOT_A_START+ROOT_SIZE
 declare -i ROOT_B_START=ROOT_A_END
@@ -38,7 +37,7 @@ declare -i ROOT_B_END=ROOT_A_END+ROOT_SIZE
 # user data
 declare -i USER_ALIGNMENT=ROOT_ALIGNMENT
 declare -i USER_START=ROOT_B_END
-declare -i USER_END=(IMAGE_SIZE*1024*1024)-1-0x10
+declare -i USER_END=(IMAGE_SIZE*1024*1024) -1-0x10
 declare -i USER_SIZE=USER_END-USER_START
 
 function print_partition_scheme() {
@@ -46,16 +45,16 @@ function print_partition_scheme() {
 
     # Print partition table for checking
     PART_TABLE=$(echo "Number:Name:Start (KiB):Size (KiB):End (KiB):Aling (KiB):Type\n")
-    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s"       1 uboot     ${BOOTLOADER_START}     ${BOOTLOADER_SIZE}     $((${BOOTLOADER_END}-1))                     "raw"  )\n"
-    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s"       2 uboot_env ${BOOTLOADER_ENV_START} ${BOOTLOADER_ENV_SIZE} $((${BOOTLOADER_ENV_END}-1))                 "fat32")\n"
-    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 3 root_a    ${ROOT_A_START}         ${ROOT_SIZE}           $((${ROOT_A_END}-1))         $ROOT_ALIGNMENT "ext4" )\n"
-    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 4 root_b    ${ROOT_B_START}         ${ROOT_SIZE}           $((${ROOT_B_END}-1))         $ROOT_ALIGNMENT "ext4" )\n"
-    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 5 user      ${USER_START}           ${USER_SIZE}           $((${USER_END}-1))           $USER_ALIGNMENT "ext4" )\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s" 1 uboot ${BOOTLOADER_START} ${BOOTLOADER_SIZE} $((${BOOTLOADER_END} - 1)) "raw")\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x::%s" 2 uboot_env ${BOOTLOADER_ENV_START} ${BOOTLOADER_ENV_SIZE} $((${BOOTLOADER_ENV_END} - 1)) "fat32")\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 3 root_a ${ROOT_A_START} ${ROOT_SIZE} $((${ROOT_A_END} - 1)) $ROOT_ALIGNMENT "ext4")\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 4 root_b ${ROOT_B_START} ${ROOT_SIZE} $((${ROOT_B_END} - 1)) $ROOT_ALIGNMENT "ext4")\n"
+    PART_TABLE+="$(printf "%d:%s:0x%06x:0x%06x:0x%06x:0x%02x:%s" 5 user ${USER_START} ${USER_SIZE} $((${USER_END} - 1)) $USER_ALIGNMENT "ext4")\n"
 
     echo -e $PART_TABLE | column -s: -t --table-right 1,3,4,5
 }
 
-function create_unaligned_partition () {
+function create_unaligned_partition() {
     START=$1
     END=$2
 
@@ -64,7 +63,7 @@ function create_unaligned_partition () {
 
 declare -g PARTITIONS=0
 
-function create_partition () {
+function create_partition() {
     NAME=$1
     START=$2
     END=$3
@@ -93,7 +92,7 @@ function create_partition () {
     declare -ig PARTITIONS=PARTITIONS+1
 }
 
-function create_image () {
+function create_image() {
     echo -e "\n## Creating parition scheme"
 
     if [ -b ${IMAGE_TARGET} ]; then
@@ -101,10 +100,10 @@ function create_image () {
         declare -i DD_BLOCK_SIZE=1024
         bash -c "umount ${IMAGE_TARGET}* -v || true"
         echo "${IMAGE_TARGET} is a block device, nuking partition table"
-        dd if=/dev/zero of=${IMAGE_TARGET} bs=${DD_BLOCK_SIZE} count=32 status=noxfer status=progress 
+        dd if=/dev/zero of=${IMAGE_TARGET} bs=${DD_BLOCK_SIZE} count=32 status=noxfer status=progress
     else
         IS_BLOCK=n
-        if command -v qemu-img > /dev/null; then
+        if command -v qemu-img >/dev/null; then
             echo "Using qemu-img to create ${IMAGE_TARGET}"
             qemu-img create -f raw ${IMAGE_TARGET} ${IMAGE_SIZE}G
         else
@@ -119,13 +118,13 @@ function create_image () {
     parted ${IMAGE_TARGET} mklabel gpt
 
     # Create uboot partition
-    create_partition uboot      ${BOOTLOADER_START}     ${BOOTLOADER_END}
-    create_partition uboot_env  ${BOOTLOADER_ENV_START} ${BOOTLOADER_ENV_END}
-    create_partition root_a     ${ROOT_A_START}         ${ROOT_A_END}
+    create_partition uboot ${BOOTLOADER_START} ${BOOTLOADER_END}
+    create_partition uboot_env ${BOOTLOADER_ENV_START} ${BOOTLOADER_ENV_END}
+    create_partition root_a ${ROOT_A_START} ${ROOT_A_END}
     parted ${IMAGE_TARGET} -f set ${PARTITIONS} boot on
-    create_partition root_b     ${ROOT_B_START}         ${ROOT_B_END}
+    create_partition root_b ${ROOT_B_START} ${ROOT_B_END}
     parted ${IMAGE_TARGET} -f set ${PARTITIONS} boot on
-    create_partition user       ${USER_START}           ${USER_END}
+    create_partition user ${USER_START} ${USER_END}
 
     if [ ${IS_BLOCK} = "y" ]; then
         echo "${IMAGE_TARGET} is a block device, rescanning partitions"
@@ -141,7 +140,7 @@ function create_image () {
     echo -e "\n## Formating"
 
     echo "Creating fat32 for u-boot env on ${PARTITION}2"
-    mkfs.fat ${PARTITION}2 > /dev/null
+    mkfs.fat ${PARTITION}2 >/dev/null
 
     echo "Creating ext4  for   root_a   on ${PARTITION}3"
     mkfs.ext4 ${PARTITION}3 -F -L root_a -q
@@ -150,7 +149,7 @@ function create_image () {
     mkfs.ext4 ${PARTITION}4 -F -L root_b -q
 
     echo "Creating ext4  for    user    on ${PARTITION}5"
-    mkfs.ext4 ${PARTITION}5 -F -L user   -q
+    mkfs.ext4 ${PARTITION}5 -F -L user -q
 
     mkdir -p sdcard
     mount ${PARTITION}3 sdcard
@@ -178,8 +177,7 @@ function create_image () {
     sync &
 
     SYNC_PID=$!
-    while ps -p $SYNC_PID > /dev/null
-    do
+    while ps -p $SYNC_PID >/dev/null; do
         echo "\r"
         echo -n "$(grep -e Dirty /proc/meminfo)"
         sleep 0.2
@@ -206,9 +204,8 @@ function list_removable_devices() {
     lsblk -d -o NAME,MODEL,SIZE,TYPE | grep -E 'disk$' | grep --invert -e 'nvme' -e '0B' | awk '{print "/dev/"$1, $2, $3}'
 }
 
-
 function show_help() {
-cat << EOF
+    cat <<EOF
 Usage: ${0##*/} [OPTIONS]
 Create a bootable SD card or image for the Meticulous project.
 
