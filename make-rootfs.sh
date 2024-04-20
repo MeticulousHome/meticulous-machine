@@ -91,7 +91,7 @@ function b_copy_components() {
 
     # Install python requirements for meticulous
     echo "Installing Backend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
 
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"

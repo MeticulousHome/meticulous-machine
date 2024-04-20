@@ -42,7 +42,7 @@ readonly FIRMWARE_GIT="git@github.com:FFFuego/flow_machine_firmware"
 readonly FIRMWARE_BRANCH="dev"
 readonly FIRMWARE_REV="HEAD"
 
-readonly SYSTEM_PACKAGES="avahi-daemon rauc rauc-service"
+readonly SYSTEM_PACKAGES="avahi-daemon rauc rauc-service libcairo2-dev libxt-dev libgirepository1.0-dev"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\
