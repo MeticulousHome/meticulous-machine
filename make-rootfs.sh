@@ -85,6 +85,10 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m ensurepip --upgrade --altinstall"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install --upgrade pip"
 
+    # Updating python3.12 pip, wheel and setuptools to latest versions
+    echo "Installing python updates for pip, wheel and setuptools"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip --upgrade pip wheel setuptools"
+
     # Install python requirements for meticulous
     echo "Installing Backend dependencies"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
