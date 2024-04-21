@@ -7,7 +7,7 @@ Before=weston.service
 Type=simple
 Restart=always
 RestartSec=10
-ExecStart=/usr/bin/python3.12 /opt/meticulous-watcher/watcher.py
+ExecStart=/opt/meticulous-venv/bin/python3.12 /opt/meticulous-watcher/watcher.py
 User=root
 
 [Install]

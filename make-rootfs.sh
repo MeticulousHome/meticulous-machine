@@ -28,6 +28,7 @@ function a_unpack_base() {
     echo "rootfs: SYSTEM_PACKAGES \"${SYSTEM_PACKAGES}\" "
     echo "rootfs: DEVELOPMENT_PACKAGES \"${DEVELOPMENT_PACKAGES}\" "
 
+    systemd-nspawn -D ${ROOTFS_DIR} apt update
     systemd-nspawn -D ${ROOTFS_DIR} apt install -y ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
 
     # Install meticulous services
@@ -85,17 +86,20 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m ensurepip --upgrade --altinstall"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install --upgrade pip"
 
+    echo "Creating python venv"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m venv /opt/meticulous-venv"
+
     # Updating python3.12 pip, wheel and setuptools to latest versions
     echo "Installing python updates for pip, wheel and setuptools"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip --upgrade pip wheel setuptools"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "/opt/meticulous-venv/bin/pip install --upgrade pip wheel setuptools"
 
     # Install python requirements for meticulous
     echo "Installing Backend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig /opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
 
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install -r /opt/meticulous-watcher/requirements.txt"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "/opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-watcher/requirements.txt"
 
     # Install firmware if it exists on disk
     if [ -d $FIRMWARE_OUT_DIR ]; then
