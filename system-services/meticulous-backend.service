@@ -1,7 +1,6 @@
 [Unit]
 Description=Meticulous Backend
-After=network.target
-Before=weston.service
+After=network.target pulseaudio.service
 
 [Service]
 Type=simple
