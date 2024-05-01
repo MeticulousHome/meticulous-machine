@@ -114,6 +114,7 @@ function b_copy_components() {
     #install -m 0644 ${RAUC_CONFIG_DIR}/system.conf \
     #     ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
+    cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/home/
 }
 
 function c_pack_tar() {
