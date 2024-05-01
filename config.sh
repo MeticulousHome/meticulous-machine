@@ -42,7 +42,7 @@ readonly FIRMWARE_GIT="git@github.com:FFFuego/flow_machine_firmware"
 readonly FIRMWARE_BRANCH="dev"
 readonly FIRMWARE_REV="HEAD"
 
-readonly SYSTEM_PACKAGES="avahi-daemon rauc rauc-service mpv"
+readonly SYSTEM_PACKAGES="avahi-daemon mpv"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\
@@ -51,4 +51,4 @@ readonly HOST_PACKAGES="\
     libglib2.0-dev libarchive-dev python3-git xterm sed cvs subversion coreutils\
     texi2html docbook-utils help2man make gcc g++ desktop-file-utils libgl1-mesa-dev\
     libglu1-mesa-dev mercurial automake groff curl lzop asciidoc u-boot-tools mtd-utils\
-    libgnutls28-dev flex bison libssl-dev systemd-container pigz"
+    libgnutls28-dev flex bison libssl-dev systemd-container pigz libcurl4-openssl-dev"
