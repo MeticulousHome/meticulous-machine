@@ -71,23 +71,20 @@ function build_firmware() {
     if [ -d $FIRMWARE_SRC_DIR ]; then
         echo "Building Firmware for ESP32 || FIKA_V6"
         pushd $FIRMWARE_SRC_DIR >/dev/null
-        pio run -e fika_v6
+        pio run -e fika_latest-s1 -e fika_latest-s3
         popd >/dev/null
+
         mkdir -p ${FIRMWARE_OUT_DIR}/esp32
         cp -v ${PLATFORMIO_FRAMEWORK}/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s1/bootloader.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s1/partitions.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s1/firmware.bin ${FIRMWARE_OUT_DIR}/esp32/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s1/bootloader.bin ${FIRMWARE_OUT_DIR}/esp32/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s1/partitions.bin ${FIRMWARE_OUT_DIR}/esp32/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s1/firmware.bin ${FIRMWARE_OUT_DIR}/esp32/
 
-        echo "Building Firmware for ESP32-S3 || FIKA_V10"
-        pushd $FIRMWARE_SRC_DIR >/dev/null
-        pio run -e fika_v10
-        popd >/dev/null
         mkdir -p ${FIRMWARE_OUT_DIR}/esp32-s3
         cp -v ${PLATFORMIO_FRAMEWORK}/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s3/bootloader.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s3/partitions.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s3/firmware.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s3/bootloader.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s3/partitions.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s3/firmware.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
 
     else
         echo "Firmware is not checked out. Skipping"
