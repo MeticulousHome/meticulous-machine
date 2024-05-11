@@ -69,37 +69,25 @@ function build_web() {
 function build_firmware() {
     PLATFORMIO_FRAMEWORK="${HOME}/.platformio/packages/framework-arduinoespressif32"
     if [ -d $FIRMWARE_SRC_DIR ]; then
-        echo "Building Firmware for ESP32"
+        echo "Building Firmware for ESP32 || FIKA_V6"
         pushd $FIRMWARE_SRC_DIR >/dev/null
-        pio run -e main
+        pio run -e fika_v6
         popd >/dev/null
         mkdir -p ${FIRMWARE_OUT_DIR}/esp32
-        cp -v ${PLATFORMIO_FRAMEWORK}@src-5d8d9ffce7ea0ad669636c8dc13ad6ba/tools/sdk/esp32/bin/bootloader_qio_80m.bin ${FIRMWARE_OUT_DIR}/esp32/bootloader.bin
-        cp -v ${PLATFORMIO_FRAMEWORK}@src-5d8d9ffce7ea0ad669636c8dc13ad6ba/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/main/partitions.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/main/firmware.bin ${FIRMWARE_OUT_DIR}/esp32/
+        cp -v ${PLATFORMIO_FRAMEWORK}/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}/esp32/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s1/bootloader.bin ${FIRMWARE_OUT_DIR}/esp32/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s1/partitions.bin ${FIRMWARE_OUT_DIR}/esp32/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s1/firmware.bin ${FIRMWARE_OUT_DIR}/esp32/
 
-        echo "Building Firmware for ESP32-S3"
+        echo "Building Firmware for ESP32-S3 || FIKA_V10"
         pushd $FIRMWARE_SRC_DIR >/dev/null
-        pio run -e esp32-s3-devkitm-1
+        pio run -e fika_v10
         popd >/dev/null
         mkdir -p ${FIRMWARE_OUT_DIR}/esp32-s3
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/esp32-s3-devkitm-1/partitions.bin ${FIRMWARE_OUT_DIR}/esp32-s3/bootloader.bin
         cp -v ${PLATFORMIO_FRAMEWORK}/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/esp32-s3-devkitm-1/partitions.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/esp32-s3-devkitm-1/firmware.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
-
-    # "/home/mimoja/.platformio/penv/bin/python"
-    # "/home/mimoja/.platformio/packages/tool-esptoolpy/esptool.py"
-    # --chip esp32s3 --port "/dev/ttyS0" --baud 921600
-    # --before default_reset --after hard_reset
-    # write_flash
-    # -z
-    # --flash_mode dio --flash_freq 80m --flash_size 8MB
-    # 0x0000 /home/mimoja/Projects/meticulous/machine/meticulous-image/components/meticulous-firmware/.pio/build/esp32-s3-devkitm-1/bootloader.bin
-    # 0x8000 /home/mimoja/Projects/meticulous/machine/meticulous-image/components/meticulous-firmware/.pio/build/esp32-s3-devkitm-1/partitions.bin
-    # 0xe000 /home/mimoja/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin
-    # 0x10000 .pio/build/esp32-s3-devkitm-1/firmware.bin
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s3/bootloader.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s3/partitions.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
+        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/latest-s3/firmware.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
 
     else
         echo "Firmware is not checked out. Skipping"
