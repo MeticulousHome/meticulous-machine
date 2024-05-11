@@ -16,7 +16,8 @@ if [ ! -f "meticulous-rootfs.tar.gz" ]; then
     bash make-rootfs.sh --all
 fi
 
-declare -i IMAGE_SIZE=16 # in GiB
+declare -i TARGET_SIZE=15634267648                   # in Bytes
+declare -i IMAGE_SIZE=($((TARGET_SIZE / 1024))*1024) # in Bytes, KiB aligned
 
 # Bootloader
 declare -i BOOTLOADER_START=32                                   # in KiB
@@ -37,7 +38,7 @@ declare -i ROOT_B_END=ROOT_A_END+ROOT_SIZE
 # user data
 declare -i USER_ALIGNMENT=ROOT_ALIGNMENT
 declare -i USER_START=ROOT_B_END
-declare -i USER_END=($((IMAGE_SIZE * 1024 * 1024))-1-0x10)
+declare -i USER_END=$((IMAGE_SIZE / 1024))-1-0x10
 declare -i USER_SIZE=USER_END-USER_START
 
 function print_partition_scheme() {
@@ -105,11 +106,11 @@ function create_image() {
         IS_BLOCK=n
         if command -v qemu-img >/dev/null; then
             echo "Using qemu-img to create ${IMAGE_TARGET}"
-            qemu-img create -f raw ${IMAGE_TARGET} ${IMAGE_SIZE}G
+            qemu-img create -f raw ${IMAGE_TARGET} ${IMAGE_SIZE}
         else
             echo "qemu-img is not installed, falling back to dd"
             declare -i DD_BLOCK_SIZE=1024*1024
-            declare -i IMAGE_BLOCKS=IMAGE_SIZE*1024*1024*1024/DD_BLOCK_SIZE
+            declare -i IMAGE_BLOCKS=IMAGE_SIZE*1024/DD_BLOCK_SIZE
             dd if=/dev/zero of=${IMAGE_TARGET} bs=${DD_BLOCK_SIZE} count=${IMAGE_BLOCKS} status=noxfer status=progress 2>/dev/null
         fi
     fi
