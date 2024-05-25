@@ -11,11 +11,11 @@ source config.sh
 function get_git_src() {
     if ! [ -d $3 ]; then
         # clone src code
-        git clone ${1} -b ${2} ${3}
+        git clone ${1} -b ${2} ${3} --recurse-submodules
     fi
     cd ${3}
-    git fetch origin
-    git checkout origin/${2} -B ${2} -f
+    git fetch origin --recurse-submodules
+    git checkout origin/${2} -B ${2} -f --recurse-submodules
     git reset --hard ${4}
     cd -
 }
