@@ -52,6 +52,11 @@ function a_unpack_base() {
     ln -s /lib/systemd/system/meticulous-rauc.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-rauc.service
 
+    install -m 0644 ${SERVICES_DIR}/meticulous-brightness.service \
+        ${ROOTFS_DIR}/lib/systemd/system
+    ln -s /lib/systemd/system/meticulous-brightness.service \
+        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-brightness.service
+
     echo "SystemMaxUse=1G" >>${ROOTFS_DIR}/etc/systemd/journald.conf
 }
 
