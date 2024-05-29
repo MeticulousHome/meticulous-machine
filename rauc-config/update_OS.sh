@@ -1,4 +1,9 @@
 #!/bin/bash
+# Load the nbd module
+echo "Loading nbd module..."
+modprobe nbd
+echo "nbd module loaded."
+nbd-client -d /dev/nbd0
 echo "Running rauc status and searching for inactive partition..."
 # Capture lines that contain '[rootfs.' from the rauc status output
 rootfs_lines=$(rauc status | grep '\[rootfs.')
@@ -26,10 +31,6 @@ if [ -n "$inactive_partition" ]; then
 else
     echo "No inactive partition found."
 fi
-# Load the nbd module
-echo "Loading nbd module..."
-modprobe nbd
-echo "nbd module loaded."
 # Download the configuration file and move it to the build directory
 echo "Downloading configuration file..."
 curl -o /tmp/config.conf https://raw.githubusercontent.com/MeticulousHome/Demo-Cert/main/config.conf
@@ -75,3 +76,4 @@ if [ $? -eq 0 ]; then
 else
     echo "Failed to execute rauc-hawkbit-updater."
 fi
+

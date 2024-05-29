@@ -120,6 +120,7 @@ function b_copy_components() {
     #     ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/home/
+    chmod 777 ${ROOTFS_DIR}/home/update_OS.sh  # Add this line to set permissions
 }
 
 function c_pack_tar() {
