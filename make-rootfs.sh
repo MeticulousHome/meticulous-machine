@@ -75,6 +75,10 @@ function b_copy_components() {
     echo "Installing Backend"
     cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
 
+    # Install PCB Tester
+    echo "Installing PCB Tester"
+    cp -r ${PCB_TESTER_SRC_DIR} ${ROOTFS_DIR}/opt
+
     # Install Dash
     echo "Installing Dash"
     cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
@@ -106,6 +110,10 @@ function b_copy_components() {
     # Install python requirements for meticulous
     echo "Installing Backend dependencies"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig /opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
+
+    # Install python requirements for meticulous
+    echo "Installing PCB Tester dependencies"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "/opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-pcb-tester/requirements.txt"
 
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"

@@ -59,6 +59,12 @@ function update_backend() {
         ${BACKEND_SRC_DIR} ${BACKEND_REV}
 }
 
+function update_pcb_tester() {
+    echo "Cloning / Updating PCB Tester Repository"
+    get_git_src ${PCB_TESTER_GIT} ${PCB_TESTER_BRANCH} \
+        ${PCB_TESTER_SRC_DIR} ${PCB_TESTER_REV}
+}
+
 function update_watcher() {
     echo "Cloning / Updating Watcher Repository"
     get_git_src ${WATCHER_GIT} ${WATCHER_BRANCH} \
@@ -126,6 +132,7 @@ Available options:
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
     --debian                        Checkout / Update Debian repository
     --backend                       Checkout / Update Backend repository
+    --pcb_tester                    Checkout / Update PCB Tester repository
     --watcher                       Checkout / Update Watcher repository
     --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
@@ -151,6 +158,7 @@ steps=(
     [update_dial]=0
     [update_dash]=0
     [update_web]=0
+    [update_pcb_tester]=0
 )
 
 # Parse command line arguments, enable steps when selected
@@ -167,6 +175,7 @@ for arg in "$@"; do
     --webapp) steps[update_web]=1 ;;
     --firmware) firmware_selected=1 ;;
     --mobile) mobile_selected=1 ;;
+    --pcb_tester) steps[update_pcb_tester]=1 ;;
     # Enable all steps via special case
     --all) all_selected=1 ;;
     *)

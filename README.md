@@ -117,6 +117,7 @@ Unpacks the prebuild Debian image into the rootfs directory
     - Backend: Copied to /opt/meticulous-backend
     - Dashboard: Copied to /opt/meticulous-dashboard
     - Watcher: Copied to /opt/meticulous-watcher
+    - PCB TESTER: Copied to /opt/meticulous-pcb-tester
 
 1) Python Installation and Configuration
 

@@ -42,6 +42,11 @@ readonly FIRMWARE_GIT="git@github.com:FFFuego/flow_machine_firmware"
 readonly FIRMWARE_BRANCH="dev"
 readonly FIRMWARE_REV="HEAD"
 
+readonly PCB_TESTER_SRC_DIR="${COMPONENTS_DIR}/meticulous-pcb-tester"
+readonly PCB_TESTER_GIT="git@github.com:MeticulousHome/meticulous-machine.git"
+readonly PCB_TESTER_BRANCH="main"
+readonly PCB_TESTER_REV="HEAD"
+
 readonly SYSTEM_PACKAGES="avahi-daemon mpv"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
