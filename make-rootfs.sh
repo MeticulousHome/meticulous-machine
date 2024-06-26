@@ -87,6 +87,9 @@ function b_copy_components() {
     echo "Installing Watcher"
     cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
 
+    echo "Installing Rust"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+
     # install python
     echo "Installing Python"
     tar xf ${DEBIAN_SRC_DIR}/variscite/python/python3.12.tar.gz -C ${ROOTFS_DIR}
