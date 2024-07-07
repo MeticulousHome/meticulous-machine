@@ -87,9 +87,6 @@ function b_copy_components() {
     echo "Installing Watcher"
     cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
 
-    echo "Installing Rust"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal"
-
     # install python
     echo "Installing Python"
     tar xf ${DEBIAN_SRC_DIR}/variscite/python/python3.12.tar.gz -C ${ROOTFS_DIR}
@@ -129,9 +126,6 @@ function b_copy_components() {
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/home/
     chmod 777 ${ROOTFS_DIR}/home/update_OS.sh  # Add this line to set permissions
-
-    echo "Uninstalling rust"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rustup self uninstall -y"
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
