@@ -31,26 +31,26 @@ function repack_deb() {
     rm debian-binary control.tar.xz data.tar.xz control.tar.zst data.tar.zst
 }
 
-function build_dial() {
-    echo "Building Dial app"
-    pushd $DIAL_SRC_DIR >/dev/null
-    export DPKG_DEB_COMPRESSOR_TYPE=xz
-    rm -f out/make/deb/arm64/*.deb
-    npm install
-    npm run make -- --arch=arm64 --platform=linux
+# function build_dial() {
+#     echo "Building Dial app"
+#     pushd $DIAL_SRC_DIR >/dev/null
+#     export DPKG_DEB_COMPRESSOR_TYPE=xz
+#     rm -f out/make/deb/arm64/*.deb
+#     npm install
+#     npm run make -- --arch=arm64 --platform=linux
 
-    pushd out/make/deb/arm64 >/dev/null
-    contents=$(ar t meticulous-ui*_arm64.deb)
-    if [[ $contents == *"control.tar.zst"* ]] && [[ $contents == *"data.tar.zst"* ]]; then
-        echo "Compression is zstd. Archive needs to be repacked"
-        repack_deb meticulous-ui*_arm64.deb
-    else
-        echo "Compression is xz or gzip. Archive can be used as is"
-        cp meticulous-ui*_arm64.deb meticulous-ui.deb
-    fi
-    popd >/dev/null
-    popd >/dev/null
-}
+#     pushd out/make/deb/arm64 >/dev/null
+#     contents=$(ar t meticulous-ui*_arm64.deb)
+#     if [[ $contents == *"control.tar.zst"* ]] && [[ $contents == *"data.tar.zst"* ]]; then
+#         echo "Compression is zstd. Archive needs to be repacked"
+#         repack_deb meticulous-ui*_arm64.deb
+#     else
+#         echo "Compression is xz or gzip. Archive can be used as is"
+#         cp meticulous-ui*_arm64.deb meticulous-ui.deb
+#     fi
+#     popd >/dev/null
+#     popd >/dev/null
+# }
 
 function build_web() {
     echo "Building WebApp"

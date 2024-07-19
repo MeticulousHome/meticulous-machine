@@ -129,20 +129,20 @@ function update_watcher() {
         ${WATCHER_SRC_DIR} ${WATCHER_REV}
 }
 
-function update_dial() {
-    echo "Cloning / Updating Dial Repository"
-    get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
-        ${DIAL_SRC_DIR} ${DIAL_REV}
+# function update_dial() {
+#     echo "Cloning / Updating Dial Repository"
+#     get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
+#         ${DIAL_SRC_DIR} ${DIAL_REV}
 
-    if [ -z "$(which npm)" ]; then
-        echo "node / npm not found. Not checking out Dial App dependencies."
-    else
-        echo "Installing Dial App dependencies"
-        pushd $DIAL_SRC_DIR
-        npm install
-        popd
-    fi
-}
+#    if [ -z "$(which npm)" ]; then
+#        echo "node / npm not found. Not checking out Dial App dependencies."
+#    else
+#        echo "Installing Dial App dependencies"
+#        pushd $DIAL_SRC_DIR
+#        npm install
+#        popd
+#    fi
+#}
 
 
 function update_web() {
@@ -236,7 +236,7 @@ Available options:
     --debian                        Checkout / Update Debian repository
     # --backend                       Checkout / Update Backend repository
     --watcher                       Checkout / Update Watcher repository
-    --dial                          Checkout / Update Dial repository
+    # --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
     --web / --webapp                Checkout / Update WebApp repository
     --linux / --kernel              Checkout / Update Linux Kernel repository
@@ -263,7 +263,7 @@ steps=(
     [update_debian]=0
     # [update_backend]=0
     [update_watcher]=0
-    [update_dial]=0
+    #[update_dial]=0
     [update_web]=0
     [update_linux]=0
     [update_uboot]=0
@@ -288,9 +288,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --install_ubuntu_dependencies) install_ubuntu_dependencies_selected=1 ;;
         --debian) steps[update_debian]=1 ;;
-        --backend) steps[update_backend]=1 ;;
+        # --backend) steps[update_backend]=1 ;;
         --watcher) steps[update_watcher]=1 ;;
-        --dial) steps[update_dial]=1 ;;
+        # --dial) steps[update_dial]=1 ;;
         --web) steps[update_web]=1 ;;
         --webapp) steps[update_web]=1 ;;
         --firmware) firmware_selected=1 ;;

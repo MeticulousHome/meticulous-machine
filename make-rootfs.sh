@@ -65,8 +65,8 @@ function b_copy_components() {
     chmod u+x ${ROOTFS_DIR}/opt/meticulous-crash-reporter
 
     # Install meticulous components
-    # Install Dial app
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall --no-install-recommends trash-cli /opt/meticulous-ui/meticulous-ui.deb"
+    # # Install Dial app
+    # systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall --no-install-recommends trash-cli /opt/meticulous-ui/meticulous-ui.deb"
 
     # # Install Backend
     # echo "Installing Backend"
