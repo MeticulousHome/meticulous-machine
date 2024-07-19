@@ -117,11 +117,11 @@ function update_debian() {
         ${DEBIAN_SRC_DIR} ${DEBIAN_REV}
 }
 
-function update_backend() {
-    echo "Cloning / Updating Backend Repository"
-    get_git_src ${BACKEND_GIT} ${BACKEND_BRANCH} \
-        ${BACKEND_SRC_DIR} ${BACKEND_REV}
-}
+# function update_backend() {
+#     echo "Cloning / Updating Backend Repository"
+#     get_git_src ${BACKEND_GIT} ${BACKEND_BRANCH} \
+#         ${BACKEND_SRC_DIR} ${BACKEND_REV}
+# }
 
 function update_watcher() {
     echo "Cloning / Updating Watcher Repository"
@@ -234,7 +234,7 @@ Available options:
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
 
     --debian                        Checkout / Update Debian repository
-    --backend                       Checkout / Update Backend repository
+    # --backend                       Checkout / Update Backend repository
     --watcher                       Checkout / Update Watcher repository
     --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
@@ -261,7 +261,7 @@ plotter_ui_selected=0
 declare -A steps
 steps=(
     [update_debian]=0
-    [update_backend]=0
+    # [update_backend]=0
     [update_watcher]=0
     [update_dial]=0
     [update_web]=0

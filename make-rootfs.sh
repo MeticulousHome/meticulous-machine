@@ -68,9 +68,9 @@ function b_copy_components() {
     # Install Dial app
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall --no-install-recommends trash-cli /opt/meticulous-ui/meticulous-ui.deb"
 
-    # Install Backend
-    echo "Installing Backend"
-    cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
+    # # Install Backend
+    # echo "Installing Backend"
+    # cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
 
     if [ -d ${DASH_SRC_DIR}/build ]; then
         # Install Dash
@@ -111,8 +111,8 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install --upgrade pip"
 
     # Install python requirements for meticulous
-    echo "Installing Backend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install -r /opt/meticulous-backend/requirements.txt"
+    # echo "Installing Backend dependencies"
+    # systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install -r /opt/meticulous-backend/requirements.txt"
 
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"
