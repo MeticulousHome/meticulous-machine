@@ -53,11 +53,11 @@ function update_debian() {
     $DEBIAN_SRC_DIR/var_make_debian.sh -c deploy
 }
 
-function update_backend() {
-    echo "Cloning / Updating Backend Repository"
-    get_git_src ${BACKEND_GIT} ${BACKEND_BRANCH} \
-        ${BACKEND_SRC_DIR} ${BACKEND_REV}
-}
+# function update_backend() {
+#     echo "Cloning / Updating Backend Repository"
+#     get_git_src ${BACKEND_GIT} ${BACKEND_BRANCH} \
+#         ${BACKEND_SRC_DIR} ${BACKEND_REV}
+# }
 
 function update_watcher() {
     echo "Cloning / Updating Watcher Repository"
@@ -136,7 +136,7 @@ Available options:
     --all                           Checkout / Update All repositories except for the firmware
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
     --debian                        Checkout / Update Debian repository
-    --backend                       Checkout / Update Backend repository
+    # --backend                       Checkout / Update Backend repository
     --watcher                       Checkout / Update Watcher repository
     --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
@@ -158,7 +158,7 @@ declare -A steps
 
 steps=(
     [update_debian]=0
-    [update_backend]=0
+    # [update_backend]=0
     [update_watcher]=0
     [update_dial]=0
     [update_dash]=0
@@ -171,7 +171,7 @@ for arg in "$@"; do
     case $arg in
     --install_ubuntu_dependencies) install_ubuntu_dependencies_selected=1 ;;
     --debian) steps[update_debian]=1 ;;
-    --backend) steps[update_backend]=1 ;;
+    # --backend) steps[update_backend]=1 ;;
     --watcher) steps[update_watcher]=1 ;;
     --dial) steps[update_dial]=1 ;;
     --dashboard) steps[update_dash]=1 ;;

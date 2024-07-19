@@ -42,10 +42,10 @@ function copy_services() {
     ln -sf /lib/systemd/system/meticulous-dial.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-dial.service
 
-    install -m 0644 ${SERVICES_DIR}/meticulous-backend.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -sf /lib/systemd/system/meticulous-backend.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-backend.service
+    # install -m 0644 ${SERVICES_DIR}/meticulous-backend.service \
+    #     ${ROOTFS_DIR}/lib/systemd/system
+    # ln -s /lib/systemd/system/meticulous-backend.service \
+    #     ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-backend.service
 
     install -m 0644 ${SERVICES_DIR}/meticulous-watcher.service \
         ${ROOTFS_DIR}/lib/systemd/system
@@ -87,9 +87,9 @@ function b_copy_components() {
     # Install Dial app
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall /opt/meticulous-ui/meticulous-ui.deb"
 
-    # Install Backend
-    echo "Installing Backend"
-    cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
+    # # Install Backend
+    # echo "Installing Backend"
+    # cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
 
     if [ -d $DASH_SRC_DIR ]; then
         # Install Dash
@@ -120,9 +120,9 @@ function b_copy_components() {
     echo "Installing python updates for pip, wheel and setuptools"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install --upgrade pip wheel setuptools"
 
-    # Install python requirements for meticulous
-    echo "Installing Backend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig /opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
+    # # Install python requirements for meticulous
+    # echo "Installing Backend dependencies"
+    # systemd-nspawn -D ${ROOTFS_DIR} bash -lc "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig /opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
 
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"
