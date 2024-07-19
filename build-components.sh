@@ -31,26 +31,26 @@ function repack_deb() {
     rm debian-binary control.tar.xz data.tar.xz control.tar.zst data.tar.zst
 }
 
-function build_dial() {
-    echo "Building Dial app"
-    pushd $DIAL_SRC_DIR >/dev/null
-    export DPKG_DEB_COMPRESSOR_TYPE=xz
-    rm -f out/make/deb/arm64/*.deb
-    npm install
-    npm run make -- --arch=arm64 --platform=linux
+# function build_dial() {
+#     echo "Building Dial app"
+#     pushd $DIAL_SRC_DIR >/dev/null
+#     export DPKG_DEB_COMPRESSOR_TYPE=xz
+#     rm -f out/make/deb/arm64/*.deb
+#     npm install
+#     npm run make -- --arch=arm64 --platform=linux
 
-    pushd out/make/deb/arm64 >/dev/null
-    contents=$(ar t meticulous-ui*_arm64.deb)
-    if [[ $contents == *"control.tar.zst"* ]] && [[ $contents == *"data.tar.zst"* ]]; then
-        echo "Compression is zstd. Archive needs to be repacked"
-        repack_deb meticulous-ui*_arm64.deb
-    else
-        echo "Compression is xz or gzip. Archive can be used as is"
-        cp meticulous-ui*_arm64.deb meticulous-ui.deb
-    fi
-    popd >/dev/null
-    popd >/dev/null
-}
+#     pushd out/make/deb/arm64 >/dev/null
+#     contents=$(ar t meticulous-ui*_arm64.deb)
+#     if [[ $contents == *"control.tar.zst"* ]] && [[ $contents == *"data.tar.zst"* ]]; then
+#         echo "Compression is zstd. Archive needs to be repacked"
+#         repack_deb meticulous-ui*_arm64.deb
+#     else
+#         echo "Compression is xz or gzip. Archive can be used as is"
+#         cp meticulous-ui*_arm64.deb meticulous-ui.deb
+#     fi
+#     popd >/dev/null
+#     popd >/dev/null
+# }
 
 function build_dash() {
     echo "Building Dashboard app"
@@ -103,7 +103,7 @@ Specific components can be build by passing their names as options.
 Available options:
     --all                     Build all components
     --debian                  Build Debian
-    --dial                    Build Dial application
+    # --dial                    Build Dial application
     --dash | --dashboard      Build Dashboard application
     --web  | --webapp         Build WebApp application
     --firmware                Build ESP32 Firmware
@@ -117,7 +117,7 @@ all_selected=0
 declare -A steps
 steps=(
     [build_debian]=0
-    [build_dial]=0
+    # [build_dial]=0
     [build_dash]=0
     [build_web]=0
     [build_firmware]=0
@@ -127,7 +127,7 @@ steps=(
 for arg in "$@"; do
     case $arg in
     --debian) steps[build_debian]=1 ;;
-    --dial) steps[build_dial]=1 ;;
+    # --dial) steps[build_dial]=1 ;;
     --dash) steps[build_dash]=1 ;;
     --dashboard) steps[build_dash]=1 ;;
     --web) steps[build_web]=1 ;;

@@ -65,16 +65,16 @@ function update_watcher() {
         ${WATCHER_SRC_DIR} ${WATCHER_REV}
 }
 
-function update_dial() {
-    echo "Cloning / Updating Dial Repository"
-    get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
-        ${DIAL_SRC_DIR} ${DIAL_REV}
+# function update_dial() {
+#     echo "Cloning / Updating Dial Repository"
+#     get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
+#         ${DIAL_SRC_DIR} ${DIAL_REV}
 
-    echo "Installing Dial App dependencies"
-    pushd $DIAL_SRC_DIR
-    npm install
-    popd
-}
+#     echo "Installing Dial App dependencies"
+#     pushd $DIAL_SRC_DIR
+#     npm install
+#     popd
+# }
 
 function update_dash() {
     echo "Cloning / Updating Dash Repository"
@@ -138,7 +138,7 @@ Available options:
     --debian                        Checkout / Update Debian repository
     # --backend                       Checkout / Update Backend repository
     --watcher                       Checkout / Update Watcher repository
-    --dial                          Checkout / Update Dial repository
+    # --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
     --web / --webapp                Checkout / Update WebApp repository
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
@@ -160,7 +160,7 @@ steps=(
     [update_debian]=0
     # [update_backend]=0
     [update_watcher]=0
-    [update_dial]=0
+    # [update_dial]=0
     [update_dash]=0
     [update_web]=0
     [update_rauc]=0
@@ -173,7 +173,7 @@ for arg in "$@"; do
     --debian) steps[update_debian]=1 ;;
     # --backend) steps[update_backend]=1 ;;
     --watcher) steps[update_watcher]=1 ;;
-    --dial) steps[update_dial]=1 ;;
+    # --dial) steps[update_dial]=1 ;;
     --dashboard) steps[update_dash]=1 ;;
     --dash) steps[update_dash]=1 ;;
     --web) steps[update_web]=1 ;;
