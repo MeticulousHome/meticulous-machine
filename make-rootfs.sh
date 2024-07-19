@@ -31,11 +31,11 @@ function a_unpack_base() {
     systemd-nspawn -D ${ROOTFS_DIR} apt update
     systemd-nspawn -D ${ROOTFS_DIR} apt install -y ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
 
-    # Install meticulous services
-    install -m 0644 ${SERVICES_DIR}/meticulous-dial.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/meticulous-dial.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-dial.service
+    # # Install meticulous services
+    # install -m 0644 ${SERVICES_DIR}/meticulous-dial.service \
+    #     ${ROOTFS_DIR}/lib/systemd/system
+    # ln -s /lib/systemd/system/meticulous-dial.service \
+    #     ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-dial.service
 
     # install -m 0644 ${SERVICES_DIR}/meticulous-backend.service \
     #     ${ROOTFS_DIR}/lib/systemd/system
@@ -68,8 +68,8 @@ function a_unpack_base() {
 function b_copy_components() {
     echo "Copying components into existing rootfs"
     # Install meticulous components
-    # Install Dial app
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall /opt/meticulous-ui/meticulous-ui.deb"
+    # # Install Dial app
+    # systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall /opt/meticulous-ui/meticulous-ui.deb"
 
     # # Install Backend
     # echo "Installing Backend"
