@@ -10,8 +10,8 @@ readonly MISC_DIR="misc"
 readonly RAUC_CERT="beta.rsa4096.cert.pem"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
-readonly DEBIAN_GIT="git@github.com:MeticulousHome/debian-variscite-fika"
-readonly DEBIAN_BRANCH="debian-bullseye"
+readonly DEBIAN_GIT="git@github.com:oscarlr16/debian-variscite-fika-oscar.git"
+readonly DEBIAN_BRANCH="set_up_pcb_tester"
 readonly DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
