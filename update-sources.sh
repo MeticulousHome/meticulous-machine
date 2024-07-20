@@ -3,12 +3,34 @@ set -eo pipefail
 
 source config.sh
 
+echo "COMPONENTS_DIR is set to: $COMPONENTS_DIR"
+
+#Function to check and fix permissions
+#Function to check and fix permissions
+function check_and_fix_permissions() {
+    echo "Checking permissions for $COMPONENTS_DIR"
+    if [ ! -d "$COMPONENTS_DIR" ]; then
+        echo "COMPONENTS_DIR does not exist. Attempting to create it."
+        mkdir -p "$COMPONENTS_DIR"
+    fi
+    if [ ! -w "$COMPONENTS_DIR" ]; then
+        echo "Fixing permissions for $COMPONENTS_DIR"
+        sudo chown -R $(whoami):$(whoami) "$COMPONENTS_DIR"
+    else
+        echo "Permissions for $COMPONENTS_DIR are correct"
+    fi
+    ls -ld "$COMPONENTS_DIR"
+}
+
 # Taken from var-debian
 # get sources from git repository
 # $1 - git repository
 # $2 - branch name
 # $3 - output dir
 # $4 - commit id
+
+check_and_fix_permissions
+
 function get_git_src() {
     if ! [ -d $3 ]; then
         # clone src code
@@ -109,6 +131,32 @@ function install_ubuntu_dependencies() {
     if [ -z "$(which bundle)" ]; then
         sudo apt install -y ruby ruby-bundler
     fi
+}
+
+function update_tester_backend() {
+    echo "Cloning / Updating AutomatedMainBoardTesterBackend Repository"
+    echo "TESTER_BACKEND_SRC_DIR is set to: $TESTER_BACKEND_SRC_DIR"
+    get_git_src ${TESTER_BACKEND_GIT} ${TESTER_BACKEND_BRANCH} \
+        ${TESTER_BACKEND_SRC_DIR} ${TESTER_BACKEND_REV}
+    
+    echo "Installing dependencies for AutomatedMainBoardTesterBackend"
+    pushd ${TESTER_BACKEND_SRC_DIR}
+    if [ -f requirements.txt ]; then
+        # First, we try using python3.12
+        if command -v python3.12 &> /dev/null; then
+            python3.12 -m pip install -r requirements.txt
+        # If python3.12 is not available, we try with python3
+        elif command -v python3 &> /dev/null; then
+            python3 -m pip install -r requirements.txt
+        # If neither is available, we display an error message
+        else
+            echo "Error: Neither python3.12 nor python3 was found. Please install Python 3."
+            exit 1
+        fi
+    else
+        echo "requirements.txt not found in ${TESTER_BACKEND_SRC_DIR}"
+    fi
+    popd
 }
 
 function update_debian() {
@@ -234,9 +282,7 @@ Available options:
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
 
     --debian                        Checkout / Update Debian repository
-    # --backend                       Checkout / Update Backend repository
     --watcher                       Checkout / Update Watcher repository
-    # --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
     --web / --webapp                Checkout / Update WebApp repository
     --linux / --kernel              Checkout / Update Linux Kernel repository
@@ -246,6 +292,7 @@ Available options:
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
     --history                       Checkout / Update History UI repository (Requires explicit access)
     --plotter                       Checkout / Update Plotter UI repository (Requires explicit access)
+    --tester_backend                Checkout / Update AutomatedMainBoardTesterBackend repository
     --rauc                          Checkout / Update rauc and rauc-hawkbit-updatere repositories
     --psplash / --splash            Checkout / Update psplash repository
     --help                          Display this help and exit
@@ -261,12 +308,13 @@ plotter_ui_selected=0
 declare -A steps
 steps=(
     [update_debian]=0
-    # [update_backend]=0
+    #[update_backend]=0
     [update_watcher]=0
     #[update_dial]=0
     [update_web]=0
     [update_linux]=0
     [update_uboot]=0
+    [update_tester_backend]=0
     [update_rauc]=0
     [update_psplash]=0
     [update_crash_reporter]=0

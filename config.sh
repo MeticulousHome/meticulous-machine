@@ -31,6 +31,12 @@ set +e
 readonly DOCKER_DEB_BUILER_IMAGE="ghcr.io/meticuloushome/meticulous-deb-builder"
 
 readonly COMPONENTS_DIR="components"
+
+readonly TESTER_BACKEND_SRC_DIR="${COMPONENTS_DIR}/automated-mainboard-tester-backend"
+readonly TESTER_BACKEND_GIT="git@github.com:MeticulousHome/AutomatedMainBoardTesterBackend.git"
+readonly TESTER_BACKEND_BRANCH="main"
+readonly TESTER_BACKEND_REV="HEAD"
+
 readonly ROOTFS_DIR="rootfs"
 readonly SERVICES_DIR="system-services"
 readonly RAUC_CONFIG_DIR="rauc-config"
