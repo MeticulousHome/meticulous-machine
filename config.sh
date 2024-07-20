@@ -2,6 +2,12 @@
 set -eo pipefail
 
 readonly COMPONENTS_DIR="components"
+
+readonly TESTER_BACKEND_SRC_DIR="${COMPONENTS_DIR}/automated-mainboard-tester-backend"
+readonly TESTER_BACKEND_GIT="git@github.com:MeticulousHome/AutomatedMainBoardTesterBackend.git"
+readonly TESTER_BACKEND_BRANCH="main"
+readonly TESTER_BACKEND_REV="HEAD"
+
 readonly ROOTFS_DIR="rootfs"
 readonly SERVICES_DIR="system-services"
 readonly RAUC_CONFIG_DIR="rauc-config"
@@ -12,7 +18,7 @@ readonly RAUC_CERT="beta.rsa4096.cert.pem"
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
 readonly DEBIAN_GIT="git@github.com:oscarlr16/debian-variscite-fika-oscar.git"
 readonly DEBIAN_BRANCH="set_up_pcb_tester"
-readonly DEBIAN_REV="HEAD"
+readonly DEBIAN_REV="5f018b36d40262801cae3dca36560cc50dcca0c6"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
 readonly BACKEND_GIT="git@github.com:MeticulousHome/backend_for_esp32/"

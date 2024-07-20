@@ -2,12 +2,34 @@
 
 source config.sh
 
+echo "COMPONENTS_DIR is set to: $COMPONENTS_DIR"
+
+#Function to check and fix permissions
+#Function to check and fix permissions
+function check_and_fix_permissions() {
+    echo "Checking permissions for $COMPONENTS_DIR"
+    if [ ! -d "$COMPONENTS_DIR" ]; then
+        echo "COMPONENTS_DIR does not exist. Attempting to create it."
+        mkdir -p "$COMPONENTS_DIR"
+    fi
+    if [ ! -w "$COMPONENTS_DIR" ]; then
+        echo "Fixing permissions for $COMPONENTS_DIR"
+        sudo chown -R $(whoami):$(whoami) "$COMPONENTS_DIR"
+    else
+        echo "Permissions for $COMPONENTS_DIR are correct"
+    fi
+    ls -ld "$COMPONENTS_DIR"
+}
+
 # Taken from var-debian
 # get sources from git repository
 # $1 - git repository
 # $2 - branch name
 # $3 - output dir
 # $4 - commit id
+
+check_and_fix_permissions
+
 function get_git_src() {
     if ! [ -d $3 ]; then
         # clone src code
@@ -44,13 +66,84 @@ function install_ubuntu_dependencies() {
     fi
 }
 
+function update_tester_backend() {
+    echo "Cloning / Updating AutomatedMainBoardTesterBackend Repository"
+    echo "TESTER_BACKEND_SRC_DIR is set to: $TESTER_BACKEND_SRC_DIR"
+    get_git_src ${TESTER_BACKEND_GIT} ${TESTER_BACKEND_BRANCH} \
+        ${TESTER_BACKEND_SRC_DIR} ${TESTER_BACKEND_REV}
+    
+    echo "Installing dependencies for AutomatedMainBoardTesterBackend"
+    pushd ${TESTER_BACKEND_SRC_DIR}
+    if [ -f requirements.txt ]; then
+        # First, we try using python3.12
+        if command -v python3.12 &> /dev/null; then
+            python3.12 -m pip install -r requirements.txt
+        # If python3.12 is not available, we try with python3
+        elif command -v python3 &> /dev/null; then
+            python3 -m pip install -r requirements.txt
+        # If neither is available, we display an error message
+        else
+            echo "Error: Neither python3.12 nor python3 was found. Please install Python 3."
+            exit 1
+        fi
+    else
+        echo "requirements.txt not found in ${TESTER_BACKEND_SRC_DIR}"
+    fi
+    popd
+}
+
 function update_debian() {
     echo "Cloning / Updating Debian Repository"
-    get_git_src ${DEBIAN_GIT} ${DEBIAN_BRANCH} \
-        ${DEBIAN_SRC_DIR} ${DEBIAN_REV}
-
+    if [ ! -d "${DEBIAN_SRC_DIR}" ]; then
+        echo "Cloning Debian repository..."
+        git clone ${DEBIAN_GIT} ${DEBIAN_SRC_DIR}
+    fi
+    
+    pushd ${DEBIAN_SRC_DIR} > /dev/null
+    
+    echo "Updating remote references..."
+    git fetch --all
+    
+    echo "Checking for and storing any local changes..."
+    git stash
+    
+    echo "Attempting to switch to branch ${DEBIAN_BRANCH}..."
+    if git checkout ${DEBIAN_BRANCH}; then
+        echo "Branch ${DEBIAN_BRANCH} already exists. Updating..."
+        git pull origin ${DEBIAN_BRANCH}
+    else
+        echo "Branch ${DEBIAN_BRANCH} doesn't exist locally. Creating it..."
+        git checkout -b ${DEBIAN_BRANCH} origin/${DEBIAN_BRANCH} || {
+            echo "Failed to create branch ${DEBIAN_BRANCH}. It might not exist on remote. Creating from current HEAD..."
+            git checkout -b ${DEBIAN_BRANCH}
+        }
+    fi
+    
+    echo "Attempting to reset to specific commit ${DEBIAN_REV}..."
+    if git reset --hard ${DEBIAN_REV}; then
+        echo "Successfully reset to commit ${DEBIAN_REV}"
+    else
+        echo "Failed to reset to commit ${DEBIAN_REV}. This commit might not exist."
+        echo "Showing the last 5 commits of the current branch:"
+        git log -n 5 --oneline
+        echo "Please verify the DEBIAN_REV variable in config.sh."
+        popd > /dev/null
+        return 1
+    fi
+    
+    echo "Checking if there were stashed changes..."
+    git stash list | grep -q "stash@{0}" && {
+        echo "Attempting to apply stashed changes..."
+        git stash pop || {
+            echo "Failed to apply stashed changes. They might conflict with the new state."
+            echo "The changes are still in the stash. Please resolve manually if needed."
+        }
+    }
+    
+    popd > /dev/null
+    
     echo "Asking debian to fetch its dependencies"
-    $DEBIAN_SRC_DIR/var_make_debian.sh -c deploy
+    ${DEBIAN_SRC_DIR}/var_make_debian.sh -c deploy
 }
 
 # function update_backend() {
@@ -136,13 +229,12 @@ Available options:
     --all                           Checkout / Update All repositories except for the firmware
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
     --debian                        Checkout / Update Debian repository
-    # --backend                       Checkout / Update Backend repository
     --watcher                       Checkout / Update Watcher repository
-    # --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
     --web / --webapp                Checkout / Update WebApp repository
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
+    --tester_backend                Checkout / Update AutomatedMainBoardTesterBackend repository
     --rauc                          Checkout / Update rauc and rauc-hawkbit-updatere repositories
     --help                          Display this help and exit
 
@@ -158,17 +250,17 @@ declare -A steps
 
 steps=(
     [update_debian]=0
-    # [update_backend]=0
     [update_watcher]=0
-    # [update_dial]=0
     [update_dash]=0
     [update_web]=0
+    [update_tester_backend]=0
     [update_rauc]=0
 )
 
 # Parse command line arguments, enable steps when selected
 for arg in "$@"; do
     case $arg in
+    --tester_backend) steps[update_tester_backend]=1 ;;
     --install_ubuntu_dependencies) install_ubuntu_dependencies_selected=1 ;;
     --debian) steps[update_debian]=1 ;;
     # --backend) steps[update_backend]=1 ;;
