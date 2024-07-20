@@ -73,7 +73,11 @@ function b_copy_components() {
 
     # # Install Backend
     # echo "Installing Backend"
-    # cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
+    # cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/
+    
+    # Install AutomatedMainBoardTesterBackend
+    echo "Installing AutomatedMainBoardTesterBackend"
+    cp -r ${TESTER_BACKEND_SRC_DIR} ${ROOTFS_DIR}/root/AutomatedMainBoardTesterBackend
 
     # Install Dash
     echo "Installing Dash"
@@ -110,6 +114,10 @@ function b_copy_components() {
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-watcher/requirements.txt"
+
+    # Install python requirements for AutomatedMainBoardTesterBackend
+    echo "Installing AutomatedMainBoardTesterBackend dependencies"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/python3.12 -m pip install -r /root/AutomatedMainBoardTesterBackend/requirements.txt"
 
     # Install firmware if it exists on disk
     if [ -d $FIRMWARE_OUT_DIR ]; then
