@@ -12,6 +12,7 @@ Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/0"
 Environment="WAYLAND_DISPLAY=wayland-0"
 Environment="GDK_BACKEND=wayland"
+Environment="ELECTRON_ENABLE_LOGGING=true"
 
 [Install]
 WantedBy=multi-user.target
