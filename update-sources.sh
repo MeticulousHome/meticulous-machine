@@ -142,17 +142,22 @@ function update_tester_backend() {
     echo "Installing dependencies for AutomatedMainBoardTesterBackend"
     pushd ${TESTER_BACKEND_SRC_DIR}
     if [ -f requirements.txt ]; then
-        # First, we try using python3.12
-        if command -v python3.12 &> /dev/null; then
-            python3.12 -m pip install -r requirements.txt
-        # If python3.12 is not available, we try with python3
-        elif command -v python3 &> /dev/null; then
-            python3 -m pip install -r requirements.txt
-        # If neither is available, we display an error message
-        else
-            echo "Error: Neither python3.12 nor python3 was found. Please install Python 3."
+        # Use the Python that's in the user's PATH
+        PYTHON_PATH=$(which python)
+        if [ -z "$PYTHON_PATH" ]; then
+            echo "Error: Python not found in PATH. Please ensure Python is installed and in your PATH."
             exit 1
         fi
+        echo "Using Python at: $PYTHON_PATH"
+        
+        # Ensure python3-dev is installed
+        sudo apt-get update && sudo apt-get install -y python3-dev
+
+        # Install gpiod separately
+        $PYTHON_PATH -m pip install --no-binary :all: gpiod==2.1.3
+
+        # Install other requirements
+        $PYTHON_PATH -m pip install -r requirements.txt
     else
         echo "requirements.txt not found in ${TESTER_BACKEND_SRC_DIR}"
     fi
