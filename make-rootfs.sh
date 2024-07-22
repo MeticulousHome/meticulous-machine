@@ -74,7 +74,7 @@ function b_copy_components() {
     
     # Install AutomatedMainBoardTesterBackend
     echo "Installing AutomatedMainBoardTesterBackend"
-    cp -r ${TESTER_BACKEND_SRC_DIR} ${ROOTFS_DIR}/root/AutomatedMainBoardTesterBackend
+    cp -r ${TESTER_BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt/AutomatedMainBoardTesterBackend
 
     if [ -d ${DASH_SRC_DIR}/build ]; then
         # Install Dash
