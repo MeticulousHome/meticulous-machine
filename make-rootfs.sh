@@ -84,6 +84,7 @@ function b_copy_components() {
 
     # Install WebApp
     echo "Installing WebApp"
+    echo "Installing WebApp"
     cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
 
     # Install Plotter UI
@@ -122,9 +123,21 @@ function b_copy_components() {
     echo "Installing Watcher dependencies"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install -r /opt/meticulous-watcher/requirements.txt"
 
-    # Install python requirements for AutomatedMainBoardTesterBackend
+    # Create a specific virtual environment for AutomatedMainBoardTesterBackend
+    echo "Creating virtual environment for AutomatedMainBoardTesterBackend"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.12 -m venv /opt/AutomatedMainBoardTesterBackend/venv"
+
+    # Install python requirements for AutomatedMainBoardTesterBackend in its specific venv
     echo "Installing AutomatedMainBoardTesterBackend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/python3.12 -m pip install -r /root/AutomatedMainBoardTesterBackend/requirements.txt"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/AutomatedMainBoardTesterBackend/venv/bin/pip install -r /opt/AutomatedMainBoardTesterBackend/requirements.txt"
+
+    # Modify the start script to activate the venv (assuming there's a start script)
+    echo "Modifying start script for AutomatedMainBoardTesterBackend"
+    if [ -f ${ROOTFS_DIR}/opt/AutomatedMainBoardTesterBackend/start_script.sh ]; then
+        sed -i '1iSource /opt/AutomatedMainBoardTesterBackend/venv/bin/activate' ${ROOTFS_DIR}/opt/AutomatedMainBoardTesterBackend/start_script.sh
+    else
+        echo "Warning: start_script.sh not found for AutomatedMainBoardTesterBackend"
+    fi
 
     # Install firmware if it exists on disk
     if [ -d $FIRMWARE_OUT_DIR ]; then

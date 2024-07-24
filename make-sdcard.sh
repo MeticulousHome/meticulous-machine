@@ -42,7 +42,7 @@ declare -i USER_END=$((IMAGE_SIZE / 1024))-1-0x10
 declare -i USER_SIZE=USER_END-USER_START
 
 function print_partition_scheme() {
-    echo -e "## Planned paritioning scheme"
+    echo -e "## Planned partitioning scheme"
 
     # Print partition table for checking
     PART_TABLE=$(echo "Number:Name:Start (KiB):Size (KiB):End (KiB):Aling (KiB):Type\n")
@@ -77,15 +77,15 @@ function create_partition() {
 
     # Everything below 100M is probably not worth optimizing
     if [ -n "$SIZE" ] && [ $SIZE -lt $((100 * 1024)) ]; then
-        printf "%-09s: Creating        unaligned parition (${PARTITION_NUMBER}) from 0x%06x to 0x%06x\n" "$NAME" "${START}" "${END}"
+        printf "%-09s: Creating        unaligned partition (${PARTITION_NUMBER}) from 0x%06x to 0x%06x\n" "$NAME" "${START}" "${END}"
         create_unaligned_partition ${START} ${END}
     else
         if [ -z "$END" ]; then
             printf "%-09s: Creating properly aligned parition (${PARTITION_NUMBER}) from 0x%06x to the end\n" "$NAME" "${START}"
             parted ${IMAGE_TARGET} -f mkpart primary ${START}KiB 100%
         else
-            printf "%-09s: Creating properly aligned parition (${PARTITION_NUMBER}) from 0x%06x to 0x%06x\n" "$NAME" "${START}" "${END}"
-            parted ${IMAGE_TARGET} -f mkpart primary ${START}KiB ${END}KiB
+            printf "%-09s: Creating properly aligned partition (${PARTITION_NUMBER}) from 0x%06x to 0x%06x\n" "$NAME" "${START}" "${END}"
+            parted ${IMAGE_TARGET} mkpart primary ${START}KiB ${END}KiB
         fi
     fi
 
@@ -94,7 +94,7 @@ function create_partition() {
 }
 
 function create_image() {
-    echo -e "\n## Creating parition scheme"
+    echo -e "\n## Creating partition scheme"
 
     if [ -b ${IMAGE_TARGET} ]; then
         IS_BLOCK=y
@@ -122,7 +122,7 @@ function create_image() {
     create_partition uboot ${BOOTLOADER_START} ${BOOTLOADER_END}
     create_partition uboot_env ${BOOTLOADER_ENV_START} ${BOOTLOADER_ENV_END}
     create_partition root_a ${ROOT_A_START} ${ROOT_A_END}
-    parted ${IMAGE_TARGET} -f set ${PARTITIONS} boot on
+    parted ${IMAGE_TARGET} set ${PARTITIONS} boot on
     create_partition root_b ${ROOT_B_START} ${ROOT_B_END}
     parted ${IMAGE_TARGET} -f set ${PARTITIONS} boot on
     # SDCards will be filled to the end
@@ -143,7 +143,7 @@ function create_image() {
         losetup -P ${LOOP_DEV} ${IMAGE_TARGET}
     fi
 
-    echo -e "\n## Formating"
+    echo -e "\n## Formatting"
 
     echo "Creating fat32 for u-boot env on ${PARTITION}2"
     mkfs.fat ${PARTITION}2 >/dev/null
