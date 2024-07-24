@@ -83,13 +83,6 @@ function b_copy_components() {
     copy_services
 
     echo "Copying components into existing rootfs"
-    # Install meticulous components
-    # # Install Dial app
-    # systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall /opt/meticulous-ui/meticulous-ui.deb"
-
-    # # Install Backend
-    # echo "Installing Backend"
-    # cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/
     
     # Install AutomatedMainBoardTesterBackend
     echo "Installing AutomatedMainBoardTesterBackend"
@@ -101,6 +94,7 @@ function b_copy_components() {
         cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
     fi
     # Install WebApp
+    echo "Installing WebApp"
     echo "Installing WebApp"
     cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
 
@@ -124,17 +118,25 @@ function b_copy_components() {
     echo "Installing python updates for pip, wheel and setuptools"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install --upgrade pip wheel setuptools"
 
-    # # Install python requirements for meticulous
-    # echo "Installing Backend dependencies"
-    # systemd-nspawn -D ${ROOTFS_DIR} bash -lc "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig /opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
-
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-watcher/requirements.txt"
 
-    # Install python requirements for AutomatedMainBoardTesterBackend
+    # Create a specific virtual environment for AutomatedMainBoardTesterBackend
+    echo "Creating virtual environment for AutomatedMainBoardTesterBackend"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.12 -m venv /opt/AutomatedMainBoardTesterBackend/venv"
+
+    # Install python requirements for AutomatedMainBoardTesterBackend in its specific venv
     echo "Installing AutomatedMainBoardTesterBackend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/python3.12 -m pip install -r /root/AutomatedMainBoardTesterBackend/requirements.txt"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/AutomatedMainBoardTesterBackend/venv/bin/pip install -r /opt/AutomatedMainBoardTesterBackend/requirements.txt"
+
+    # Modify the start script to activate the venv (assuming there's a start script)
+    echo "Modifying start script for AutomatedMainBoardTesterBackend"
+    if [ -f ${ROOTFS_DIR}/opt/AutomatedMainBoardTesterBackend/start_script.sh ]; then
+        sed -i '1iSource /opt/AutomatedMainBoardTesterBackend/venv/bin/activate' ${ROOTFS_DIR}/opt/AutomatedMainBoardTesterBackend/start_script.sh
+    else
+        echo "Warning: start_script.sh not found for AutomatedMainBoardTesterBackend"
+    fi
 
     # Install firmware if it exists on disk
     if [ -d $FIRMWARE_OUT_DIR ]; then
