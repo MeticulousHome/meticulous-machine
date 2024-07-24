@@ -114,7 +114,8 @@ function b_copy_components() {
     # Install firmware if it exists on disk
     if [ -d $FIRMWARE_OUT_DIR ]; then
         echo "Installing Firmware"
-        cp -r $FIRMWARE_OUT_DIR ${ROOTFS_DIR}/opt/meticulous-firmware
+        mkdir -p ${ROOTFS_DIR}/opt/meticulous-firmware
+        cp -r $FIRMWARE_OUT_DIR/* ${ROOTFS_DIR}/opt/meticulous-firmware
     fi
 
     chown root:root ${ROOTFS_DIR}/opt/meticulous*
