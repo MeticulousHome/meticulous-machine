@@ -23,7 +23,7 @@ function get_git_src() {
 function install_ubuntu_dependencies() {
     if [ -n "$(uname -a | grep Ubuntu)" ]; then
         echo "Running on ubuntu: Installing host dependencies"
-
+        sudo apt update
         sudo apt -y install ${HOST_PACKAGES}
 
         if [ -z "$(which node)" ]; then
@@ -141,10 +141,10 @@ any_selected=0
 all_selected=0
 firmware_selected=0
 mobile_selected=0
+install_ubuntu_dependencies_selected=0
 declare -A steps
 
 steps=(
-    [install_ubuntu_dependencies]=0
     [update_debian]=0
     [update_backend]=0
     [update_watcher]=0
@@ -156,7 +156,7 @@ steps=(
 # Parse command line arguments, enable steps when selected
 for arg in "$@"; do
     case $arg in
-    --install_ubuntu_dependencies) steps[install_ubuntu_dependencies]=1 ;;
+    --install_ubuntu_dependencies) install_ubuntu_dependencies_selected=1 ;;
     --debian) steps[update_debian]=1 ;;
     --backend) steps[update_backend]=1 ;;
     --watcher) steps[update_watcher]=1 ;;
@@ -176,6 +176,10 @@ for arg in "$@"; do
         ;;
     esac
 done
+
+if [ ${install_ubuntu_dependencies_selected} -eq 1 ]; then
+    install_ubuntu_dependencies
+fi
 
 for key in "${!steps[@]}"; do
     if [ ${steps[$key]} -eq 1 ] ||

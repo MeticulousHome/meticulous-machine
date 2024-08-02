@@ -6,23 +6,32 @@ on:
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  build-and-upload:
+  build-sdcard-and-upload:
     runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: rootfs
-        github-token: ${{ secrets.GH_TOKEN }}
-        path: ./debian/output/rootfs.tar.gz
-
     - name: Set up Git authentication
       run: |
         git config --global url."https://${{ secrets.GH_TOKEN }}@github.com/".insteadOf "git@github.com:"
+
+    - name: Get latest debian workflow run ID
+      id: get_run_id
+      run: |
+        latest_run_id=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/workflows/build-debian-base.yml/runs?status=success&per_page=1" \
+          | jq -r '.workflow_runs[0].id')
+        echo "latest_run_id=${latest_run_id}" >> $GITHUB_ENV
+
+    - name: Download debian artifact
+      uses: actions/download-artifact@v4
+      with:
+        run-id: ${{ env.latest_run_id }}
+        name: rootfs
+        github-token: ${{ secrets.GH_TOKEN }}
+        path: ./components/debian/output
 
     - name: Install Ubuntu dependencies
       run: ./update-sources.sh --install_ubuntu_dependencies
@@ -32,8 +41,11 @@ jobs:
         sudo apt install -y --allow-downgrades ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
         sudo apt-mark hold qemu-user-static
 
+    - name: 'Exporting pio'
+      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
+
     - name: Checkout all the sources
-      run: ./update-sources.sh --all --firmware
+      run: ./update-sources.sh --backend --watcher --dial --dash --web --firmware
 
     - name: Build components
       run: ./build-components.sh --dial --dash --web --firmware
