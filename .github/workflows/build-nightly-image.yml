@@ -28,7 +28,7 @@ jobs:
 
     - name: Downgrade qemu-user-static
       run: |
-        sudo apt install -y ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
+        sudo apt install -y --allow-downgrades ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
         sudo apt-mark hold qemu-user-static
 
     - name: Checkout all the sources
