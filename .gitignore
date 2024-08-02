@@ -2,3 +2,5 @@ components/*
 rootfs
 meticulous-rootfs.tar.gz
 sdcard.img*
+emmc.img*
+rauc-config/u-boot.scr
