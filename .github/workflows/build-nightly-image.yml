@@ -50,7 +50,7 @@ jobs:
     - name: Build components
       run: ./build-components.sh --dial --dash --web --firmware
 
-    - name: Build components
+    - name: Build rootfs
       run: sudo ./make-rootfs.sh --all
 
     - name: Build sdcard
@@ -60,4 +60,6 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: sdcard
-        path: sdcard.img.gz
+        path: |
+          sdcard.img.gz
+          emmc.img.gz
