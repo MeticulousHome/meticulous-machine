@@ -1,0 +1,39 @@
+name: Build debian base
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Runs every Sunday at midnight
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Git authentication
+      run: |
+        git config --global url."https://${{ secrets.GH_TOKEN }}@github.com/".insteadOf "git@github.com:"
+
+    - name: Install Ubuntu dependencies
+      run: ./update-sources.sh --install_ubuntu_dependencies
+
+    - name: Downgrade qemu-user-static
+      run: |
+        sudo apt install -y ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
+        sudo apt-mark hold qemu-user-static
+
+
+    - name: Checkout debian
+      run: ./update-sources.sh --debian
+
+    - name: Build components
+      run: ./build-components.sh --debian
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: rootfs
+        path: debian/output/rootfs.tar.gz
