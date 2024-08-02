@@ -170,9 +170,11 @@ function create_image() {
 
     echo "Installing OS A               to ${PARTITION}3"
     pv meticulous-rootfs.tar.gz | tar -xp -I pigz -C sdcard_a
+    cp -v rauc-config/fstab_sdcard sdcard_a/etc/fstab
 
     echo "Installing OS B               to ${PARTITION}4"
     pv meticulous-rootfs.tar.gz | tar -xp -I pigz -C sdcard_b
+    cp -v rauc-config/fstab_sdcard sdcard_b/etc/fstab
 
     echo "Installing u-boot script"
     mkdir -p sdcard-uboot
@@ -200,14 +202,36 @@ function create_image() {
     umount sdcard_b
     umount sdcard-uboot
     umount sdcard-user
-    rm -r sdcard_a sdcard_b sdcard-uboot sdcard-user
 
     if ! [ -b ${IMAGE_TARGET} ]; then
         losetup --detach ${LOOP_DEV}
-        echo -e "\n## Compressing image"
+
+        echo -e "\n## Creating emmc image"
+
+        cp ${IMAGE_TARGET} emmc.img
+        LOOP_DEV=$(losetup --find)
+        PARTITION=${LOOP_DEV}p
+        losetup -P ${LOOP_DEV} emmc.img
+        mount ${PARTITION}3 sdcard_a
+        mount ${PARTITION}4 sdcard_b
+        cp -v rauc-config/fstab_emmc sdcard_a/etc/fstab
+        cp -v rauc-config/fstab_emmc sdcard_b/etc/fstab
+        sync
+        sync
+        sleep 1
+        umount sdcard_a
+        umount sdcard_b
+        losetup --detach ${LOOP_DEV}
+
+        echo -e "## Compressing images"
         pigz -kf ${IMAGE_TARGET}
+        pigz -kf emmc.img
         echo -e "Image can be installed from ${IMAGE_TARGET} or ${IMAGE_TARGET}.gz"
+        echo -e "Machine can be imaged with emmc.img, emmc.img.gz needs to be unpacked first"
     fi
+
+    rm -r sdcard_a sdcard_b sdcard-uboot sdcard-user
+
 
     echo -e "\n## Done"
 
