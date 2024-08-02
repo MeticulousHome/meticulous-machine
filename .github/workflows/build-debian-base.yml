@@ -31,13 +31,8 @@ jobs:
     - name: Build components
       run: ./build-components.sh --debian
 
-    - name: Copy artifact
-      run: |
-        mkdir artifacts
-        copy debian/output/rootfs.tar.gz artifacts
-
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: rootfs
-        path: artifacts
+        path: debian/output
