@@ -45,10 +45,10 @@ jobs:
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Checkout all the sources
-      run: ./update-sources.sh --backend --watcher --dial --dash --web --firmware
+      run: ./update-sources.sh --backend --watcher --dial  --web --firmware
 
     - name: Build components
-      run: ./build-components.sh --dial --dash --web --firmware
+      run: ./build-components.sh --dial --web --firmware
 
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all
