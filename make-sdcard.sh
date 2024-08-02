@@ -81,8 +81,8 @@ function create_partition() {
         create_unaligned_partition ${START} ${END}
     else
         if [ -z "$END" ]; then
-            printf "%-09s: Creating properly aligned parition (${PARTITION_NUMBER}) from 0x%06x to the end\n" "$NAME" "${START}" "${END}"
-            parted ${IMAGE_TARGET} -f mkpart primary ${START}KiB
+            printf "%-09s: Creating properly aligned parition (${PARTITION_NUMBER}) from 0x%06x to the end\n" "$NAME" "${START}"
+            parted ${IMAGE_TARGET} -f mkpart primary ${START}KiB 100%
         else
             printf "%-09s: Creating properly aligned parition (${PARTITION_NUMBER}) from 0x%06x to 0x%06x\n" "$NAME" "${START}" "${END}"
             parted ${IMAGE_TARGET} -f mkpart primary ${START}KiB ${END}KiB
@@ -125,7 +125,12 @@ function create_image() {
     parted ${IMAGE_TARGET} -f set ${PARTITIONS} boot on
     create_partition root_b ${ROOT_B_START} ${ROOT_B_END}
     parted ${IMAGE_TARGET} -f set ${PARTITIONS} boot on
-    create_partition user ${USER_START} ${USER_END}
+    # SDCards will be filled to the end
+    if [ ${IS_BLOCK} = "y" ]; then
+        create_partition user ${USER_START}
+    else
+        create_partition user ${USER_START} ${USER_END}
+    fi
 
     if [ ${IS_BLOCK} = "y" ]; then
         echo "${IMAGE_TARGET} is a block device, rescanning partitions"
@@ -152,16 +157,22 @@ function create_image() {
     echo "Creating ext4  for    user    on ${PARTITION}5"
     mkfs.ext4 ${PARTITION}5 -F -L user -q
 
-    mkdir -p sdcard
-    mount ${PARTITION}3 sdcard
+    mkdir -p sdcard_a
+    mkdir -p sdcard_b
+
+    mount ${PARTITION}3 sdcard_a
+    mount ${PARTITION}4 sdcard_b
 
     echo -e "\n## Installing"
 
     echo "Installing u-boot             to ${PARTITION}1"
     dd if=${DEBIAN_SRC_DIR}/output/imx-boot-sd.bin of=${PARTITION}1 bs=1K status=noxfer status=progress 2>/dev/null
 
-    echo "Installing OS                 to ${PARTITION}3"
-    pv meticulous-rootfs.tar.gz | tar -xp -I pigz -C sdcard
+    echo "Installing OS A               to ${PARTITION}3"
+    pv meticulous-rootfs.tar.gz | tar -xp -I pigz -C sdcard_a
+
+    echo "Installing OS B               to ${PARTITION}4"
+    pv meticulous-rootfs.tar.gz | tar -xp -I pigz -C sdcard_b
 
     echo "Installing u-boot script"
     mkdir -p sdcard-uboot
@@ -185,9 +196,11 @@ function create_image() {
     done
     echo "\n"
 
-    umount sdcard
+    umount sdcard_a
+    umount sdcard_b
     umount sdcard-uboot
     umount sdcard-user
+    rm -r sdcard_a sdcard_b sdcard-uboot sdcard-user
 
     if ! [ -b ${IMAGE_TARGET} ]; then
         losetup --detach ${LOOP_DEV}
