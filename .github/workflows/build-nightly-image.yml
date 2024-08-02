@@ -1,4 +1,4 @@
-name: Build debian base
+name: Build nightly sdcard image
 
 on:
   schedule:
