@@ -90,7 +90,7 @@ function b_copy_components() {
 
     # install python
     echo "Installing Python"
-    tar xf ${DEBIAN_SRC_DIR}/variscite/python/python3.12.tar.gz -C ${ROOTFS_DIR}
+    tar xf misc/python3.12.tar.gz -C ${ROOTFS_DIR}
 
     # Reinstall pip3.12 as it is usually expecting python at the wrong location
     rm -rf ${ROOTFS_DIR}/usr/lib/python3.12/site-packages/pip*
