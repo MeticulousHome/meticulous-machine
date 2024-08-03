@@ -52,6 +52,10 @@ jobs:
         sudo apt install -y --allow-downgrades ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
         sudo apt-mark hold qemu-user-static
 
+    - name: Install qemu-img
+      run: |
+        sudo apt install -y qemu-utils
+
     - name: 'Exporting pio'
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
