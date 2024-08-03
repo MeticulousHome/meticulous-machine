@@ -53,6 +53,9 @@ jobs:
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all
 
+    - name: Delete original debian rootfs
+      run: rm -r ./components/debian/output/rootfs*
+
     - name: Build sdcard
       run: sudo ./make-sdcard.sh --image
 
