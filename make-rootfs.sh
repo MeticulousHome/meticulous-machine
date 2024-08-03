@@ -75,10 +75,11 @@ function b_copy_components() {
     echo "Installing Backend"
     cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
 
-    # Install Dash
-    echo "Installing Dash"
-    cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
-
+    if [ -d $DASH_SRC_DIR ]; then
+        # Install Dash
+        echo "Installing Dash"
+        cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
+    fi
     # Install WebApp
     echo "Installing WebAoo"
     cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
