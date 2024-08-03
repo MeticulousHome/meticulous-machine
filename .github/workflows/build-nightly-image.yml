@@ -74,10 +74,16 @@ jobs:
     - name: Build sdcard
       run: sudo ./make-sdcard.sh --image
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
+    - name: Upload SDCardartifact
+      uses: actions/upload-artifact@v4
       with:
         name: sdcard
-        path: |
-          sdcard.img.gz
-          emmc.img.gz
+        path: sdcard.img.gz
+        if-no-files-found: error
+
+    - name: Upload EMMC artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: emmc
+        path: emmc.img.gz
+        if-no-files-found: error
