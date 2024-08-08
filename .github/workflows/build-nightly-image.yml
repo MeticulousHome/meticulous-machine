@@ -147,6 +147,6 @@ jobs:
     - name: Upload EMMC bundle
       uses: actions/upload-artifact@v4
       with:
-        name: emmc
+        name: emmc-bundle
         path: rauc_meticulous_emmc_*.raucb
         if-no-files-found: error
