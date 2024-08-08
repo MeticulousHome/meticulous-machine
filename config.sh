@@ -42,6 +42,12 @@ readonly FIRMWARE_GIT="git@github.com:MeticulousHome/flow_machine_firmware"
 readonly FIRMWARE_BRANCH="dev"
 readonly FIRMWARE_REV="HEAD"
 
+readonly PIPER_VERSION="1.2.0"
+readonly PIPER_URL="https://github.com/rhasspy/piper/releases/download/${PIPER_VERSION}/piper_arm64.tar.gz"
+# For browsing use https://huggingface.co/rhasspy/piper-voices/tree/v1.0.0
+readonly PIPER_VOICE_BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/"
+readonly PIPER_SEMAINE="en/en_GB/semaine/medium/en_GB-semaine-medium.onnx"
+
 readonly SYSTEM_PACKAGES="parted avahi-daemon libgirepository1.0-dev libgstreamer-plugins-base1.0-dev gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
