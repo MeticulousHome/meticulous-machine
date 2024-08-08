@@ -5,3 +5,5 @@ sdcard.img*
 emmc.img*
 rauc-config/u-boot.scr
 misc/python-*
+bundle.rauc
+*.raucb

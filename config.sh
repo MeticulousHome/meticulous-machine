@@ -59,3 +59,5 @@ readonly HOST_PACKAGES="\
     libglu1-mesa-dev mercurial automake groff curl lzop asciidoc u-boot-tools mtd-utils\
     libgnutls28-dev flex bison libssl-dev systemd-container pigz libcurl4-openssl-dev libgirepository1.0-dev
     bc python3 python3-venv wget curl"
+
+readonly METIUCULOUS_ROOTFS=meticulous-rootfs.tar.gz
