@@ -130,6 +130,9 @@ function b_copy_components() {
     mkdir -p ${ROOTFS_DIR}/etc/hawkbit
     cp -v ${RAUC_CONFIG_DIR}/hawkbit-config.conf ${ROOTFS_DIR}/etc/hawkbit/config.conf
 
+    echo "Installing EMMC fstab
+    cp -v ${RAUC_CONFIG_DIR}/fstab_emmc ${ROOTFS_DIR}/etc/fstab
+
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.12 -m pip cache purge"
