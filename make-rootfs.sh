@@ -130,7 +130,7 @@ function b_copy_components() {
     mkdir -p ${ROOTFS_DIR}/etc/hawkbit
     cp -v ${RAUC_CONFIG_DIR}/hawkbit-config.conf ${ROOTFS_DIR}/etc/hawkbit/config.conf
 
-    echo "Installing EMMC fstab
+    echo "Installing EMMC fstab"
     cp -v ${RAUC_CONFIG_DIR}/fstab_emmc ${ROOTFS_DIR}/etc/fstab
 
     echo "Cleaning"
