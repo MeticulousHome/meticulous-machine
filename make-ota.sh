@@ -79,7 +79,7 @@ fi
 if [[ $version ]]; then
     bundle_version=$version
 else
-    bundle_version=$(date -u +'%Y-%m-%dT%H:%M:%S%z')
+    bundle_version=$(date -u +'%Y-%m-%dT%H_%M_%S%z')
 fi
 
 echo -e "\e[1;35m"
