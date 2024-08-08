@@ -123,11 +123,10 @@ function b_copy_components() {
 
     echo "Installing RAUC config"
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
-    #install -m 0644 ${RAUC_CONFIG_DIR}/system.conf \
-    #     ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
-    cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/home/
-    chmod 777 ${ROOTFS_DIR}/home/update_OS.sh  # Add this line to set permissions
+    cp -v ${RAUC_CONFIG_DIR}/*.cert.pem ${ROOTFS_DIR}/etc/rauc/
+    cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/opt
+    chmod +rx ${ROOTFS_DIR}/opt/update_OS.sh
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
