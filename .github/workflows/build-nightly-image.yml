@@ -132,16 +132,7 @@ jobs:
         path: /tmp/rauc-secrets
 
     - name: Install Ubuntu dependencies
-      run: ./update-sources.sh --install_ubuntu_dependencies
-
-    - name: Downgrade qemu-user-static
-      run: |
-        sudo apt install -y --allow-downgrades ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
-        sudo apt-mark hold qemu-user-static
-
-    - name: Install qemu-img
-      run: |
-        sudo apt install -y qemu-utils
+      run: sudo apt update && sudo apt install -y rauc pigz
 
     - name: Build Bundles
       run: ./make-ota.sh  --nightly --cert /tmp/rauc-secrets/keys/beta.rsa4096.cert.pem --key /tmp/rauc-secrets/keys/beta.rsa4096.key.pem
