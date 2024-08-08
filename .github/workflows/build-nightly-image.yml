@@ -6,7 +6,7 @@ on:
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  build-sdcard-and-upload:
+  build-root:
     runs-on: ubuntu-24.04
 
     steps:
@@ -71,10 +71,17 @@ jobs:
     - name: Delete original debian rootfs
       run: rm -r ./components/debian/output/rootfs*
 
+    - name: Upload rootfs artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rootfs
+        path: meticulous-rootfs.tar.gz
+        if-no-files-found: error
+
     - name: Build sdcard
       run: sudo ./make-sdcard.sh --image
 
-    - name: Upload SDCardartifact
+    - name: Upload SDCard artifact
       uses: actions/upload-artifact@v4
       with:
         name: sdcard
@@ -86,4 +93,69 @@ jobs:
       with:
         name: emmc
         path: emmc.img.gz
+        if-no-files-found: error
+
+  build-bundle:
+    needs: build-root
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 6000
+        swap-size-mb: 1024
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+        remove-docker-images: 'true'
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Git authentication
+      run: |
+        git config --global url."https://${{ secrets.GH_TOKEN }}@github.com/".insteadOf "git@github.com:"
+
+    - name: Download rootfs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: rootfs
+        path: meticulous-rootfs.tar.gz
+
+    - name: Clone private repository
+      uses: actions/checkout@v4
+      with:
+        repository: MeticulousHome/rauc-secrets
+        token: ${{ secrets.GH_TOKEN }}
+        path: /tmp/rauc-secrets
+
+    - name: Install Ubuntu dependencies
+      run: ./update-sources.sh --install_ubuntu_dependencies
+
+    - name: Downgrade qemu-user-static
+      run: |
+        sudo apt install -y --allow-downgrades ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
+        sudo apt-mark hold qemu-user-static
+
+    - name: Install qemu-img
+      run: |
+        sudo apt install -y qemu-utils
+
+    - name: Build Bundles
+      run: ./make-ota.sh  --nightly --cert /tmp/rauc-secrets/keys/beta.rsa4096.cert.pem --key /tmp/rauc-secrets/keys/beta.rsa4096.key.pem
+
+    - name: Upload SDCard bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: sdcard-bundle
+        path: rauc_meticulous_sdcard_*.raucb
+        if-no-files-found: error
+
+    - name: Upload EMMC bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: emmc
+        path: rauc_meticulous_emmc_*.raucb
         if-no-files-found: error
