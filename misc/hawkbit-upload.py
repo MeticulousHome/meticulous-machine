@@ -8,6 +8,7 @@ import time
 import os
 import attr
 import requests as r
+import json
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
@@ -288,6 +289,42 @@ class HawkbitMgmtClient:
 
         return self.get(f"softwaremodules/{module_id}")
 
+    def add_targetfilter(self, query: str, name: str = None):
+        """
+        Adds a new target filter with `name`.
+        If `name` is not given, a generic name is made up.
+        Stores the id of the created target filter for future use by other methods.
+        Returns the id of the created target filter
+
+        https://eclipse.dev/hawkbit/rest-api/softwaremodules-api-guide.html#_post_restv1softwaremodules
+        """
+        name = name or f"filter {time.monotonic()}"
+        data = {
+            "name": name,
+            "query": query,
+        }
+
+        self.id["targetfilter"] = self.post("targetfilters", data)["id"]
+        return self.id["targetfilter"]
+
+    def get_targetfilter(self, filter_id: str = None):
+        """
+        Returns the target filter matching `filter_id`.
+        If `filter_id` is not given, returns the software module created by the most recent
+        `add_targetfilter()` call.
+
+        """
+        filter_id = filter_id or self.id["targetfilter"]
+        return self.get(f"targetfilters/{filter_id}")
+
+    def get_all_targetfilters(self):
+        """
+        Returns all target filters.
+
+        """
+        limit = 100
+        return self.get(f"targetfilters?limit={limit}")
+
     def delete_softwaremodule(self, module_id: str = None):
         """
         Deletes the software module matching `module_id`.
@@ -494,6 +531,37 @@ class HawkbitMgmtClient:
         if force:
             self.delete(f"targets/{target_id}/actions/{action_id}?force=true")
 
+    def createRollout(
+        self,
+        name: str,
+        dist_id: str,
+        target_filter_query: str,
+        autostart: bool = True,
+    ):
+
+        rollout_data = {
+            "name": name,
+            "distributionSetId": dist_id,
+            "targetFilterQuery": target_filter_query,
+            "type": "forced",
+            "weight": 0,
+            "confirmationRequired": False,
+            "amountGroups": 1,
+        }
+        if autostart:
+            rollout_data["startAt"] = str(int(time.time()))
+
+        return self.post("rollouts", rollout_data)
+
+
+def ensure_filter(filters, query: str, name: str):
+    requested_filter = [f for f in filters if f["query"] == query]
+    if len(requested_filter) > 0:
+        requested_filter = requested_filter[0]
+    else:
+        requested_filter = client.add_targetfilter(query, name)
+    return requested_filter
+
 
 if __name__ == "__main__":
     import argparse
@@ -508,6 +576,8 @@ if __name__ == "__main__":
     parser.add_argument("distribution", help="Hawkbit distribution")
     parser.add_argument("softwareModule", help="Hawkbit moduleto add the artifact to")
     parser.add_argument("version", help="Distribution version")
+    parser.add_argument("channel", help="Target channel")
+    parser.add_argument("bootmode", help="Traget boot mode")
 
     args = parser.parse_args()
 
@@ -523,13 +593,38 @@ if __name__ == "__main__":
     client.set_config("pollingOverdueTime", "00:03:00")
     client.set_config("authentication.targettoken.enabled", True)
 
+    filters = client.get_all_targetfilters().get("content") or []
+
+    boot_filter = ensure_filter(
+        filters,
+        f'attribute.boot_mode == "{args.bootmode}"',
+        f"Boots from {args.bootmode}",
+    )
+    channel_filter = ensure_filter(
+        filters,
+        f'attribute.update_channel == "{args.channel}"',
+        f"Downloads from {args.channel} channel",
+    )
+
+    print(f"Boot filter is {boot_filter}")
+    print(f"Channel filter is {channel_filter}")
+
     print("Creating software module")
     client.add_softwaremodule(name=args.softwareModule)
     print("Creating Distribution set")
-    client.add_distributionset(
+    dist_id = client.add_distributionset(
         args.distribution, module_ids=[client.get_softwaremodule().get("id")]
     )
     print("uploading artifact")
     client.add_artifact(args.bundle)
+
+    print("Creating rollout")
+    rollout = client.createRollout(
+        f"{args.distribution.capitalize()} {args.version}",
+        dist_id=dist_id,
+        target_filter_query=f"{boot_filter.get("query")} && {channel_filter.get("query")}",
+        autostart=True,
+    )
+    print(json.dumps(rollout))
 
     print("finished!")

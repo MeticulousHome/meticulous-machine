@@ -56,7 +56,9 @@ jobs:
           ${{ secrets.HAWKBIT_PASSWORD }} \
           "Nightly SDCard" \
           "Rootfs SDCard" \
-          "nightly-$(date -u +'%Y-%m-%dT%H_%M_%S%z')"
+          "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
+          "nightly" \
+          "sdcard"
 
     - name: Upload emmc bundle
       run: |
@@ -68,4 +70,6 @@ jobs:
           ${{ secrets.HAWKBIT_PASSWORD }} \
           "Nightly EMMC" \
           "Rootfs EMMC" \
-          "nightly-$(date -u +'%Y-%m-%dT%H_%M_%S%z')"
+          "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
+          "nightly" \
+          "emmc"
