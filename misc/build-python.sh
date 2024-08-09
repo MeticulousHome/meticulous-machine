@@ -39,7 +39,7 @@ run_in_container "apt build-dep -y python3"
 run_in_container "apt build-dep -y python3.9"
 
 echo -e "\e[1;33mRunning configure\e[0m\n"
-run_in_container --chdir=/opt/python/source/Python-${latest_version} "./configure --prefix=/opt/python/install/install_root \
+run_in_container --chdir=/opt/python/source/Python-${latest_version} "./configure --prefix=/opt/python/install/install_root/usr \
         --enable-optimizations \
         --enable-loadable-sqlite-extensions"
 
