@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  build-root:
+  build-python:
     runs-on: ubuntu-24.04
 
     steps:
