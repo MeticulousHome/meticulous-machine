@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests attrs 
+        pip install requests attrs requests-toolbelt
 
     - name: Get latest debian workflow run ID
       id: get_run_id
@@ -42,14 +42,30 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         run-id: ${{ env.latest_run_id }}
-        name: sdcard-bundle
+        name: emmc-bundle
         github-token: ${{ secrets.GH_TOKEN }}
         path: .
     
     - name: Upload sdcard bundle
       run: |
-        python misc/upload-bundle.py *_sdcard_*.raucb ${{ secrets.HAWKBIT_USER }}  ${{ secrets.HAWKBIT_PASSWORD }} rootfs-sdcard "nightly-$(date)"
+        python misc/hawkbit-upload.py \
+          "ec2-35-168-13-173.compute-1.amazonaws.com" \
+          8080 \
+          *_sdcard_*.raucb \
+          ${{ secrets.HAWKBIT_USER }} \
+          ${{ secrets.HAWKBIT_PASSWORD }} \
+          "Nightly SDCard" \
+          "Rootfs SDCard" \
+          "nightly-$(date -u +'%Y-%m-%dT%H_%M_%S%z')"
 
     - name: Upload emmc bundle
       run: |
-        python misc/upload-bundle.py *_emmc_*.raucb  ${{ secrets.HAWKBIT_USER }}  ${{ secrets.HAWKBIT_PASSWORD }}rootfs-emmc "nightly-$(date)"
+        python misc/hawkbit-upload.py \
+          "ec2-35-168-13-173.compute-1.amazonaws.com" \
+          8080 \
+          *_emmc_*.raucb \
+          ${{ secrets.HAWKBIT_USER }} \
+          ${{ secrets.HAWKBIT_PASSWORD }} \
+          "Nightly EMMC" \
+          "Rootfs EMMC" \
+          "nightly-$(date -u +'%Y-%m-%dT%H_%M_%S%z')"

@@ -499,17 +499,21 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("host", help="Hawkbit server")
+    parser.add_argument("port", help="Hawbit port", type=int)
+
     parser.add_argument("bundle", help="RAUC bundle to add as artifact")
     parser.add_argument("username", help="Hawkbit user")
     parser.add_argument("password", help="Hawkbit password")
+    parser.add_argument("distribution", help="Hawkbit distribution")
     parser.add_argument("softwareModule", help="Hawkbit moduleto add the artifact to")
     parser.add_argument("version", help="Distribution version")
 
     args = parser.parse_args()
 
     client = HawkbitMgmtClient(
-        "ec2-35-168-13-173.compute-1.amazonaws.com",
-        8080,
+        args.host,
+        args.port,
         password=args.password,
         username=args.username,
         version=args.version,
@@ -519,12 +523,13 @@ if __name__ == "__main__":
     client.set_config("pollingOverdueTime", "00:03:00")
     client.set_config("authentication.targettoken.enabled", True)
 
-    # client.add_target("test", "ieHai3du7gee7aPhojeth4ong")
     print("Creating software module")
-    client.add_softwaremodule(name="rootfs")
+    client.add_softwaremodule(name=args.softwareModule)
     print("Creating Distribution set")
     client.add_distributionset(
-        "Nightly rootfs", module_ids=[client.get_softwaremodule().get("id")]
+        args.distribution, module_ids=[client.get_softwaremodule().get("id")]
     )
     print("uploading artifact")
     client.add_artifact(args.bundle)
+
+    print("finished!")
