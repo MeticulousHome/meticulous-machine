@@ -115,7 +115,7 @@ filename=${METIUCULOUS_ROOTFS}
 echo -e "\e[0m"
 
 echo -e "\e[1;34mBuilding EMMC bundle:\e[0m"
-rauc --cert $cert --key $key bundle rauc_build rauc_meticulous_emmc_${variant}_${bundle_version}.raucb
+rauc --cert $cert --key $key --keyring ${RAUC_CONFIG_DIR}/${RAUC_CERT} bundle rauc_build rauc_meticulous_emmc_${variant}_${bundle_version}.raucb
 echo -e "Done"
 
 echo -e "\e[1;34mPreparing SDCard bundle:\e[0m"
@@ -144,6 +144,6 @@ echo -e "\e[1;34mPreparing SDCard bundle:\e[0m"
     cd ..
 
     echo -e "\e[1;34mBuilding SDCard bundle:\e[0m"
-    rauc --cert $cert --key $key bundle rauc_build rauc_meticulous_sdcard_${variant}_${bundle_version}.raucb
+    rauc --cert $cert --key $key --keyring ${RAUC_CONFIG_DIR}/${RAUC_CERT} bundle rauc_build rauc_meticulous_sdcard_${variant}_${bundle_version}.raucb
 
 rm -r rauc_build

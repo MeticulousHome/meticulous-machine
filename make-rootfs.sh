@@ -124,6 +124,7 @@ function b_copy_components() {
     echo "Installing RAUC config"
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
+    sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
     cp -v ${RAUC_CONFIG_DIR}/*.cert.pem ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/opt
     chmod +rx ${ROOTFS_DIR}/opt/update_OS.sh
