@@ -5,6 +5,7 @@ readonly COMPONENTS_DIR="components"
 readonly ROOTFS_DIR="rootfs"
 readonly SERVICES_DIR="system-services"
 readonly RAUC_CONFIG_DIR="rauc-config"
+readonly RAUC_CERT="beta.rsa4096.cert.pem"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
 readonly DEBIAN_GIT="git@github.com:MeticulousHome/debian-variscite-fika"
