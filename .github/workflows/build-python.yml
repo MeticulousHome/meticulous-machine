@@ -22,10 +22,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Git authentication
-      run: |
-        git config --global url."https://${{ secrets.GH_TOKEN }}@github.com/".insteadOf "git@github.com:"
-
     - name: Get latest meticulous image workflow run ID
       id: get_run_id
       run: |
