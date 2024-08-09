@@ -18,3 +18,5 @@
 [device]
   product                   = Meticulous-Machine
   model                     = M-1
+  update_channel            = __UPDATE_CHANNEL__
+  boot_mode                 = __BOOT_MODE__

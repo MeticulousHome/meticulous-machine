@@ -1,0 +1,23 @@
+[Unit]
+Description=HawkBit client for Rauc
+ConditionKernelCommandLine=|rauc.slot
+After=network-online.target rauc.service
+Wants=network-online.target
+
+[Service]
+User=root
+Group=root
+AmbientCapabilities=CAP_SYS_BOOT
+# Generate the config file based on the boot mode and update channel
+ExecStartPre=/bin/bash -c 'if grep -q "root=/dev/mmcblk1" /proc/cmdline; then export boot_mode="sdcard"; else export boot_mode="emmc"; fi sed "s/__BOOT_MODE__/$boot_mode/" /etc/hawkbit/config.conf.template > /etc/hawkbit/config.conf; sed -i s/__UPDATE_CHANNEL__/$(cat /etc/hawkbit/channel)/ /etc/hawkbit/config.conf'
+ExecStart=/home/hawkbit/build/rauc-hawkbit-updater -c /etc/hawkbit/config.conf
+TimeoutSec=60s
+WatchdogSec=5m
+Restart=on-failure
+RestartSec=1m
+NotifyAccess=main
+ProtectSystem=full
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

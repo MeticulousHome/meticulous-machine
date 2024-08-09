@@ -129,7 +129,8 @@ function b_copy_components() {
     cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/opt
     chmod +rx ${ROOTFS_DIR}/opt/update_OS.sh
     mkdir -p ${ROOTFS_DIR}/etc/hawkbit
-    cp -v ${RAUC_CONFIG_DIR}/hawkbit-config.conf ${ROOTFS_DIR}/etc/hawkbit/config.conf
+    cp -v ${RAUC_CONFIG_DIR}/hawkbit-config.conf.template ${ROOTFS_DIR}/etc/hawkbit/config.conf.template
+    echo "stable" > ${ROOTFS_DIR}/etc/hawkbit/channel
 
     echo "Installing EMMC fstab"
     cp -v ${RAUC_CONFIG_DIR}/fstab_emmc ${ROOTFS_DIR}/etc/fstab
