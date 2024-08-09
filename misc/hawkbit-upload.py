@@ -618,13 +618,13 @@ if __name__ == "__main__":
     print("uploading artifact")
     client.add_artifact(args.bundle)
 
-    print("Creating rollout")
-    rollout = client.createRollout(
-        f"{args.distribution.capitalize()} {args.version}",
-        dist_id=dist_id,
-        target_filter_query=f"{boot_filter.get("query")} && {channel_filter.get("query")}",
-        autostart=True,
-    )
-    print(json.dumps(rollout))
+    # print("Creating rollout")
+    # rollout = client.createRollout(
+    #     f"{args.distribution.capitalize()} {args.version}",
+    #     dist_id=dist_id,
+    #     target_filter_query=f"{boot_filter.get("query")} and {channel_filter.get("query")}",
+    #     autostart=True,
+    # )
+    # print(json.dumps(rollout))
 
     print("finished!")
