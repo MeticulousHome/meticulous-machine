@@ -113,6 +113,17 @@ function update_mobile() {
     popd
 }
 
+
+function update_rauc() {
+    echo "Cloning / Updating rauc and rauc-hawkbit-updater Repositories"
+    get_git_src ${RAUC_GIT} ${RAUC_BRANCH} \
+        ${RAUC_SRC_DIR} ${RAUC_REV}
+
+    get_git_src ${HAWKBIT_GIT} ${HAWKBIT_BRANCH} \
+        ${HAWKBIT_SRC_DIR} ${HAWKBIT_REV}
+}
+
+
 function show_help() {
     cat <<EOF
 Usage: ${0##*/} [OPTIONS]
@@ -132,6 +143,7 @@ Available options:
     --web / --webapp                Checkout / Update WebApp repository
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
+    --rauc                          Checkout / Update rauc and rauc-hawkbit-updatere repositories
     --help                          Display this help and exit
 
 EOF
@@ -151,6 +163,7 @@ steps=(
     [update_dial]=0
     [update_dash]=0
     [update_web]=0
+    [update_rauc]=0
 )
 
 # Parse command line arguments, enable steps when selected
@@ -167,6 +180,7 @@ for arg in "$@"; do
     --webapp) steps[update_web]=1 ;;
     --firmware) firmware_selected=1 ;;
     --mobile) mobile_selected=1 ;;
+    --rauc) steps[update_rauc]=1 ;;
     # Enable all steps via special case
     --all) all_selected=1 ;;
     *)

@@ -81,7 +81,7 @@ function b_copy_components() {
         cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
     fi
     # Install WebApp
-    echo "Installing WebAoo"
+    echo "Installing WebApp"
     cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
 
     # Install Watcher
@@ -122,6 +122,18 @@ function b_copy_components() {
     chown root:root ${ROOTFS_DIR}/opt/meticulous*
 
     echo "Installing RAUC config"
+
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*.deb"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*.deb"
+
+    install -m 0644 ${SERVICES_DIR}/rauc-hawkbit-updater.service \
+        ${ROOTFS_DIR}/lib/systemd/system
+    ln -s /lib/systemd/system/rauc-hawkbit-updater.service \
+        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc-hawkbit-updater.service
+
+    ln -s /lib/systemd/system/rauc.service \
+        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc.service
+
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
     sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
@@ -131,6 +143,8 @@ function b_copy_components() {
     mkdir -p ${ROOTFS_DIR}/etc/hawkbit
     cp -v ${RAUC_CONFIG_DIR}/hawkbit-config.conf.template ${ROOTFS_DIR}/etc/hawkbit/config.conf.template
     echo "stable" > ${ROOTFS_DIR}/etc/hawkbit/channel
+
+
 
     echo "Installing EMMC fstab"
     cp -v ${RAUC_CONFIG_DIR}/fstab_emmc ${ROOTFS_DIR}/etc/fstab

@@ -5,6 +5,8 @@ readonly COMPONENTS_DIR="components"
 readonly ROOTFS_DIR="rootfs"
 readonly SERVICES_DIR="system-services"
 readonly RAUC_CONFIG_DIR="rauc-config"
+readonly MISC_DIR="misc"
+
 readonly RAUC_CERT="beta.rsa4096.cert.pem"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
@@ -42,6 +44,19 @@ readonly FIRMWARE_OUT_DIR="${COMPONENTS_DIR}/meticulous-firmware-build"
 readonly FIRMWARE_GIT="git@github.com:MeticulousHome/flow_machine_firmware"
 readonly FIRMWARE_BRANCH="dev"
 readonly FIRMWARE_REV="HEAD"
+
+readonly RAUC_SRC_DIR="${COMPONENTS_DIR}/rauc"
+readonly RAUC_GIT="https://github.com/rauc/rauc.git"
+readonly RAUC_BRANCH="master"
+readonly RAUC_VERSION="1.12"
+readonly RAUC_REV="v${RAUV_VERSION}"
+
+readonly HAWKBIT_SRC_DIR="${COMPONENTS_DIR}/rauc-hawkbit-updater"
+readonly HAWKBIT_GIT="https://github.com/rauc/rauc-hawkbit-updater.git"
+readonly HAWKBIT_BRANCH="master"
+readonly HAWKBIT_REV="076795d40cca8503319345d8ef8a75110d1f6551"
+# Manually set to the latest version, should be updated when the commit is updated
+readonly HAWKBIT_VERSION="1.4-devel-${HAWKBIT_REV:0:8}"
 
 readonly PIPER_VERSION="1.2.0"
 readonly PIPER_URL="https://github.com/rhasspy/piper/releases/download/${PIPER_VERSION}/piper_arm64.tar.gz"
