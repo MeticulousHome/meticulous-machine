@@ -49,8 +49,8 @@ jobs:
     - name: Upload sdcard bundle
       run: |
         python misc/hawkbit-upload.py \
-          "ec2-35-168-13-173.compute-1.amazonaws.com" \
-          8080 \
+          "${{ secrets.HAWKBIT_SERVER }}" \
+          "${{ secrets.HAWKBIT_PORT }}" \
           *_sdcard_*.raucb \
           ${{ secrets.HAWKBIT_USER }} \
           ${{ secrets.HAWKBIT_PASSWORD }} \
@@ -63,8 +63,8 @@ jobs:
     - name: Upload emmc bundle
       run: |
         python misc/hawkbit-upload.py \
-          "ec2-35-168-13-173.compute-1.amazonaws.com" \
-          8080 \
+          "${{ secrets.HAWKBIT_SERVER }}" \
+          "${{ secrets.HAWKBIT_PORT }}" \
           *_emmc_*.raucb \
           ${{ secrets.HAWKBIT_USER }} \
           ${{ secrets.HAWKBIT_PASSWORD }} \
