@@ -1,7 +1,7 @@
 [client]
-  hawkbit_server            = ec2-35-168-13-173.compute-1.amazonaws.com:8080
-  ssl                       = false
-  ssl_verify                = false
+  hawkbit_server            = hawkbit.meticulousespresso.com
+  ssl                       = true
+  ssl_verify                = true
   tenant_id                 = DEFAULT
   target_name               = target
   auth_token                = 9e0dce03985271802f6a35f8811034cb
