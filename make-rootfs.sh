@@ -31,41 +31,57 @@ function a_unpack_base() {
     systemd-nspawn -D ${ROOTFS_DIR} apt update
     systemd-nspawn -D ${ROOTFS_DIR} apt install -y ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
 
+    echo "SystemMaxUse=1G" >>${ROOTFS_DIR}/etc/systemd/journald.conf
+}
+
+function copy_services() {
+
     # Install meticulous services
     install -m 0644 ${SERVICES_DIR}/meticulous-dial.service \
         ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/meticulous-dial.service \
+    ln -sf /lib/systemd/system/meticulous-dial.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-dial.service
 
     install -m 0644 ${SERVICES_DIR}/meticulous-backend.service \
         ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/meticulous-backend.service \
+    ln -sf /lib/systemd/system/meticulous-backend.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-backend.service
 
     install -m 0644 ${SERVICES_DIR}/meticulous-watcher.service \
         ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/meticulous-watcher.service \
+    ln -sf /lib/systemd/system/meticulous-watcher.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-watcher.service
 
     install -m 0644 ${SERVICES_DIR}/meticulous-rauc.service \
         ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/meticulous-rauc.service \
+    ln -sf /lib/systemd/system/meticulous-rauc.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-rauc.service
 
     install -m 0644 ${SERVICES_DIR}/meticulous-brightness.service \
         ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/meticulous-brightness.service \
+    ln -sf /lib/systemd/system/meticulous-brightness.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-brightness.service
 
     install -m 0644 ${SERVICES_DIR}/meticulous-usb-current.service \
         ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/meticulous-usb-current.service \
+    ln -sf /lib/systemd/system/meticulous-usb-current.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-usb-current.service
 
-    echo "SystemMaxUse=1G" >>${ROOTFS_DIR}/etc/systemd/journald.conf
+    install -m 0644 ${SERVICES_DIR}/rauc-hawkbit-updater.service \
+        ${ROOTFS_DIR}/lib/systemd/system
+
+    ln -sf /lib/systemd/system/rauc-hawkbit-updater.service \
+        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc-hawkbit-updater.service
+
+    ln -sf /lib/systemd/system/rauc.service \
+        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc.service
+
 }
 
 function b_copy_components() {
+    echo "Installing services"
+    copy_services
+
     echo "Copying components into existing rootfs"
     # Install meticulous components
     # Install Dial app
@@ -126,14 +142,6 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*.deb"
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*.deb"
 
-    install -m 0644 ${SERVICES_DIR}/rauc-hawkbit-updater.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -s /lib/systemd/system/rauc-hawkbit-updater.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc-hawkbit-updater.service
-
-    ln -s /lib/systemd/system/rauc.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc.service
-
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
     sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
@@ -142,9 +150,7 @@ function b_copy_components() {
     chmod +rx ${ROOTFS_DIR}/opt/update_OS.sh
     mkdir -p ${ROOTFS_DIR}/etc/hawkbit
     cp -v ${RAUC_CONFIG_DIR}/hawkbit-config.conf.template ${ROOTFS_DIR}/etc/hawkbit/config.conf.template
-    echo "stable" > ${ROOTFS_DIR}/etc/hawkbit/channel
-
-
+    echo "stable" >${ROOTFS_DIR}/etc/hawkbit/channel
 
     echo "Installing EMMC fstab"
     cp -v ${RAUC_CONFIG_DIR}/fstab_emmc ${ROOTFS_DIR}/etc/fstab
