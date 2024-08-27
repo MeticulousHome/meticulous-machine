@@ -82,7 +82,7 @@ function create_partition() {
     else
         if [ -z "$END" ]; then
             printf "%-09s: Creating properly aligned parition (${PARTITION_NUMBER}) from 0x%06x to the end\n" "$NAME" "${START}"
-            parted ${IMAGE_TARGET} -f mkpart primary ${START}KiB 100%
+            parted ${IMAGE_TARGET}  mkpart primary ${START}KiB 100%
         else
             printf "%-09s: Creating properly aligned partition (${PARTITION_NUMBER}) from 0x%06x to 0x%06x\n" "$NAME" "${START}" "${END}"
             parted ${IMAGE_TARGET} mkpart primary ${START}KiB ${END}KiB
@@ -124,7 +124,7 @@ function create_image() {
     create_partition root_a ${ROOT_A_START} ${ROOT_A_END}
     parted ${IMAGE_TARGET} set ${PARTITIONS} boot on
     create_partition root_b ${ROOT_B_START} ${ROOT_B_END}
-    parted ${IMAGE_TARGET} -f set ${PARTITIONS} boot on
+    parted ${IMAGE_TARGET}  set ${PARTITIONS} boot on
     # SDCards will be filled to the end
     if [ ${IS_BLOCK} = "y" ]; then
         create_partition user ${USER_START}

@@ -149,8 +149,12 @@ function b_copy_components() {
 
     echo "Installing RAUC config"
 
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*.deb"
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*.deb"
+    echo "ROOTFS_DIR: ${ROOTFS_DIR}"
+    echo "MISC_DIR: ${MISC_DIR}"
+    ls -l "${MISC_DIR}"
+
+    systemd-nspawn -D "${ROOTFS_DIR}" --bind-ro="${PWD}/${MISC_DIR}:/opt/misc" bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*.deb"
+    systemd-nspawn -D "${ROOTFS_DIR}" --bind-ro="${PWD}/${MISC_DIR}:/opt/misc" bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*.deb"
 
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/

@@ -55,7 +55,7 @@ readonly RAUC_SRC_DIR="${COMPONENTS_DIR}/rauc"
 readonly RAUC_GIT="https://github.com/rauc/rauc.git"
 readonly RAUC_BRANCH="master"
 readonly RAUC_VERSION="1.12"
-readonly RAUC_REV="v${RAUV_VERSION}"
+readonly RAUC_REV="v${RAUC_VERSION}"
 
 readonly HAWKBIT_SRC_DIR="${COMPONENTS_DIR}/rauc-hawkbit-updater"
 readonly HAWKBIT_GIT="https://github.com/rauc/rauc-hawkbit-updater.git"
