@@ -17,8 +17,8 @@ readonly RAUC_CERT="beta.rsa4096.cert.pem"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
 readonly DEBIAN_GIT="git@github.com:oscarlr16/debian-variscite-fika-oscar.git"
-readonly DEBIAN_BRANCH="set_up_pcb_tester"
-readonly DEBIAN_REV="04021c5ea2440d945be94b4390df6098ba47bc94"
+readonly DEBIAN_BRANCH="feat/sd_to_test_17"
+readonly DEBIAN_REV="6b889a5abd69c2cf166202e185b6cbeeacbf841e"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
 readonly BACKEND_GIT="git@github.com:MeticulousHome/backend_for_esp32/"
