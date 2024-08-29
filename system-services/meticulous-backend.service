@@ -6,7 +6,6 @@ After=network.target pulseaudio.service
 Type=simple
 Restart=always
 RestartSec=10
-ExecStartPre=amixer -D pulse set Master 100%
 ExecStart=/opt/meticulous-venv/bin/python3.12 /opt/meticulous-backend/back.py
 User=root
 
