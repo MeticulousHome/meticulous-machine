@@ -64,7 +64,7 @@ readonly PIPER_URL="https://github.com/rhasspy/piper/releases/download/${PIPER_V
 readonly PIPER_VOICE_BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/"
 readonly PIPER_SEMAINE="en/en_GB/semaine/medium/en_GB-semaine-medium.onnx"
 
-readonly SYSTEM_PACKAGES="parted avahi-daemon libgirepository1.0-dev libgstreamer-plugins-base1.0-dev gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 libsystemd-dev"
+readonly SYSTEM_PACKAGES="parted avahi-daemon libgirepository1.0-dev libgstreamer-plugins-base1.0-dev gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 libsystemd-dev zstd"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\
