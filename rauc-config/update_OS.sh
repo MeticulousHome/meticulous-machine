@@ -45,17 +45,17 @@ fi
 full_user_name=$(hostname)
 echo "Extracted full user name: $full_user_name"
 # Update the target_name variable in the config file
-sed -i "s/target_name               = .*/target_name               = $full_user_name/" /etc/hawkbit/config.conf
+sed -i "s/target_name               = .*/target_name               = $full_user_name/" /etc/hawkbit/config.conf.template
 if [ $? -eq 0 ]; then
-    echo "target_name updated successfully in config.conf."
+    echo "target_name updated successfully in config.conf.template"
 else
-    echo "Failed to update target_name in config.conf."
+    echo "Failed to update target_name in config.conf.template"
 fi
 
 
 # Change directory and execute the rauc-hawkbit-updater command
 cd /home/hawkbit/build
-./rauc-hawkbit-updater -c /etc/hawkbit/config.conf
+./rauc-hawkbit-updater -c /etc/hawkbit/config.conf.template
 if [ $? -eq 0 ]; then
     echo "rauc-hawkbit-updater executed successfully."
 else
