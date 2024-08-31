@@ -162,6 +162,7 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt autoclean -y"
 
     date -Ru  > ${ROOTFS_DIR}/opt/ROOTFS_BUILD_DATE
+}
 
 function c_pack_tar() {
 
