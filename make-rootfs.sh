@@ -67,6 +67,7 @@ function copy_services() {
     ln -sf /lib/systemd/system/meticulous-usb-current.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-usb-current.service
 
+    rm -f  ${ROOTFS_DIR}/lib/systemd/system/rauc-hawkbit-updater.service
     install -m 0644 ${SERVICES_DIR}/rauc-hawkbit-updater.service \
         ${ROOTFS_DIR}/lib/systemd/system
 
