@@ -54,8 +54,7 @@ fi
 
 
 # Change directory and execute the rauc-hawkbit-updater command
-cd /home/hawkbit/build
-./rauc-hawkbit-updater -c /etc/hawkbit/config.conf.template
+rauc-hawkbit-updater -c /etc/hawkbit/config.conf.template
 if [ $? -eq 0 ]; then
     echo "rauc-hawkbit-updater executed successfully."
 else
