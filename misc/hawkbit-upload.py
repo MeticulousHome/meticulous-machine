@@ -44,7 +44,10 @@ class HawkbitMgmtClient:
     version = attr.ib(default="1.0", validator=attr.validators.instance_of(str))
 
     def __attrs_post_init__(self):
-        self.url = f"http://{self.host}:{self.port}/rest/v1/{{endpoint}}"
+        if self.port == 443:
+            self.url = f"https://{self.host}:{self.port}/rest/v1/{{endpoint}}"
+        else:
+            self.url = f"http://{self.host}:{self.port}/rest/v1/{{endpoint}}"
         self.id = HawkbitIdStore()
 
     def get(self, endpoint: str):
