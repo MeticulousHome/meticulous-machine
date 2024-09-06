@@ -44,18 +44,33 @@ run_in_container "git config --global --add safe.directory /opt/rauc/rauc-hawkbi
 run_in_container "apt update"
 run_in_container "apt install -y dh-make fdisk libfdisk-dev meson pkg-config libcurl4-openssl-dev libjson-glib-dev libsystemd-dev"
 run_in_container "apt build-dep -y rauc"
+apt update 
+apt install -y dh-make fdisk libfdisk-dev meson pkg-config libcurl4-openssl-dev libjson-glib-dev libsystemd-dev
+apt build-dep -y rauc
 
 # Usually the build would be
 # meson setup build
 # meson compile -C build
 # But we are using debconf to do it for us. Sadly that means no caching, but we do get a debian package out of it :3
 
-echo -e "\e[1;33m=== Building rauc ===\e[0m"
-run_rauc "rm -rf debian" 
+echo -e "\e[1;33m=== Building x86 rauc ===\e[0m"
+pushd $parent_dir/../components/rauc
+    git clean -fdx
+    dh_make --createorig -p rauc_${RAUC_VERSION} --single --yes
+    dh_auto_configure --buildsystem=meson -- -Dtests=false
+    echo -e 'override_dh_auto_configure:\n\tdh_auto_configure -- -Dtests=false' >> debian/rules
+    dpkg-buildpackage -rfakeroot -us -uc -b
+    git clean -fdx
+popd
+
+
+-e "\e[1;33m=== Building rauc ===\e[0m"
+run_rauc "git clean -fdx"
 run_rauc "dh_make --createorig -p rauc_${RAUC_VERSION} --single --yes"
 run_rauc "dh_auto_configure --buildsystem=meson -- -Dtests=false"
 run_rauc "echo -e 'override_dh_auto_configure:\n\tdh_auto_configure -- -Dtests=false' >> debian/rules"
 run_rauc "dpkg-buildpackage -rfakeroot -us -uc -b"
+run_rauc "git clean -fdx"
 
 
 echo -e "\e[1;33m=== Building rauc-hawkbit-updater ===\e[0m"
@@ -63,10 +78,11 @@ run_hawkbit "rm -rf debian"
 run_hawkbit "dh_make --createorig -p rauc-hawkbit-updater_${HAWKBIT_VERSION} --single --yes"
 run_hawkbit "dh_auto_configure --buildsystem=meson -- -Dsystemd=enabled"
 echo -e 'override_dh_auto_configure:\n\tdh_auto_configure -- -Dsystemd=enabled' >> $parent_dir/../components/rauc-hawkbit-updater/debian/rules
-
 run_hawkbit "dpkg-buildpackage -rfakeroot -us -uc -b"
+run_hawkbit "git clean -fdx"
 
 rm -rf $parent_dir/rauc-rootfs
+mv $parent_dir/../components/rauc*.deb $parent_dir/rauc-deb
 chmod +rw $parent_dir/rauc-deb/*.deb
 mv $parent_dir/rauc-deb/*.deb $parent_dir
 rm -rf $parent_dir/rauc-deb
