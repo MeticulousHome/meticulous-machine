@@ -3,6 +3,8 @@ Description=RAUC Good-marking Service
 ConditionKernelCommandLine=|rauc.slot
 
 [Service]
+Type=oneshot
+RemainAfterExit=yes
 ExecStart=/usr/bin/rauc status mark-good
 
 [Install]
