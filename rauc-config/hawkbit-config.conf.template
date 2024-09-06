@@ -1,11 +1,11 @@
 [client]
   hawkbit_server            = hawkbit.meticulousespresso.com
-  ssl                       = false
-  ssl_verify                = false
+  ssl                       = true
+  ssl_verify                = true
   tenant_id                 = DEFAULT
   target_name               = target
-  #auth_token               = 9e0dce03985271802f6a35f8811034cb
-  gateway_token             = 502159ced718d929d113dac0504b2a7a
+  #auth_token               = 11111111111111111111111111111111
+  gateway_token             = afc10e91cd8d8c01827681cf2e519986
   bundle_download_location  = /meticulous-user/bundleVerify.raucb
 
   retry_wait                = 60
