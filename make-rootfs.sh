@@ -67,7 +67,7 @@ function copy_services() {
     ln -sf /lib/systemd/system/meticulous-usb-current.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-usb-current.service
 
-    rm -f  ${ROOTFS_DIR}/lib/systemd/system/rauc-hawkbit-updater.service
+    rm -f ${ROOTFS_DIR}/lib/systemd/system/rauc-hawkbit-updater.service
     install -m 0644 ${SERVICES_DIR}/rauc-hawkbit-updater.service \
         ${ROOTFS_DIR}/lib/systemd/system
 
@@ -140,8 +140,8 @@ function b_copy_components() {
 
     echo "Installing RAUC config"
 
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*.deb"
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*.deb"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*_arm64.deb"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*_arm64.deb"
 
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
@@ -164,7 +164,7 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt purge imx-gpu-sdk-gles2 imx-gpu-sdk-gles3 -y"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt autoclean -y"
 
-    date -Ru  > ${ROOTFS_DIR}/opt/ROOTFS_BUILD_DATE
+    date -Ru >${ROOTFS_DIR}/opt/ROOTFS_BUILD_DATE
 }
 
 function c_pack_tar() {
