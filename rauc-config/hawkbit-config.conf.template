@@ -1,5 +1,5 @@
 [client]
-  hawkbit_server            = hawkbit.meticulousespresso.com:8080
+  hawkbit_server            = hawkbit.meticulousespresso.com
   ssl                       = false
   ssl_verify                = false
   tenant_id                 = DEFAULT
