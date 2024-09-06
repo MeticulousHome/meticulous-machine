@@ -25,7 +25,7 @@ function install_ubuntu_dependencies() {
         echo "Running on ubuntu: Installing host dependencies"
         sudo apt update
         sudo apt -y install ${HOST_PACKAGES}
-        sudo apt -y install ./misc/deb/rauc_*_amd64.deb
+        sudo apt -y install ./misc/rauc_*_amd64.deb
 
         if [ -z "$(which node)" ]; then
             curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash - &&
