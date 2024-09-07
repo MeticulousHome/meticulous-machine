@@ -80,8 +80,6 @@ function copy_services() {
 }
 
 function b_copy_components() {
-    echo "Installing services"
-    copy_services
 
     echo "Copying components into existing rootfs"
     # Install meticulous components
@@ -159,6 +157,9 @@ function b_copy_components() {
 
     echo "Installing EMMC fstab"
     cp -v ${RAUC_CONFIG_DIR}/fstab_emmc ${ROOTFS_DIR}/etc/fstab
+
+    echo "Installing services"
+    copy_services
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
