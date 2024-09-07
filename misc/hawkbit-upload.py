@@ -307,8 +307,11 @@ class HawkbitMgmtClient:
             "query": query,
         }
 
-        self.id["targetfilter"] = self.post("targetfilters", data)["id"]
-        return self.id["targetfilter"]
+        #self.id["targetfilter"] = self.post("targetfilters", data)["id"]
+        #return self.id["targetfilter"]
+        response = self.post("targetfilters", data)
+        self.id["targetfilter"] = response["id"]
+        return response
 
     def get_targetfilter(self, filter_id: str = None):
         """
@@ -340,26 +343,20 @@ class HawkbitMgmtClient:
         if "softwaremodule" in self.id and module_id == self.id["softwaremodule"]:
             del self.id["softwaremodule"]
 
-    def add_distributionset(
+    def add_or_update_distributionset(
         self,
-        name: str = None,
+        name: str,
         description: str = "",
         module_ids: list = [],
         dist_type: str = "os",
     ):
-        """
-        Adds a new distribution set with `name` containing the software modules matching `module_ids`.
-        If `name` is not given, a generic name is made up.
-        If `module_ids` is not given, uses the software module created by the most recent
-        `add_softwaremodule()` call.
-        Stores the id of the created distribution set for future use by other methods.
-        Returns the id of the created distribution set.
+        existing_dist = self.get_distributionset_by_name(name)
+        if existing_dist:
+            print(f"Distribution set '{name}' already exists. Using existing distribution.")
+            self.id["distributionset"] = existing_dist['id']
+            return existing_dist['id']
 
-        https://eclipse.dev/hawkbit/rest-api/distributionsets-api-guide.html#_post_restv1distributionsets
-        """
         assert isinstance(module_ids, list)
-
-        name = name or f"distribution {self.version} ({time.monotonic()})"
         module_ids = module_ids or [self.id["softwaremodule"]]
         data = [
             {
@@ -371,7 +368,8 @@ class HawkbitMgmtClient:
             }
         ]
 
-        self.id["distributionset"] = self.post("distributionsets", data)[0]["id"]
+        response = self.post("distributionsets", data)
+        self.id["distributionset"] = response[0]["id"]
         return self.id["distributionset"]
 
     def get_distributionset(self, dist_id: str = None):
@@ -555,15 +553,115 @@ class HawkbitMgmtClient:
             rollout_data["startAt"] = str(int(time.time()))
 
         return self.post("rollouts", rollout_data)
+    
+    def getRolloutByName(self, name):
+        # Search for a rollout by name
+        rollouts = self.get("rollouts")
+        for rollout in rollouts.get('content', []):
+            if rollout['name'] == name:
+                return rollout
+        return None
 
+    def deleteRollout(self, rollout_id):
+        try:
+            self.delete(f"rollouts/{rollout_id}")
+            print(f"Rollout {rollout_id} deleted successfully")
+        except HawkbitError as e:
+            print(f"Error deleting rollout {rollout_id}: {e}")
 
-def ensure_filter(filters, query: str, name: str):
+    def getAllRollouts(self):
+        rollouts = self.get("rollouts")
+        return rollouts.get('content', [])
+
+    def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
+        
+        existing_rollouts = self.getAllRollouts()
+    
+        for rollout in existing_rollouts:
+            print(f"Deleting existing rollout: {rollout['name']}")
+            self.deleteRollout(rollout['id'])
+    
+        rollout_data = {
+            "name": name,
+            "distributionSetId": dist_id,
+            "targetFilterQuery": target_filter_query,
+            "type": "forced",
+            "weight": 0,
+            "confirmationRequired": False,
+            "amountGroups": 1,
+        }
+        if autostart:
+            rollout_data["startAt"] = str(int(time.time()))
+
+        print(f"Creating new rollout: {name}")
+        return self.post("rollouts", rollout_data)
+    
+    def get_distributionset_by_name(self, name: str):
+        distributions = self.get("distributionsets")
+        for dist in distributions.get('content', []):
+            if dist['name'] == name:
+                return dist
+        return None
+
+    def get_softwaremodule_by_name(self, name, module_type="os"):
+        # Search for a software module by name and type
+        modules = self.get("softwaremodules")
+        for module in modules.get('content', []):
+            if module['name'] == name and module['type'] == module_type:
+                return module
+        return None
+
+    def add_or_update_softwaremodule(self, name, module_type="os"):
+        existing_module = self.get_softwaremodule_by_name(name, module_type)
+    
+        if existing_module:
+            print(f"Software module '{name}' already exists. Using existing module.")
+            self.id["softwaremodule"] = existing_module['id']
+            return existing_module['id']
+    
+        data = [
+            {
+                "name": name,
+                "version": str(self.version),
+                "type": module_type,
+            }
+        ]
+
+        response = self.post("softwaremodules", data)
+        self.id["softwaremodule"] = response[0]["id"]
+        return self.id["softwaremodule"]
+    
+    def get_all_artifacts(self, module_id):
+        artifacts = self.get(f"softwaremodules/{module_id}/artifacts")
+        #print("Artifact structure:")
+        #print(json.dumps(artifacts, indent=2))
+        return artifacts
+    
+    def add_or_update_artifact(self, file_name: str, module_id: str = None):
+        module_id = module_id or self.id["softwaremodule"]
+    
+        existing_artifacts = self.get_all_artifacts(module_id)
+    
+        for artifact in existing_artifacts:
+            artifact_id = artifact.get('id')
+            artifact_name = artifact.get('filename', 'Unknown filename')
+            if artifact_id:
+                print(f"Deleting existing artifact: {artifact_name}")
+                self.delete_artifact(artifact_id, module_id)
+            else:
+                print(f"Warning: Found artifact without ID: {artifact_name}")
+    
+        print(f"Uploading new artifact: {file_name}")
+        response = self.post(f"softwaremodules/{module_id}/artifacts", file_name=file_name)
+        self.id["artifact"] = response["id"]
+        return self.id["artifact"]
+
+def ensure_filter(client, filters, query: str, name: str):
     requested_filter = [f for f in filters if f["query"] == query]
     if len(requested_filter) > 0:
-        requested_filter = requested_filter[0]
+        return requested_filter[0]
     else:
-        requested_filter = client.add_targetfilter(query, name)
-    return requested_filter
+        return client.add_targetfilter(query, name)
 
 
 if __name__ == "__main__":
@@ -598,36 +696,43 @@ if __name__ == "__main__":
 
     filters = client.get_all_targetfilters().get("content") or []
 
-    boot_filter = ensure_filter(
-        filters,
-        f'attribute.boot_mode == "{args.bootmode}"',
-        f"Boots from {args.bootmode}",
-    )
     channel_filter = ensure_filter(
+        client,
         filters,
         f'attribute.update_channel == "{args.channel}"',
         f"Downloads from {args.channel} channel",
     )
 
-    print(f"Boot filter is {boot_filter}")
     print(f"Channel filter is {channel_filter}")
 
-    print("Creating software module")
-    client.add_softwaremodule(name=args.softwareModule)
+
+    print("Creating or updating software module")
+    client.add_or_update_softwaremodule(name=args.softwareModule)
+    
     print("Creating Distribution set")
-    dist_id = client.add_distributionset(
+    dist_id = client.add_or_update_distributionset(
         args.distribution, module_ids=[client.get_softwaremodule().get("id")]
     )
-    print("uploading artifact")
-    client.add_artifact(args.bundle)
 
-    # print("Creating rollout")
-    # rollout = client.createRollout(
-    #     f"{args.distribution.capitalize()} {args.version}",
-    #     dist_id=dist_id,
-    #     target_filter_query=f"{boot_filter.get("query")} and {channel_filter.get("query")}",
-    #     autostart=True,
-    # )
-    # print(json.dumps(rollout))
+    print("Uploading new artifact and removing all existing ones")
+    client.add_or_update_artifact(args.bundle)
+
+    # Create or replace the rollout
+    raucb_filename = os.path.basename(args.bundle)
+    rollout_name = f"Nightly_{raucb_filename}"
+
+    target_filter_query = channel_filter['query']
+
+    print(f"Creating or replacing rollout: {rollout_name}")
+    print(f"Using filter query: {target_filter_query}")
+
+    rollout = client.createOrUpdateRollout(
+        name=rollout_name,
+        dist_id=dist_id,
+        target_filter_query=target_filter_query,
+        autostart=True
+    )
+
+    print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
 
     print("finished!")
