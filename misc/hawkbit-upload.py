@@ -719,7 +719,7 @@ if __name__ == "__main__":
 
     # Create or replace the rollout
     raucb_filename = os.path.basename(args.bundle)
-    rollout_name = f"Nightly_{raucb_filename}"
+    rollout_name = raucb_filename
 
     target_filter_query = channel_filter['query']
 
