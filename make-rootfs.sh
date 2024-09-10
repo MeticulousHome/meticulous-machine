@@ -161,6 +161,9 @@ function b_copy_components() {
     echo "Installing services"
     copy_services
 
+    echo "Installing nginx config"
+    cp -v ${MISC_DIR}/nginx-default.conf ${ROOTFS_DIR}/etc/nginx/sites-available/default
+
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.12 -m pip cache purge"
