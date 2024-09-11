@@ -292,7 +292,7 @@ class HawkbitMgmtClient:
 
         return self.get(f"softwaremodules/{module_id}")
 
-    def add_targetfilter(self, query: str, name: str = None):
+    def add_targetfilter(self, query: str, name: str = None, auto_assign: bool = False):
         """
         Adds a new target filter with `name`.
         If `name` is not given, a generic name is made up.
@@ -305,6 +305,7 @@ class HawkbitMgmtClient:
         data = {
             "name": name,
             "query": query,
+            "autoAssignDistributionSet": auto_assign
         }
 
         #self.id["targetfilter"] = self.post("targetfilters", data)["id"]
@@ -330,6 +331,32 @@ class HawkbitMgmtClient:
         """
         limit = 100
         return self.get(f"targetfilters?limit={limit}")
+    
+    def update_targetfilter(self, filter_id: str, dist_id: str, action_type: str = "forced"):
+        """
+        Updates an existing target filter to enable automatic assignment.
+        """
+        json_data = {
+            "id": dist_id,
+            "type": action_type.lower(),
+            "weight": 0,
+            "confirmationRequired": False
+        }
+    
+        endpoint = f"targetfilters/{filter_id}/autoAssignDS"
+    
+        try:
+            response = self.post(endpoint, json_data=json_data)
+        
+            if response is not None:
+                print(f"Auto-assignment successfully configured for the filter {filter_id}")
+                return response
+            else:
+                print(f"No response was received when configuring auto-assignment for the filter {filter_id}")
+        except HawkbitError as e:
+            print(f"Error configuring auto-assignment for the filrter {filter_id}: {str(e)}")
+    
+        return None
 
     def delete_softwaremodule(self, module_id: str = None):
         """
@@ -531,6 +558,10 @@ class HawkbitMgmtClient:
 
         if force:
             self.delete(f"targets/{target_id}/actions/{action_id}?force=true")
+    
+    def get_active_actions(self, target_id):
+        actions = self.get(f"targets/{target_id}/actions?status=active,pending")
+        return [action for action in actions.get('content', []) if action['status'] in ['active', 'pending']]
 
     def createRollout(
         self,
@@ -572,8 +603,43 @@ class HawkbitMgmtClient:
     def getAllRollouts(self):
         rollouts = self.get("rollouts")
         return rollouts.get('content', [])
+    
+    def get_targets_by_filter(self, filter_query):
+        return self.get(f"targets?={filter_query}")
+
 
     def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
+
+        targets = self.get_targets_by_filter(target_filter_query)
+
+        print("Targets structure:")
+        print(json.dumps(targets, indent=2))
+
+        if isinstance(targets, dict):
+            targets = targets.get('content', [])
+        elif not isinstance(targets, list):
+            print(f"Unexpected targets type: {type(targets)}")
+            targets = []
+
+        for target in targets:
+            if isinstance(target, dict):
+                target_id = target.get('controllerId') or target.get('id')
+                target_name = target.get('name', 'Unknown')
+            else:
+                print(f"Unexpected target type: {type(target)}")
+                continue
+
+            if target_id:
+                print(f"Processing target: {target_name} (ID: {target_id})")
+                active_actions = self.get_active_actions(target_id)
+                for action in active_actions:
+                    try:
+                        print(f"Cancelling active action {action['id']} for target {target_name}")
+                        self.cancel_action(action['id'], target_id, force=True)
+                    except HawkbitError as e:
+                        print(f"Error cancelling action {action['id']}: {str(e)}")
+            else:
+                print(f"Could not determine target ID for: {target}")
         
         existing_rollouts = self.getAllRollouts()
     
@@ -656,12 +722,24 @@ class HawkbitMgmtClient:
         self.id["artifact"] = response["id"]
         return self.id["artifact"]
 
-def ensure_filter(client, filters, query: str, name: str):
+def ensure_filter(client, filters, query: str, name: str, dist_id: str, action_type: str = "forced"):
     requested_filter = [f for f in filters if f["query"] == query]
     if len(requested_filter) > 0:
+        filter_id = requested_filter[0]["id"]
+        result = client.update_targetfilter(filter_id, dist_id, action_type)
+        if result:
+            print(f"Auto-asignment for the existing filter: {name}")
+        else:
+            print(f"Error updating auto-assignment for the filter: {name}")
         return requested_filter[0]
     else:
-        return client.add_targetfilter(query, name)
+        new_filter = client.add_targetfilter(query, name)
+        result = client.update_targetfilter(new_filter["id"], dist_id, action_type)
+        if result:
+            print(f"Auto-asignment configured for the new filter: {name}")
+        else:
+            print(f"Error configuring auto-assignment for the new filter: {name}")
+        return new_filter
 
 
 if __name__ == "__main__":
@@ -694,18 +772,6 @@ if __name__ == "__main__":
     client.set_config("pollingOverdueTime", "00:03:00")
     client.set_config("authentication.targettoken.enabled", True)
 
-    filters = client.get_all_targetfilters().get("content") or []
-
-    channel_filter = ensure_filter(
-        client,
-        filters,
-        f'attribute.update_channel == "{args.channel}"',
-        f"Downloads from {args.channel} channel",
-    )
-
-    print(f"Channel filter is {channel_filter}")
-
-
     print("Creating or updating software module")
     client.add_or_update_softwaremodule(name=args.softwareModule)
     
@@ -716,6 +782,21 @@ if __name__ == "__main__":
 
     print("Uploading new artifact and removing all existing ones")
     client.add_or_update_artifact(args.bundle)
+
+
+    #Creating a target filter
+    filters = client.get_all_targetfilters().get("content") or []
+
+    channel_filter = ensure_filter(
+        client,
+        filters,
+        f'attribute.update_channel == "{args.channel}"',
+        f"Downloads from {args.channel} channel",
+        dist_id,
+        action_type="forced"
+    )
+
+    print(f"Channel filter is {channel_filter}")
 
     # Create or replace the rollout
     raucb_filename = os.path.basename(args.bundle)
