@@ -74,7 +74,7 @@ jobs:
     - name: Upload rootfs artifact
       uses: actions/upload-artifact@v4
       with:
-        name: rootfs
+        name: rootfs.tar.gz
         path: meticulous-rootfs.tar.gz
         if-no-files-found: error
 
@@ -84,14 +84,14 @@ jobs:
     - name: Upload SDCard artifact
       uses: actions/upload-artifact@v4
       with:
-        name: sdcard
+        name: sdcard.img.gz
         path: sdcard.img.gz
         if-no-files-found: error
 
     - name: Upload EMMC artifact
       uses: actions/upload-artifact@v4
       with:
-        name: emmc
+        name: emmc.img.gz
         path: emmc.img.gz
         if-no-files-found: error
 
@@ -128,11 +128,11 @@ jobs:
     - name: Download rootfs artifact
       uses: actions/download-artifact@v4
       with:
-        name: rootfs
+        name: rootfs.tar.gz
         path: .
 
     - name: Install Ubuntu dependencies
-      run: sudo apt update && sudo apt install -y rauc pigz
+      run: sudo apt update && sudo apt install -y pigz && ./update-sources.sh --install_ubuntu_dependencies
 
     - name: Build Bundles
       run: ./make-ota.sh  --nightly --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
@@ -140,13 +140,117 @@ jobs:
     - name: Upload SDCard bundle
       uses: actions/upload-artifact@v4
       with:
-        name: sdcard-bundle
+        name: sdcard-bundle.raucb
         path: rauc_meticulous_sdcard_*.raucb
         if-no-files-found: error
 
     - name: Upload EMMC bundle
       uses: actions/upload-artifact@v4
       with:
-        name: emmc-bundle
+        name: emmc-bundle.raucb
         path: rauc_meticulous_emmc_*.raucb
+        if-no-files-found: error
+
+  deploy-sdcard-bundle:
+    needs: build-bundle
+    runs-on: ubuntu-24.04
+
+    - name: Download sdcard bundle
+      uses: actions/download-artifact@v4
+      with:
+        run-id: ${{ env.latest_run_id }}
+        name: sdcard-bundle.raucb
+        github-token: ${{ secrets.GH_TOKEN }}
+        path: .
+
+    - name: Upload sdcard bundle
+      run: |
+        python misc/hawkbit-upload.py \
+          "${{ secrets.HAWKBIT_SERVER }}" \
+          "${{ secrets.HAWKBIT_PORT }}" \
+          *_sdcard_*.raucb \
+          ${{ secrets.HAWKBIT_USER }} \
+          ${{ secrets.HAWKBIT_PASSWORD }} \
+          "Nightly SDCard" \
+          "Rootfs SDCard" \
+          "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
+          "nightly" \
+          "sdcard"
+
+  deploy-emmc-bundle:
+    needs: build-bundle
+
+    - name: Download emmc bundle
+      uses: actions/download-artifact@v4
+      with:
+        run-id: ${{ env.latest_run_id }}
+        name: emmc-bundle.raucb
+        github-token: ${{ secrets.GH_TOKEN }}
+        path: .
+
+    - name: Upload emmc bundle
+      run: |
+        python misc/hawkbit-upload.py \
+          "${{ secrets.HAWKBIT_SERVER }}" \
+          "${{ secrets.HAWKBIT_PORT }}" \
+          *_emmc_*.raucb \
+          ${{ secrets.HAWKBIT_USER }} \
+          ${{ secrets.HAWKBIT_PASSWORD }} \
+          "Nightly EMMC" \
+          "Rootfs EMMC" \
+          "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
+          "nightly" \
+          "emmc"
+
+  build-deployment-image:
+    needs: build-root
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 6000
+        swap-size-mb: 1024
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+        remove-docker-images: 'true'
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download sdcard artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: sdcard.img.gz
+        path: .
+
+    - name: Download emmc artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: emmc.img.gz
+        path: .
+
+    - name: Install Ubuntu dependencies
+      run: sudo apt update && sudo apt install -y pigz && ./update-sources.sh --install_ubuntu_dependencies
+
+    - name: Decompress images
+      run: pigz -d sdcard.img.gz emmc.img.gz
+
+    - name: Build deployment image
+      run: sudo ./make-deployment.sh --inplace
+
+    - name: Rename image
+      run: sudo cp sdcard.img deployment.img
+
+    - name: Compress image
+      run: pigz -kf deployment.img
+
+    - name: Upload deployment image
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment.img.gz
+        path: deployment.img.gz
         if-no-files-found: error
