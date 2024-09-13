@@ -177,7 +177,6 @@ steps=(
     [update_dial]=0
     [update_dash]=0
     [update_web]=0
-    [update_rauc]=0
 )
 
 # Parse command line arguments, enable steps when selected
