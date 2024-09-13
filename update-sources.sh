@@ -167,6 +167,7 @@ firmware_selected=0
 mobile_selected=0
 install_ubuntu_dependencies_selected=0
 history_ui_selected=0
+rauc_selected=0
 declare -A steps
 
 steps=(
@@ -193,7 +194,7 @@ for arg in "$@"; do
     --webapp) steps[update_web]=1 ;;
     --firmware) firmware_selected=1 ;;
     --mobile) mobile_selected=1 ;;
-    --rauc) steps[update_rauc]=1 ;;
+    --rauc) rauc_selected=1 ;;
     --history) history_ui_selected=1 ;;
 
     # Enable all steps via special case
@@ -233,6 +234,12 @@ if [ ${history_ui_selected} -eq 1 ]; then
     update_history
     any_selected=1
 fi
+
+if [ ${rauc_selected} -eq 1 ]; then
+    rauc_selected
+    any_selected=1
+fi
+
 
 # Print help if no step has been executed
 if [ $any_selected -eq 0 ]; then
