@@ -154,7 +154,7 @@ jobs:
   deploy-sdcard-bundle:
     needs: build-bundle
     runs-on: ubuntu-24.04
-
+    steps:
     - name: Download sdcard bundle
       uses: actions/download-artifact@v4
       with:
@@ -179,7 +179,7 @@ jobs:
 
   deploy-emmc-bundle:
     needs: build-bundle
-
+    steps:
     - name: Download emmc bundle
       uses: actions/download-artifact@v4
       with:
