@@ -64,6 +64,11 @@ readonly PIPER_URL="https://github.com/rhasspy/piper/releases/download/${PIPER_V
 readonly PIPER_VOICE_BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/"
 readonly PIPER_SEMAINE="en/en_GB/semaine/medium/en_GB-semaine-medium.onnx"
 
+readonly HISTORY_UI_SRC_DIR="${COMPONENTS_DIR}/history-ui"
+readonly HISTORY_UI_GIT="git@github.com:MeticulousHome/REL-Infinite-Shot-Test-UI"
+readonly HISTORY_UI_BRANCH="main"
+readonly HISTORY_UI_REV="HEAD"
+
 readonly SYSTEM_PACKAGES="parted avahi-daemon libgirepository1.0-dev libgstreamer-plugins-base1.0-dev gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 libsystemd-dev zstd nginx ssl-cert"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\

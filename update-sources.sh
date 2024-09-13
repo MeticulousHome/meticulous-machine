@@ -104,6 +104,16 @@ function update_firmware() {
     popd
 }
 
+function update_history() {
+    echo "Cloning / Updating History UI Repository"
+    get_git_src ${HISTORY_UI_GIT} ${HISTORY_UI_BRANCH} \
+        ${HISTORY_UI_SRC_DIR} ${HISTORY_UI_REV}
+    pushd $HISTORY_UI_SRC_DIR
+    npm install
+    popd
+}
+
+
 function update_mobile() {
     echo "Cloning / Updating Firmware Repository"
     get_git_src ${MOBILE_GIT} ${MOBILE_BRANCH} \
@@ -144,6 +154,7 @@ Available options:
     --web / --webapp                Checkout / Update WebApp repository
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
+    --history                       Checkout / Update History UI repository (Requires explicit access)
     --rauc                          Checkout / Update rauc and rauc-hawkbit-updatere repositories
     --help                          Display this help and exit
 
@@ -155,6 +166,7 @@ all_selected=0
 firmware_selected=0
 mobile_selected=0
 install_ubuntu_dependencies_selected=0
+history_ui_selected=0
 declare -A steps
 
 steps=(
@@ -182,6 +194,8 @@ for arg in "$@"; do
     --firmware) firmware_selected=1 ;;
     --mobile) mobile_selected=1 ;;
     --rauc) steps[update_rauc]=1 ;;
+    --history) history_ui_selected=1 ;;
+
     # Enable all steps via special case
     --all) all_selected=1 ;;
     *)
@@ -207,10 +221,17 @@ done
 
 if [ ${firmware_selected} -eq 1 ]; then
     update_firmware
+    any_selected=1
 fi
 
 if [ ${mobile_selected} -eq 1 ]; then
     update_mobile
+    any_selected=1
+fi
+
+if [ ${history_ui_selected} -eq 1 ]; then
+    update_history
+    any_selected=1
 fi
 
 # Print help if no step has been executed
