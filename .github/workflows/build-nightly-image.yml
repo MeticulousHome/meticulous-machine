@@ -179,6 +179,7 @@ jobs:
 
   deploy-emmc-bundle:
     needs: build-bundle
+    runs-on: ubuntu-24.04
     steps:
     - name: Download emmc bundle
       uses: actions/download-artifact@v4
