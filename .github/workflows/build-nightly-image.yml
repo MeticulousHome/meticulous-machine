@@ -241,7 +241,7 @@ jobs:
       run: pigz -d sdcard.img.gz emmc.img.gz
 
     - name: Build deployment image
-      run: sudo ./make-deployment.sh --inplace
+      run: sudo ./make-deployment-image.sh --inplace
 
     - name: Rename image
       run: sudo cp sdcard.img deployment.img
