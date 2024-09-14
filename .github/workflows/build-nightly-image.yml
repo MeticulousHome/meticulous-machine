@@ -128,7 +128,7 @@ jobs:
     - name: Download rootfs artifact
       uses: actions/download-artifact@v4
       with:
-        name: rootfs.tar.gz
+        name: 'rootfs.tar.gz'
         path: .
 
     - name: Install Ubuntu dependencies
@@ -159,7 +159,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         run-id: ${{ env.latest_run_id }}
-        name: sdcard-bundle.raucb
+        name: 'sdcard-bundle.raucb'
         github-token: ${{ secrets.GH_TOKEN }}
         path: .
 
@@ -185,7 +185,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         run-id: ${{ env.latest_run_id }}
-        name: emmc-bundle.raucb
+        name: 'emmc-bundle.raucb'
         github-token: ${{ secrets.GH_TOKEN }}
         path: .
 
@@ -225,13 +225,13 @@ jobs:
     - name: Download sdcard artifact
       uses: actions/download-artifact@v4
       with:
-        name: sdcard.img.gz
+        name: 'sdcard.img.gz'
         path: .
 
     - name: Download emmc artifact
       uses: actions/download-artifact@v4
       with:
-        name: emmc.img.gz
+        name: 'emmc.img.gz'
         path: .
 
     - name: Install Ubuntu dependencies
