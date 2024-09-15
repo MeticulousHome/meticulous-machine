@@ -158,9 +158,7 @@ jobs:
     - name: Download sdcard bundle
       uses: actions/download-artifact@v4
       with:
-        run-id: ${{ env.latest_run_id }}
         name: 'sdcard-bundle.raucb'
-        github-token: ${{ secrets.GH_TOKEN }}
         path: .
 
     - name: Upload sdcard bundle
@@ -184,9 +182,7 @@ jobs:
     - name: Download emmc bundle
       uses: actions/download-artifact@v4
       with:
-        run-id: ${{ env.latest_run_id }}
         name: 'emmc-bundle.raucb'
-        github-token: ${{ secrets.GH_TOKEN }}
         path: .
 
     - name: Upload emmc bundle
