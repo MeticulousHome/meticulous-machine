@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 if (($EUID != 0)); then
     echo "Please run as root"
@@ -57,6 +58,7 @@ losetup -P ${LOOP_DEV} ${image_name}
 # Resize the user partition
 e2fsck -y -f ${LOOP_DEV}p5
 growpart ${LOOP_DEV}  5
+resize2fs ${LOOP_DEV}p5
 
 mkdir user-partition
 mount ${LOOP_DEV}p5 user-partition
