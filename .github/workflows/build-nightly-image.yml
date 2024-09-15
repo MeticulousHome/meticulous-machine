@@ -235,7 +235,7 @@ jobs:
         path: .
 
     - name: Install Ubuntu dependencies
-      run: sudo apt update && sudo apt install -y pigz qemu-utils && ./update-sources.sh --install_ubuntu_dependencies
+      run: sudo apt update && sudo apt install -y pigz qemu-utils e2fsprogs mount cloud-guest-utils
 
     - name: Decompress images
       run: pigz -d sdcard.img.gz emmc.img.gz
