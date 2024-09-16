@@ -49,7 +49,7 @@ if [ $copy -eq 1 ]; then
 fi
 
 # Resize the image
-qemu-img resize -f raw ${image_name} +16G
+qemu-img resize -f raw ${image_name} +14G
 echo w | fdisk ${image_name}
 
 LOOP_DEV=$(losetup --find)
