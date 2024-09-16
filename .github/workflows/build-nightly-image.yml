@@ -161,6 +161,16 @@ jobs:
         name: 'sdcard-bundle.raucb'
         path: .
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests attrs requests-toolbelt
+
     - name: Upload sdcard bundle
       run: |
         python misc/hawkbit-upload.py \
@@ -184,6 +194,16 @@ jobs:
       with:
         name: 'emmc-bundle.raucb'
         path: .
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests attrs requests-toolbelt
 
     - name: Upload emmc bundle
       run: |
