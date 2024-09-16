@@ -67,7 +67,8 @@ cp -v emmc.img user-partition/emmc.img
 sync
 
 sleep 1
-umount ${LOOP_DEV}p*
+bash -c "umount ${LOOP_DEV}p* -v || true"
+
 losetup --detach ${LOOP_DEV}
 
 rm -r user-partition
