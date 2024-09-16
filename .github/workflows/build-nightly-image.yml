@@ -26,7 +26,7 @@ jobs:
 
     - name: Set up Git authentication
       run: |
-        git config --global url."https://${{ secrets.GH_TOKEN }}@github.com/".insteadOf "git@github.com:"
+        git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "git@github.com:"
 
     - name: Get latest debian workflow run ID
       id: get_run_id
