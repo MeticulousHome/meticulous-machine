@@ -240,7 +240,7 @@ jobs:
       run: sudo ./make-deployment-image.sh --inplace
 
     - name: Rename image
-      run: sudo cp sdcard.img deployment.img
+      run: sudo mv sdcard.img deployment.img
 
     - name: Compress image
       run: pigz -kf deployment.img
