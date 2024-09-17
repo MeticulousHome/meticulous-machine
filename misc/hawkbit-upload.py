@@ -640,6 +640,11 @@ class HawkbitMgmtClient:
                         print(f"Error cancelling action {action['id']}: {str(e)}")
             else:
                 print(f"Could not determine target ID for: {target}")
+
+        if not targets:
+            print(f"No targets found matching the filter: {target_filter_query}")
+            print("Skipping rollout creation.")
+            return None
         
         existing_rollouts = self.getAllRollouts()
     
@@ -660,7 +665,11 @@ class HawkbitMgmtClient:
             rollout_data["startAt"] = str(int(time.time()))
 
         print(f"Creating new rollout: {name}")
-        return self.post("rollouts", rollout_data)
+        try:
+            return self.post("rollouts", rollout_data)
+        except HawkbitError as e:
+            print(f"Error creating rollout: {str(e)}")
+            return None
     
     def get_distributionset_by_name(self, name: str):
         distributions = self.get("distributionsets")
@@ -814,6 +823,9 @@ if __name__ == "__main__":
         autostart=True
     )
 
-    print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
+    if rollout:
+        print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
+    else:
+        print("No rollout was created.")
 
     print("finished!")
