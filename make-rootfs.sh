@@ -99,6 +99,12 @@ function b_copy_components() {
     echo "Installing WebApp"
     cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
 
+    if [ -d $HISTORY_UI_SRC_DIR ]; then
+        # Install History UI
+        echo "Installing History UI"
+        cp -r ${HISTORY_UI_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-history-ui
+    fi
+
     # Install Watcher
     echo "Installing Watcher"
     cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt

@@ -3,6 +3,7 @@ rootfs
 meticulous-rootfs.tar.gz
 sdcard.img*
 emmc.img*
+deployment.img*
 rauc-config/u-boot.scr
 misc/python-*
 bundle.rauc
