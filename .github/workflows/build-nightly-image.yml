@@ -155,6 +155,9 @@ jobs:
     needs: build-bundle
     runs-on: ubuntu-24.04
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Download sdcard bundle
       uses: actions/download-artifact@v4
       with:
@@ -189,6 +192,9 @@ jobs:
     needs: build-bundle
     runs-on: ubuntu-24.04
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Download emmc bundle
       uses: actions/download-artifact@v4
       with:
