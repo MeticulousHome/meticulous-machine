@@ -26,12 +26,12 @@ jobs:
 
     - name: Set up Git authentication
       run: |
-        git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "git@github.com:"
+        git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
     - name: Get latest debian workflow run ID
       id: get_run_id
       run: |
-        latest_run_id=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+        latest_run_id=$(curl -s -H "Authorization: token ${{ secrets.GH_REPO_WORKFLOW }}" \
           "https://api.github.com/repos/${{ github.repository }}/actions/workflows/build-debian-base.yml/runs?status=success&per_page=1" \
           | jq -r '.workflow_runs[0].id')
         echo "latest_run_id=${latest_run_id}" >> $GITHUB_ENV
@@ -41,7 +41,7 @@ jobs:
       with:
         run-id: ${{ env.latest_run_id }}
         name: rootfs
-        github-token: ${{ secrets.GH_TOKEN }}
+        github-token: ${{ secrets.GH_REPO_WORKFLOW }}
         path: ./components/debian/output
 
     - name: Install Ubuntu dependencies
@@ -116,13 +116,13 @@ jobs:
 
     - name: Set up Git authentication
       run: |
-        git config --global url."https://${{ secrets.GH_TOKEN }}@github.com/".insteadOf "git@github.com:"
+        git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
     - name: Clone private repository
       uses: actions/checkout@v4
       with:
         repository: MeticulousHome/rauc-secrets
-        token: ${{ secrets.GH_TOKEN }}
+        token: ${{ secrets.GH_REPO_WORKFLOW }}
         path: components/rauc-secrets
 
     - name: Download rootfs artifact
