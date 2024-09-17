@@ -90,7 +90,7 @@ function b_copy_components() {
     echo "Installing Backend"
     cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
 
-    if [ -d $DASH_SRC_DIR ]; then
+    if [ -d ${DASH_SRC_DIR}/build ]; then
         # Install Dash
         echo "Installing Dash"
         cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
@@ -99,7 +99,7 @@ function b_copy_components() {
     echo "Installing WebApp"
     cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
 
-    if [ -d $HISTORY_UI_SRC_DIR ]; then
+    if [ -d ${HISTORY_UI_SRC_DIR}/build ]; then
         # Install History UI
         echo "Installing History UI"
         cp -r ${HISTORY_UI_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-history-ui

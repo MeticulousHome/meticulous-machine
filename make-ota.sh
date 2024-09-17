@@ -118,32 +118,4 @@ echo -e "\e[1;34mBuilding EMMC bundle:\e[0m"
 rauc --cert $cert --key $key --keyring ${RAUC_CONFIG_DIR}/${RAUC_CERT} bundle rauc_build rauc_meticulous_emmc_${variant}_${bundle_version}.raucb
 echo -e "Done"
 
-echo -e "\e[1;34mPreparing SDCard bundle:\e[0m"
-
-    echo -e "Extracting rauc system.conf and /etc/fstab from rootfs"
-
-    cd rauc_build/
-    pigz -d meticulous-rootfs.tar.gz
-
-    rm -rf rootfs_patch
-    mkdir rootfs_patch
-    cd rootfs_patch
-
-    tar xfv ../meticulous-rootfs.tar ./etc/rauc/system.conf ./etc/fstab
-
-    echo -e "Patching system.conf and fstab for sdcard usage"
-    sed -i 's\/dev/mmcblk2p\/dev/mmcblk1p\g' ./etc/rauc/system.conf
-    sed -i 's\/dev/mmcblk2p\/dev/mmcblk1p\g' ./etc/fstab
-
-    echo -e "Inserting patched files back into rootfs and recompressing"
-    tar fuv ../meticulous-rootfs.tar ./etc/rauc/system.conf ./etc/fstab
-    cd ..
-
-    rm -rf rootfs_patch
-    pigz meticulous-rootfs.tar
-    cd ..
-
-    echo -e "\e[1;34mBuilding SDCard bundle:\e[0m"
-    rauc --cert $cert --key $key --keyring ${RAUC_CONFIG_DIR}/${RAUC_CERT} bundle rauc_build rauc_meticulous_sdcard_${variant}_${bundle_version}.raucb
-
 rm -r rauc_build
