@@ -302,14 +302,10 @@ class HawkbitMgmtClient:
         https://eclipse.dev/hawkbit/rest-api/softwaremodules-api-guide.html#_post_restv1softwaremodules
         """
         name = name or f"filter {time.monotonic()}"
-        data = {
-            "name": name,
-            "query": query,
-            "autoAssignDistributionSet": auto_assign
-        }
+        data = {"name": name, "query": query, "autoAssignDistributionSet": auto_assign}
 
-        #self.id["targetfilter"] = self.post("targetfilters", data)["id"]
-        #return self.id["targetfilter"]
+        # self.id["targetfilter"] = self.post("targetfilters", data)["id"]
+        # return self.id["targetfilter"]
         response = self.post("targetfilters", data)
         self.id["targetfilter"] = response["id"]
         return response
@@ -331,8 +327,10 @@ class HawkbitMgmtClient:
         """
         limit = 100
         return self.get(f"targetfilters?limit={limit}")
-    
-    def update_targetfilter(self, filter_id: str, dist_id: str, action_type: str = "forced"):
+
+    def update_targetfilter(
+        self, filter_id: str, dist_id: str, action_type: str = "forced"
+    ):
         """
         Updates an existing target filter to enable automatic assignment.
         """
@@ -340,22 +338,28 @@ class HawkbitMgmtClient:
             "id": dist_id,
             "type": action_type.lower(),
             "weight": 0,
-            "confirmationRequired": False
+            "confirmationRequired": False,
         }
-    
+
         endpoint = f"targetfilters/{filter_id}/autoAssignDS"
-    
+
         try:
             response = self.post(endpoint, json_data=json_data)
-        
+
             if response is not None:
-                print(f"Auto-assignment successfully configured for the filter {filter_id}")
+                print(
+                    f"Auto-assignment successfully configured for the filter {filter_id}"
+                )
                 return response
             else:
-                print(f"No response was received when configuring auto-assignment for the filter {filter_id}")
+                print(
+                    f"No response was received when configuring auto-assignment for the filter {filter_id}"
+                )
         except HawkbitError as e:
-            print(f"Error configuring auto-assignment for the filrter {filter_id}: {str(e)}")
-    
+            print(
+                f"Error configuring auto-assignment for the filrter {filter_id}: {str(e)}"
+            )
+
         return None
 
     def delete_softwaremodule(self, module_id: str = None):
@@ -379,9 +383,11 @@ class HawkbitMgmtClient:
     ):
         existing_dist = self.get_distributionset_by_name(name)
         if existing_dist:
-            print(f"Distribution set '{name}' already exists. Using existing distribution.")
-            self.id["distributionset"] = existing_dist['id']
-            return existing_dist['id']
+            print(
+                f"Distribution set '{name}' already exists. Using existing distribution."
+            )
+            self.id["distributionset"] = existing_dist["id"]
+            return existing_dist["id"]
 
         assert isinstance(module_ids, list)
         module_ids = module_ids or [self.id["softwaremodule"]]
@@ -558,10 +564,14 @@ class HawkbitMgmtClient:
 
         if force:
             self.delete(f"targets/{target_id}/actions/{action_id}?force=true")
-    
+
     def get_active_actions(self, target_id):
         actions = self.get(f"targets/{target_id}/actions?status=active,pending")
-        return [action for action in actions.get('content', []) if action['status'] in ['active', 'pending']]
+        return [
+            action
+            for action in actions.get("content", [])
+            if action["status"] in ["active", "pending"]
+        ]
 
     def createRollout(
         self,
@@ -584,12 +594,12 @@ class HawkbitMgmtClient:
             rollout_data["startAt"] = str(int(time.time()))
 
         return self.post("rollouts", rollout_data)
-    
+
     def getRolloutByName(self, name):
         # Search for a rollout by name
         rollouts = self.get("rollouts")
-        for rollout in rollouts.get('content', []):
-            if rollout['name'] == name:
+        for rollout in rollouts.get("content", []):
+            if rollout["name"] == name:
                 return rollout
         return None
 
@@ -602,11 +612,10 @@ class HawkbitMgmtClient:
 
     def getAllRollouts(self):
         rollouts = self.get("rollouts")
-        return rollouts.get('content', [])
-    
+        return rollouts.get("content", [])
+
     def get_targets_by_filter(self, filter_query):
         return self.get(f"targets?q={filter_query}")
-
 
     def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
 
@@ -616,15 +625,15 @@ class HawkbitMgmtClient:
         print(json.dumps(targets, indent=2))
 
         if isinstance(targets, dict):
-            targets = targets.get('content', [])
+            targets = targets.get("content", [])
         elif not isinstance(targets, list):
             print(f"Unexpected targets type: {type(targets)}")
             targets = []
 
         for target in targets:
             if isinstance(target, dict):
-                target_id = target.get('controllerId') or target.get('id')
-                target_name = target.get('name', 'Unknown')
+                target_id = target.get("controllerId") or target.get("id")
+                target_name = target.get("name", "Unknown")
             else:
                 print(f"Unexpected target type: {type(target)}")
                 continue
@@ -634,8 +643,10 @@ class HawkbitMgmtClient:
                 active_actions = self.get_active_actions(target_id)
                 for action in active_actions:
                     try:
-                        print(f"Cancelling active action {action['id']} for target {target_name}")
-                        self.cancel_action(action['id'], target_id, force=True)
+                        print(
+                            f"Cancelling active action {action['id']} for target {target_name}"
+                        )
+                        self.cancel_action(action["id"], target_id, force=True)
                     except HawkbitError as e:
                         print(f"Error cancelling action {action['id']}: {str(e)}")
             else:
@@ -645,13 +656,13 @@ class HawkbitMgmtClient:
             print(f"No targets found matching the filter: {target_filter_query}")
             print("Skipping rollout creation.")
             return None
-        
+
         existing_rollouts = self.getAllRollouts()
-    
+
         for rollout in existing_rollouts:
             print(f"Deleting existing rollout: {rollout['name']}")
-            self.deleteRollout(rollout['id'])
-    
+            self.deleteRollout(rollout["id"])
+
         rollout_data = {
             "name": name,
             "distributionSetId": dist_id,
@@ -670,30 +681,30 @@ class HawkbitMgmtClient:
         except HawkbitError as e:
             print(f"Error creating rollout: {str(e)}")
             return None
-    
+
     def get_distributionset_by_name(self, name: str):
         distributions = self.get("distributionsets")
-        for dist in distributions.get('content', []):
-            if dist['name'] == name:
+        for dist in distributions.get("content", []):
+            if dist["name"] == name:
                 return dist
         return None
 
     def get_softwaremodule_by_name(self, name, module_type="os"):
         # Search for a software module by name and type
         modules = self.get("softwaremodules")
-        for module in modules.get('content', []):
-            if module['name'] == name and module['type'] == module_type:
+        for module in modules.get("content", []):
+            if module["name"] == name and module["type"] == module_type:
                 return module
         return None
 
     def add_or_update_softwaremodule(self, name, module_type="os"):
         existing_module = self.get_softwaremodule_by_name(name, module_type)
-    
+
         if existing_module:
             print(f"Software module '{name}' already exists. Using existing module.")
-            self.id["softwaremodule"] = existing_module['id']
-            return existing_module['id']
-    
+            self.id["softwaremodule"] = existing_module["id"]
+            return existing_module["id"]
+
         data = [
             {
                 "name": name,
@@ -705,33 +716,38 @@ class HawkbitMgmtClient:
         response = self.post("softwaremodules", data)
         self.id["softwaremodule"] = response[0]["id"]
         return self.id["softwaremodule"]
-    
+
     def get_all_artifacts(self, module_id):
         artifacts = self.get(f"softwaremodules/{module_id}/artifacts")
-        #print("Artifact structure:")
-        #print(json.dumps(artifacts, indent=2))
+        # print("Artifact structure:")
+        # print(json.dumps(artifacts, indent=2))
         return artifacts
-    
+
     def add_or_update_artifact(self, file_name: str, module_id: str = None):
         module_id = module_id or self.id["softwaremodule"]
-    
+
         existing_artifacts = self.get_all_artifacts(module_id)
-    
+
         for artifact in existing_artifacts:
-            artifact_id = artifact.get('id')
-            artifact_name = artifact.get('filename', 'Unknown filename')
+            artifact_id = artifact.get("id")
+            artifact_name = artifact.get("filename", "Unknown filename")
             if artifact_id:
                 print(f"Deleting existing artifact: {artifact_name}")
                 self.delete_artifact(artifact_id, module_id)
             else:
                 print(f"Warning: Found artifact without ID: {artifact_name}")
-    
+
         print(f"Uploading new artifact: {file_name}")
-        response = self.post(f"softwaremodules/{module_id}/artifacts", file_name=file_name)
+        response = self.post(
+            f"softwaremodules/{module_id}/artifacts", file_name=file_name
+        )
         self.id["artifact"] = response["id"]
         return self.id["artifact"]
 
-def ensure_filter(client, filters, query: str, name: str, dist_id: str, action_type: str = "forced"):
+
+def ensure_filter(
+    client, filters, query: str, name: str, dist_id: str, action_type: str = "forced"
+):
     requested_filter = [f for f in filters if f["query"] == query]
     if len(requested_filter) > 0:
         filter_id = requested_filter[0]["id"]
@@ -783,7 +799,7 @@ if __name__ == "__main__":
 
     print("Creating or updating software module")
     client.add_or_update_softwaremodule(name=args.softwareModule)
-    
+
     print("Creating Distribution set")
     dist_id = client.add_or_update_distributionset(
         args.distribution, module_ids=[client.get_softwaremodule().get("id")]
@@ -792,8 +808,7 @@ if __name__ == "__main__":
     print("Uploading new artifact and removing all existing ones")
     client.add_or_update_artifact(args.bundle)
 
-
-    #Creating a target filter
+    # Creating a target filter
     filters = client.get_all_targetfilters().get("content") or []
 
     channel_filter = ensure_filter(
@@ -802,7 +817,7 @@ if __name__ == "__main__":
         f'attribute.update_channel == "{args.channel}"',
         f"Downloads from {args.channel} channel",
         dist_id,
-        action_type="forced"
+        action_type="forced",
     )
 
     print(f"Channel filter is {channel_filter}")
@@ -811,7 +826,7 @@ if __name__ == "__main__":
     raucb_filename = os.path.basename(args.bundle)
     rollout_name = raucb_filename
 
-    target_filter_query = channel_filter['query']
+    target_filter_query = channel_filter["query"]
 
     print(f"Creating or replacing rollout: {rollout_name}")
     print(f"Using filter query: {target_filter_query}")
@@ -820,7 +835,7 @@ if __name__ == "__main__":
         name=rollout_name,
         dist_id=dist_id,
         target_filter_query=target_filter_query,
-        autostart=True
+        autostart=True,
     )
 
     if rollout:
