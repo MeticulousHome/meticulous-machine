@@ -80,6 +80,33 @@ class HawkbitMgmtClient:
             return distributions['content'][0]
         raise HawkbitError("No available distributions found")
 
+    def request_attributes(
+        self,
+        target_id: str,
+        target_name: str,
+        controller_id: str,
+    ):
+        return self.update_target(
+            target_id, target_name, controller_id, request_attributes=True
+        )
+
+    def update_target(
+        self,
+        target_id: str,
+        target_name: str,
+        controller_id: str,
+        request_attributes: bool = False,
+    ):
+        self.put(
+            f"targets/{target_id}",
+            {
+                "name": target_name,
+                "controllerId": controller_id,
+                "requestAttributes": request_attributes,
+            },
+        )
+
+
 def get_recent_action_status(client, target_id):
     actions = client.get_target_actions(target_id)
     if actions and 'content' in actions:
@@ -117,7 +144,10 @@ def process_targets(client, channel):
             target_id = target.get('controllerId')
             target_name = target.get('name')
             action_status = get_recent_action_status(client, target_id)
-            
+
+            # Request the target to update its attributes (this might cause the target to drop out of the channel)
+            client.update_target(target_id, target_name, target.get("controllerId"))
+
             print(f"ID: {target_id}, Name: {target_name}")
             print(f"Status: {action_status}")
             print("--------------------")
