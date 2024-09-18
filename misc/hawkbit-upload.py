@@ -605,7 +605,7 @@ class HawkbitMgmtClient:
         return rollouts.get('content', [])
     
     def get_targets_by_filter(self, filter_query):
-        return self.get(f"targets?={filter_query}")
+        return self.get(f"targets?q={filter_query}")
 
 
     def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
