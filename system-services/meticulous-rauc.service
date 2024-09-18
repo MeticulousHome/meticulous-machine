@@ -1,6 +1,8 @@
 [Unit]
 Description=RAUC Good-marking Service
 ConditionKernelCommandLine=|rauc.slot
+StartLimitInterval=20000
+StartLimitBurst=5
 
 [Service]
 Type=oneshot

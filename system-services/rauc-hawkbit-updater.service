@@ -1,6 +1,9 @@
 [Unit]
 Description=HawkBit client for Rauc
 ConditionKernelCommandLine=|rauc.slot
+ConditionHost=meticulous*
+StartLimitInterval=20000
+StartLimitBurst=5
 After=network-online.target rauc.service
 Wants=network-online.target
 
