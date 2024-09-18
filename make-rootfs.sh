@@ -149,7 +149,6 @@ function b_copy_components() {
 
     mkdir -p ${ROOTFS_DIR}/etc/rauc/
     cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
-    cp -v ${RAUC_CONFIG_DIR}/pre-install.sh ${ROOTFS_DIR}/etc/rauc/
 
     sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
     cp -v ${RAUC_CONFIG_DIR}/*.cert.pem ${ROOTFS_DIR}/etc/rauc/
