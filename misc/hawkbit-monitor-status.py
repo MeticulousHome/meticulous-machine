@@ -47,6 +47,9 @@ class HawkbitMgmtClient:
             raise HawkbitError(f"HTTP error {req.status_code}: {req.content.decode()}")
         return req.json()
 
+    def get_targets(self):
+        return self.get(f"targets")
+
     def get_targets_by_filter(self, filter_query):
         return self.get(f"targets?q={filter_query}")
 
@@ -142,11 +145,15 @@ def get_recent_action_status(client, target_id):
 
 
 def process_targets(client, channel):
-    filter_query = f'attribute.update_channel=="{channel}"'
-    targets = client.get_targets_by_filter(filter_query)
+    if channel is not None:
+        filter_query = f'attribute.update_channel=="{channel}"'
+        targets = client.get_targets_by_filter(filter_query)
+        print(f"Targets with channel '{channel}':")
+    else:
+        targets = client.get_targets()
+
     targets_to_update = []
 
-    print(f"Targets with channel '{channel}':")
     if isinstance(targets, dict) and "content" in targets:
         for target in targets["content"]:
             target_id = target.get("controllerId")
@@ -200,7 +207,9 @@ if __name__ == "__main__":
     parser.add_argument("port", type=int, help="Hawkbit port")
     parser.add_argument("username", help="Hawkbit user")
     parser.add_argument("password", help="Hawkbit password")
-    parser.add_argument("channel", help="Update channel (e.g., 'nightly')")
+    parser.add_argument(
+        "channel", help="Update channel (e.g., 'nightly')", default=None
+    )
 
     args = parser.parse_args()
 
