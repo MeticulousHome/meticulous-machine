@@ -837,7 +837,7 @@ if __name__ == "__main__":
     channel_filter = ensure_filter(
         client,
         filters,
-        f'attribute.update_channel == "{args.channel}"',
+        f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"',
         f"Downloads from {args.channel} channel",
         dist_id,
         action_type="forced",
