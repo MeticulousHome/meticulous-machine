@@ -838,7 +838,7 @@ if __name__ == "__main__":
         client,
         filters,
         f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"',
-        f"Downloads from {args.channel} channel",
+        f"Downloads from {args.channel} channel, boots from {args.bootmode}",
         dist_id,
         action_type="forced",
     )
