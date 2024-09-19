@@ -161,6 +161,7 @@ class HawkbitMgmtClient:
                 raise HawkbitError(
                     f"HTTP error {req.status_code}: {req.content.decode()}"
                 )
+        return req
 
     def delete(self, endpoint: str):
         """
@@ -384,10 +385,14 @@ class HawkbitMgmtClient:
         existing_dist = self.get_distributionset_by_name(name)
         if existing_dist:
             print(
-                f"Distribution set '{name}' already exists. Using existing distribution."
+                f"Distribution set '{name}' already exists as ID={existing_dist["id"]}. Using existing distribution. Updating version!"
             )
-            self.id["distributionset"] = existing_dist["id"]
-            return existing_dist["id"]
+            data = {
+                "version": self.version,
+            }
+            response = self.put(f"distributionsets/{existing_dist["id"]}", data).json()
+            self.id["distributionset"] = response["id"]
+            return response["id"]
 
         assert isinstance(module_ids, list)
         module_ids = module_ids or [self.id["softwaremodule"]]
@@ -400,7 +405,6 @@ class HawkbitMgmtClient:
                 "type": dist_type,
             }
         ]
-
         response = self.post("distributionsets", data)
         self.id["distributionset"] = response[0]["id"]
         return self.id["distributionset"]
@@ -700,16 +704,24 @@ class HawkbitMgmtClient:
                 return dist
         return None
 
-    def get_softwaremodule_by_name(self, name, module_type="os"):
+    def get_softwaremodule_by_name(self, name, module_type="os", version: str = None):
         # Search for a software module by name and type
         modules = self.get("softwaremodules")
+        mods = []
         for module in modules.get("content", []):
-            if module["name"] == name and module["type"] == module_type:
-                return module
+            if module["name"] == name:
+                mods.append(module)
+        if (len(mods)) > 1 and version is not None:
+            print(f"Warning: Found multiple distributions with the name '{name}'")
+            for module in mods:
+                if module["version"] == version:
+                    return module
+        elif len(mods) == 1:
+            return mods[0]
         return None
 
-    def add_or_update_softwaremodule(self, name, module_type="os"):
-        existing_module = self.get_softwaremodule_by_name(name, module_type)
+    def add_or_update_softwaremodule(self, name, version: str, module_type="os"):
+        existing_module = self.get_softwaremodule_by_name(name, module_type, version)
 
         if existing_module:
             print(f"Software module '{name}' already exists. Using existing module.")
@@ -719,7 +731,7 @@ class HawkbitMgmtClient:
         data = [
             {
                 "name": name,
-                "version": str(self.version),
+                "version": version,
                 "type": module_type,
             }
         ]
@@ -809,7 +821,7 @@ if __name__ == "__main__":
     client.set_config("authentication.targettoken.enabled", True)
 
     print("Creating or updating software module")
-    client.add_or_update_softwaremodule(name=args.softwareModule)
+    client.add_or_update_softwaremodule(name=args.softwareModule, version=args.channel)
 
     print("Creating Distribution set")
     dist_id = client.add_or_update_distributionset(
