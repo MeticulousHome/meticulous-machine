@@ -617,6 +617,16 @@ class HawkbitMgmtClient:
     def get_targets_by_filter(self, filter_query):
         return self.get(f"targets?q={filter_query}")
 
+    def update_target(self, target_id: str, target_name: str, controller_id: str):
+        self.put(
+            f"targets/{target_id}",
+            {
+                "name": target_name,
+                "controllerId": controller_id,
+                "requestAttributes": True,
+            },
+        )
+
     def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
 
         targets = self.get_targets_by_filter(target_filter_query)
@@ -649,6 +659,7 @@ class HawkbitMgmtClient:
                         self.cancel_action(action["id"], target_id, force=True)
                     except HawkbitError as e:
                         print(f"Error cancelling action {action['id']}: {str(e)}")
+                self.update_target(target_id, target_name, target.get("controllerId"))
             else:
                 print(f"Could not determine target ID for: {target}")
 
