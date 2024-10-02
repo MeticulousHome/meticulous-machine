@@ -10,5 +10,5 @@ RUN apt update
 RUN ./update-sources.sh --install_ubuntu_dependencies
 
 RUN rm -r /deps
-RUN apt install wget htop nano
+RUN apt install -y wget htop nano
 WORKDIR /meticulous
