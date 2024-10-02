@@ -86,7 +86,7 @@ readonly HISTORY_UI_GIT="git@github.com:MeticulousHome/REL-Infinite-Shot-Test-UI
 readonly HISTORY_UI_BRANCH="main"
 readonly HISTORY_UI_REV="HEAD"
 
-readonly SYSTEM_PACKAGES="parted avahi-daemon libgirepository1.0-dev libgstreamer-plugins-base1.0-dev gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 libsystemd-dev zstd nginx ssl-cert"
+readonly SYSTEM_PACKAGES="parted avahi-daemon libgirepository1.0-dev libgstreamer-plugins-base1.0-dev gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 libsystemd-dev zstd nginx ssl-cert exfatprogs"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\
