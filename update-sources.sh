@@ -241,7 +241,7 @@ if [ ${history_ui_selected} -eq 1 ]; then
 fi
 
 if [ ${rauc_selected} -eq 1 ]; then
-    rauc_selected
+    update_rauc
     any_selected=1
 fi
 
