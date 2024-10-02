@@ -146,9 +146,10 @@ function b_copy_components() {
     cp -Rv etc/* ${ROOTFS_DIR}/etc/
 
     echo "Installing RAUC config"
-
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*_arm64.deb"
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*_arm64.deb"
+    export LATEST_RAUC=$(ls -Art ${MISC_DIR}/rauc_*_arm64.deb | tail -n 1)
+    export LATEST_HAWKBIT=$(ls -Art ${MISC_DIR}/rauc-hawkbit-updater_*_arm64.deb | tail -n 1)
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/${LATEST_RAUC}"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/${LATEST_HAWKBIT}"
 
     sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
     cp -v ${RAUC_CONFIG_DIR}/*.cert.pem ${ROOTFS_DIR}/etc/rauc/
