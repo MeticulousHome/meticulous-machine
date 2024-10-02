@@ -35,7 +35,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         run-id: ${{ env.latest_run_id }}
-        name: rootfs.tar.gz
+        name: 'rootfs.tar.gz'
         github-token: ${{ secrets.GH_TOKEN }}
         path: .
 
