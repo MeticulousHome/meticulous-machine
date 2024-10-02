@@ -1,4 +1,4 @@
-name: Build python 3
+name: Build rauc and rauc-hawkbit-updater
 
 on:
   workflow_dispatch:  # Allows manual triggering
