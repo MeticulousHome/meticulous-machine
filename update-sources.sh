@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 source config.sh
 
@@ -21,27 +21,37 @@ function get_git_src() {
 }
 
 function install_ubuntu_dependencies() {
-    if [ -n "$(uname -a | grep Ubuntu)" ]; then
-        echo "Running on ubuntu: Installing host dependencies"
-        sudo apt update
-        sudo apt -y install ${HOST_PACKAGES}
+    echo "Installing host dependencies"
+    if [ -z "$(which sudo)" ]; then
+        apt update
+        apt install -y sudo
+    fi
+    sudo apt update
+    sudo apt -y install ${HOST_PACKAGES}
+    if [ $(uname -m) == "aarch64" ]; then
+        if lsb_release -i | grep -i ubuntu; then
+            sudo dpkg -i ./misc/libssl1.1_1.1.1f-1ubuntu2.23_arm64.deb
+        fi
+        sudo apt -y install ./misc/rauc_*_arm64.deb 
+    else
         sudo apt -y install ./misc/rauc_*_amd64.deb
+    fi
 
-        if [ -z "$(which node)" ]; then
-            curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash - &&
-                sudo apt-get install -y nodejs
-        fi
+    if [ -z "$(which node)" ]; then
+        curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash - &&
+            sudo apt-get install -y nodejs
+    fi
 
-        if [ -z "$(which pio)" ]; then
-            wget -O get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
-            python3 get-platformio.py
-            echo "export PATH=$PATH:$HOME/.platformio/penv/bin" >>$HOME/.bashrc
-            export PATH=$PATH:$HOME/.platformio/penv/bin
-            rm get-platformio.py
-        fi
-        if [ -z "$(which bundle)" ]; then
-            sudo apt install ruby ruby-bundler
-        fi
+    if [ -z "$(which pio)" ]; then
+        wget -O get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+        python3 get-platformio.py
+        echo "export PATH=$PATH:$HOME/.platformio/penv/bin" >>$HOME/.bashrc
+        export PATH=$PATH:$HOME/.platformio/penv/bin
+        rm get-platformio.py
+        rm -rf .piocore-installer-*
+    fi
+    if [ -z "$(which bundle)" ]; then
+        sudo apt install -y ruby ruby-bundler
     fi
 }
 
@@ -82,7 +92,6 @@ function update_dash() {
     get_git_src ${DASH_GIT} ${DASH_BRANCH} \
         ${DASH_SRC_DIR} ${DASH_REV}
     pushd $DASH_SRC_DIR
-    npm install
     popd
 }
 
@@ -91,7 +100,6 @@ function update_web() {
     get_git_src ${WEB_APP_GIT} ${WEB_APP_BRANCH} \
         ${WEB_APP_SRC_DIR} ${WEB_APP_REV}
     pushd $WEB_APP_SRC_DIR
-    npm install
     popd
 }
 
@@ -100,7 +108,6 @@ function update_firmware() {
     get_git_src ${FIRMWARE_GIT} ${FIRMWARE_BRANCH} \
         ${FIRMWARE_SRC_DIR} ${FIRMWARE_REV}
     pushd $FIRMWARE_SRC_DIR
-    pio lib install
     popd
 }
 
@@ -109,7 +116,6 @@ function update_history() {
     get_git_src ${HISTORY_UI_GIT} ${HISTORY_UI_BRANCH} \
         ${HISTORY_UI_SRC_DIR} ${HISTORY_UI_REV}
     pushd $HISTORY_UI_SRC_DIR
-    npm install
     popd
 }
 
@@ -169,7 +175,6 @@ install_ubuntu_dependencies_selected=0
 history_ui_selected=0
 rauc_selected=0
 declare -A steps
-
 steps=(
     [update_debian]=0
     [update_backend]=0
@@ -208,6 +213,7 @@ done
 
 if [ ${install_ubuntu_dependencies_selected} -eq 1 ]; then
     install_ubuntu_dependencies
+    any_selected=1
 fi
 
 for key in "${!steps[@]}"; do

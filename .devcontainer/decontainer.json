@@ -1,0 +1,18 @@
+{
+    "name": "Meticulous Ubuntu container",
+    "build": {
+      "dockerfile": "Dockerfile"
+    },
+    "workspaceFolder": "/meticulous",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/meticulous,type=bind",
+    "extensions": [
+      "ms-vscode.vscode-typescript-tslint-plugin",
+      "esbenp.prettier-vscode",
+      "ms-python.python"
+    ],
+    "settings": {
+      "terminal.integrated.shell.linux": "/bin/bash"
+    },
+    "remoteUser": "root"
+  }
+  

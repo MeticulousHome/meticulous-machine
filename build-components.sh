@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eo pipefail
 
 source config.sh
@@ -56,6 +56,7 @@ function build_dash() {
     if [ -d $DASH_SRC_DIR ]; then
         echo "Building Dashboard app"
         pushd $DASH_SRC_DIR >/dev/null
+        npm install
         npm run build
         popd >/dev/null
     else
@@ -66,6 +67,7 @@ function build_dash() {
 function build_web() {
     echo "Building WebApp"
     pushd $WEB_APP_SRC_DIR >/dev/null
+    npm install
     npm run build
     popd >/dev/null
 }
@@ -75,6 +77,8 @@ function build_firmware() {
     if [ -d $FIRMWARE_SRC_DIR ]; then
         echo "Building Firmware for ESP32 || FIKA_V6"
         pushd $FIRMWARE_SRC_DIR >/dev/null
+        pio lib install
+
         pio run -e fika_latest-s1 -e fika_latest-s3
         popd >/dev/null
 
@@ -100,6 +104,7 @@ function build_history() {
     if [ -d $HISTORY_UI_SRC_DIR ]; then
         echo "Building HISTORY UI"
         pushd $HISTORY_UI_SRC_DIR >/dev/null
+        npm install
         npm run build
         popd >/dev/null
     else

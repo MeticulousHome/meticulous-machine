@@ -1,0 +1,8 @@
+
+services:
+  ubuntu:
+    image: ubuntu:latest
+    volumes:
+      - .:/meticulous
+    tty: true
+    stdin_open: true

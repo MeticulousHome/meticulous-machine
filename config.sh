@@ -1,6 +1,23 @@
 #!/bin/bash
 set -eo pipefail
 
+check_bash_version() {
+    # Get the version of Bash
+    local version=$(bash --version | awk '{print $4}')
+    # Compare the version
+    if [[ "$version" < "5.2" ]]; then
+        echo "Error: Bash version $version is less than 5.2."
+        echo "Please update Bash or change your PATH to point to a newer version."
+        echo "For macOS, you can install a newer version using Homebrew:"
+        echo "  brew install bash"
+        echo "Then add the following to your ~/.profile or run manually"
+        echo '  export PATH=/opt/homebrew/bin/:$PATH'
+        exit 1
+    fi
+}
+
+check_bash_version
+
 readonly COMPONENTS_DIR="components"
 readonly ROOTFS_DIR="rootfs"
 readonly SERVICES_DIR="system-services"

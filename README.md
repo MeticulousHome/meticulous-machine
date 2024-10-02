@@ -14,6 +14,10 @@ sudo make-rootfs.sh --all
 sudo make-sdcard.sh --image
 ```
 
+## Running on non-ubuntu > 24.04 systems (macOS / docker)
+For building on macOS or non-ubuntu systems we offer the `./run-in-container.sh` script. It will start an ubuntu container with all dependencies
+installed
+
 ## Getting Started by checking out the sources
 
 Before running any scripts, ensure you have installed all necessary dependencies and configured the config.sh file for your environment.
