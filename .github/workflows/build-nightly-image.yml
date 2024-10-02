@@ -84,15 +84,15 @@ jobs:
     - name: Upload SDCard artifact
       uses: actions/upload-artifact@v4
       with:
-        name: sdcard.img.gz
-        path: sdcard.img.gz
+        name: sdcard.img
+        path: sdcard.img
         if-no-files-found: error
 
     - name: Upload EMMC artifact
       uses: actions/upload-artifact@v4
       with:
-        name: emmc.img.gz
-        path: emmc.img.gz
+        name: emmc.img
+        path: emmc.img
         if-no-files-found: error
 
   build-bundle:
@@ -205,20 +205,17 @@ jobs:
     - name: Download sdcard artifact
       uses: actions/download-artifact@v4
       with:
-        name: 'sdcard.img.gz'
+        name: 'sdcard.img'
         path: .
 
     - name: Download emmc artifact
       uses: actions/download-artifact@v4
       with:
-        name: 'emmc.img.gz'
+        name: 'emmc.img'
         path: .
 
     - name: Install Ubuntu dependencies
       run: sudo apt update && sudo apt install -y pigz qemu-utils e2fsprogs mount cloud-guest-utils
-
-    - name: Decompress images
-      run: pigz -d sdcard.img.gz emmc.img.gz
 
     - name: Build deployment image
       run: sudo ./make-deployment-image.sh --inplace

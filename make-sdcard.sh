@@ -223,11 +223,8 @@ function create_image() {
         umount sdcard_b
         losetup --detach ${LOOP_DEV}
 
-        echo -e "## Compressing images"
-        pigz -kf ${IMAGE_TARGET}
-        pigz -kf emmc.img
-        echo -e "Image can be installed from ${IMAGE_TARGET} or ${IMAGE_TARGET}.gz"
-        echo -e "Machine can be imaged with emmc.img, emmc.img.gz needs to be unpacked first"
+        echo -e "Image can be installed from ${IMAGE_TARGET}"
+        echo -e "Machine can be imaged with emmc.img"
     fi
 
     rm -r sdcard_a sdcard_b sdcard-uboot sdcard-user
