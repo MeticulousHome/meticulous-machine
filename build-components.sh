@@ -7,6 +7,9 @@ function build_debian() {
     echo "Building debian"
 
     pushd $DEBIAN_SRC_DIR >/dev/null
+    if [ ! -e  src/uboot ]; then
+        sudo ./var_make_debian.sh -c deploy
+    fi
     sudo ./var_make_debian.sh -c all
     popd >/dev/null
 }

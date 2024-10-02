@@ -142,6 +142,9 @@ function b_copy_components() {
 
     chown root:root ${ROOTFS_DIR}/opt/meticulous*
 
+    echo "Installing config files"
+    cp -Rv etc/* ${ROOTFS_DIR}/etc/
+
     echo "Installing RAUC config"
 
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*_arm64.deb"
@@ -152,8 +155,6 @@ function b_copy_components() {
 
     sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
     cp -v ${RAUC_CONFIG_DIR}/*.cert.pem ${ROOTFS_DIR}/etc/rauc/
-    cp -v ${RAUC_CONFIG_DIR}/update_OS.sh ${ROOTFS_DIR}/opt
-    chmod +rx ${ROOTFS_DIR}/opt/update_OS.sh
     mkdir -p ${ROOTFS_DIR}/etc/hawkbit
 
     cp -v ${RAUC_CONFIG_DIR}/create_config.sh ${ROOTFS_DIR}/etc/hawkbit/create_config.sh

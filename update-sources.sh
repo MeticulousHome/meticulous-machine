@@ -60,8 +60,12 @@ function update_debian() {
     get_git_src ${DEBIAN_GIT} ${DEBIAN_BRANCH} \
         ${DEBIAN_SRC_DIR} ${DEBIAN_REV}
 
-    echo "Asking debian to fetch its dependencies"
-    $DEBIAN_SRC_DIR/var_make_debian.sh -c deploy
+    if [ $(uname -s) == "Darwin" ]; then
+        echo "Skipping debian dependencies for MacOS"
+    else
+        echo "Asking debian to fetch its dependencies"
+        $DEBIAN_SRC_DIR/var_make_debian.sh -c deploy
+    fi
 }
 
 function update_backend() {
