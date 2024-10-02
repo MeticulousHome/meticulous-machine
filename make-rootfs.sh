@@ -150,25 +150,11 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc_${RAUC_VERSION}*_arm64.deb"
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/misc/rauc-hawkbit-updater_${HAWKBIT_VERSION}*_arm64.deb"
 
-    mkdir -p ${ROOTFS_DIR}/etc/rauc/
-    cp -v ${RAUC_CONFIG_DIR}/system.conf ${ROOTFS_DIR}/etc/rauc/
-
     sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
     cp -v ${RAUC_CONFIG_DIR}/*.cert.pem ${ROOTFS_DIR}/etc/rauc/
-    mkdir -p ${ROOTFS_DIR}/etc/hawkbit
-
-    cp -v ${RAUC_CONFIG_DIR}/create_config.sh ${ROOTFS_DIR}/etc/hawkbit/create_config.sh
-    cp -v ${RAUC_CONFIG_DIR}/hawkbit-config.conf.template ${ROOTFS_DIR}/etc/hawkbit/config.conf.template
-    echo "stable" >${ROOTFS_DIR}/etc/hawkbit/channel
-
-    echo "Installing EMMC fstab"
-    cp -v ${RAUC_CONFIG_DIR}/fstab_emmc ${ROOTFS_DIR}/etc/fstab
 
     echo "Installing services"
     copy_services
-
-    echo "Installing nginx config"
-    cp -v ${MISC_DIR}/nginx-default.conf ${ROOTFS_DIR}/etc/nginx/sites-available/default
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
