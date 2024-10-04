@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+# installkernel must call postinst.d with two args, version & image_path
+version="$1"
+image_path="$2"
+
+[ -n "$version" ] || exit 0
+[ -n "$image_path" ] || exit 0
+
+##
+# Usually we would call here
+# linux-update-symlinks install $version $image_path
+# But as this is creating initrd links which we dont need a simple symlinking is good enough
+# This also means that kernel uninstalls will break :/
+if [ -e /boot/Image.gz ]; then
+    mv /boot/Image.gz /boot/Image.gz.old
+fi
+ln -vsf $image_path /boot/Image.gz
+
+
+exit 0

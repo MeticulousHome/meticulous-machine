@@ -144,6 +144,19 @@ function update_rauc() {
         ${HAWKBIT_SRC_DIR} ${HAWKBIT_REV}
 }
 
+function update_linux() {
+    echo "Cloning / Updating linux Repositories"
+    get_git_src ${LINUX_GIT} ${LINUX_BRANCH} \
+        ${LINUX_SRC_DIR} ${LINUX_REV}
+}
+
+function update_uboot() {
+    echo "Cloning / Updating uboot Repositories"
+    get_git_src ${UBOOT_GIT} ${UBOOT_BRANCH} \
+        ${UBOOT_SRC_DIR} ${UBOOT_REV}
+}
+
+
 
 function show_help() {
     cat <<EOF
@@ -162,6 +175,8 @@ Available options:
     --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
     --web / --webapp                Checkout / Update WebApp repository
+    --linux / --kernel              Checkout / Update Linux Kernel repository
+    --uboot                         Checkout / Update U-Boot repository
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
     --history                       Checkout / Update History UI repository (Requires explicit access)
@@ -178,6 +193,8 @@ mobile_selected=0
 install_ubuntu_dependencies_selected=0
 history_ui_selected=0
 rauc_selected=0
+linux_selected=0
+uboot_selected=0
 declare -A steps
 steps=(
     [update_debian]=0
@@ -204,6 +221,9 @@ for arg in "$@"; do
     --mobile) mobile_selected=1 ;;
     --rauc) rauc_selected=1 ;;
     --history) history_ui_selected=1 ;;
+    --linux) linux_selected=1 ;;
+    --kernel) linux_selected=1 ;;
+    --uboot) uboot_selected=1 ;;
 
     # Enable all steps via special case
     --all) all_selected=1 ;;
@@ -231,6 +251,16 @@ done
 
 if [ ${firmware_selected} -eq 1 ]; then
     update_firmware
+    any_selected=1
+fi
+
+if [ ${linux_selected} -eq 1 ]; then
+    update_linux
+    any_selected=1
+fi
+
+if [ ${uboot_selected} -eq 1 ]; then
+    update_uboot
     any_selected=1
 fi
 

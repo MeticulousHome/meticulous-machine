@@ -26,6 +26,17 @@ readonly MISC_DIR="misc"
 
 readonly RAUC_CERT="beta.rsa4096.cert.pem"
 
+readonly LINUX_SRC_DIR=${COMPONENTS_DIR}/"linux"
+readonly LINUX_BUILD_DIR=${COMPONENTS_DIR}/"linux-build"
+readonly LINUX_GIT="git@github.com:MeticulousHome/linux-variscite-fika.git"
+readonly LINUX_BRANCH="debian-5.15.60"
+readonly LINUX_REV="HEAD"
+
+readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"uboot"
+readonly UBOOT_GIT="git@github.com:MeticulousHome/uboot-variscite-fika.git"
+readonly UBOOT_BRANCH="v2022.04-imx-debian-5.15"
+readonly UBOOT_REV="HEAD"
+
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
 readonly DEBIAN_GIT="git@github.com:MeticulousHome/debian-variscite-fika"
 readonly DEBIAN_BRANCH="debian-bullseye"

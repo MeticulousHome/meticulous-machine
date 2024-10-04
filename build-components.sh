@@ -75,6 +75,35 @@ function build_web() {
     popd >/dev/null
 }
 
+function build_kernel() {
+    if [ ! -d $LINUX_SRC_DIR ]; then
+        echo "Linux Kernel is not checked out. Skipping"
+        return
+    fi
+
+    echo -e "\033[1;32mBuilding Linux Kernel\033[0m"
+
+    mkdir -p ${LINUX_BUILD_DIR}
+    rm -f ${LINUX_BUILD_DIR}/*
+    pushd $LINUX_SRC_DIR >/dev/null
+    if [ ! $(uname -m) == "aarch64" ]; then
+        export CROSS_COMPILE="aarch64-linux-gnu-"
+        export ARCH="arm64"
+        echo -e "\033[1;32mSetting \033[1;34mCROSS_COMPILE=\033[1;35m${CROSS_COMPILE}\033[0m and \033[1;34mARCH=\033[1;35m${ARCH}\033[0m"
+    fi
+
+    make -j`nproc` imx8_var_meticulous_defconfig
+    export DEBEMAIL="Mimoja <mimoja@meticuloushome.com>"
+    export DPKG_DEB_COMPRESSOR_TYPE=xz
+
+    make -j`nproc` bindeb-pkg
+    popd >/dev/null
+
+    mv ${COMPONENTS_DIR}/linux-*.deb ${LINUX_BUILD_DIR}/
+    mv ${COMPONENTS_DIR}/linux-*.buildinfo ${LINUX_BUILD_DIR}/
+    mv ${COMPONENTS_DIR}/linux-*.changes ${LINUX_BUILD_DIR}/
+}
+
 function build_firmware() {
     PLATFORMIO_FRAMEWORK="${HOME}/.platformio/packages/framework-arduinoespressif32"
     if [ -d $FIRMWARE_SRC_DIR ]; then
@@ -132,6 +161,7 @@ Available options:
     --dash | --dashboard      Build Dashboard application
     --web  | --webapp         Build WebApp application
     --firmware                Build ESP32 Firmware
+    --linux | --kernel        Build Linux Kernel
     --history                 Build History UI
     --help                    Displays this help and exits
 
@@ -148,6 +178,7 @@ steps=(
     [build_web]=0
     [build_firmware]=0
     [build_history]=0
+    [build_kernel]=0
 )
 
 # Parse command line arguments
@@ -161,6 +192,8 @@ for arg in "$@"; do
     --webapp) steps[build_web]=1 ;;
     --firmware) steps[build_firmware]=1 ;;
     --history) steps[build_history]=1 ;;
+    --kernel) steps[build_kernel]=1 ;;
+    --linux) steps[build_kernel]=1 ;;
     --help)
         show_help
         exit 0
