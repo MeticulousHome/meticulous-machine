@@ -1,0 +1,9 @@
+[Unit]
+Description=Meticulous manual updater
+Requires=rauc.service
+
+[Service]
+Type=simple
+EnvironmentFile = /tmp/rauc_install/env_file
+ExecStart=/etc/usb_updater/media_rauc_install.sh $FD_NAME
+Environment=DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket

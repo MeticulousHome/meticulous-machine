@@ -1,0 +1,8 @@
+#This rule applies only for usb storage devices partitions
+
+#According to udevadm info /dev/someUsbStorage -a
+ACTION=="add" \
+, KERNEL=="sd?[1-9]"\
+, SUBSYSTEM=="block"\
+, DRIVERS=="usb-storage"\
+, RUN="/etc/usb_updater/media_handler.sh %k %n"
