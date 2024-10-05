@@ -77,6 +77,17 @@ function copy_services() {
     ln -sf /lib/systemd/system/rauc.service \
         ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc.service
 
+    install -m 0644 ${SERVICES_DIR}/usb-rauc-install.service \
+        ${ROOTFS_DIR}/lib/systemd/system
+
+}
+
+function copy_usb_handlers_scripts(){
+    
+    #Install shell scripts that handle USB detection and recovery update
+    etc/* ${ROOTFS_DIR}/etc/
+    install -m 0777 etc/usb_updater*.sh \
+        ${ROOTFS_DIR}/etc/usb_updater
 }
 
 function b_copy_components() {
@@ -162,6 +173,9 @@ function b_copy_components() {
 
     echo "Installing services"
     copy_services
+
+    echo "Installing usb handlers"
+    copy_usb_handlers_scripts
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
