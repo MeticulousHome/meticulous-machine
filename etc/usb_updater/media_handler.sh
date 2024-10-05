@@ -44,7 +44,7 @@ if [ $USB_AS_UPDATER == true ] && [ -n "$rauc_files" ]; then
     echo "FD_NAME=$DEVICE_KERNEL_NAME" > /tmp/rauc_install/env_file
 
     umount $MOUNT_POINT
-    systemctl start rauc_install.service
+    systemctl start usb-rauc-install.service
     exit 0
 
 else
