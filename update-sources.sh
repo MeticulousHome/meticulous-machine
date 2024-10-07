@@ -187,7 +187,8 @@ Available options:
     --dash / --dashboard            Checkout / Update Dashboard repository
     --web / --webapp                Checkout / Update WebApp repository
     --linux / --kernel              Checkout / Update Linux Kernel repository
-    --uboot                         Checkout / Update U-Boot repository
+    --uboot / --bootloader          Checkout / Update U-Boot repository
+    --rauc                          Checkout / Update rauc and rauc-hawkbit-updater repositories
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
     --history                       Checkout / Update History UI repository (Requires explicit access)
@@ -205,9 +206,6 @@ mobile_selected=0
 install_ubuntu_dependencies_selected=0
 history_ui_selected=0
 plotter_ui_selected=0
-rauc_selected=0
-linux_selected=0
-uboot_selected=0
 declare -A steps
 steps=(
     [update_debian]=0
@@ -216,6 +214,9 @@ steps=(
     [update_dial]=0
     [update_dash]=0
     [update_web]=0
+    [update_linux]=0
+    [update_uboot]=0
+    [update_rauc]=0
 )
 
 # Parse command line arguments, enable steps when selected
@@ -232,12 +233,14 @@ for arg in "$@"; do
     --webapp) steps[update_web]=1 ;;
     --firmware) firmware_selected=1 ;;
     --mobile) mobile_selected=1 ;;
-    --rauc) rauc_selected=1 ;;
+    --rauc) steps[update_rauc]=1 ;;
     --history) history_ui_selected=1 ;;
     --plotter) plotter_ui_selected=1 ;;
-    --linux) linux_selected=1 ;;
-    --kernel) linux_selected=1 ;;
-    --uboot) uboot_selected=1 ;;
+    --linux) steps[update_linux]=1 ;;
+    --kernel) steps[update_linux]=1 ;;
+    --uboot) steps[update_uboot]=1 ;;
+    --bootloader) steps[update_uboot]=1 ;;
+    --help) show_help; exit 0 ;;
 
     # Enable all steps via special case
     --all) all_selected=1 ;;
@@ -268,16 +271,6 @@ if [ ${firmware_selected} -eq 1 ]; then
     any_selected=1
 fi
 
-if [ ${linux_selected} -eq 1 ]; then
-    update_linux
-    any_selected=1
-fi
-
-if [ ${uboot_selected} -eq 1 ]; then
-    update_uboot
-    any_selected=1
-fi
-
 if [ ${mobile_selected} -eq 1 ]; then
     update_mobile
     any_selected=1
@@ -292,12 +285,6 @@ if [ ${plotter_ui_selected} -eq 1 ]; then
     update_plotter
     any_selected=1
 fi
-
-if [ ${rauc_selected} -eq 1 ]; then
-    update_rauc
-    any_selected=1
-fi
-
 
 # Print help if no step has been executed
 if [ $any_selected -eq 0 ]; then
