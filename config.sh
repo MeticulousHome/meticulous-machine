@@ -32,10 +32,23 @@ readonly LINUX_GIT="git@github.com:MeticulousHome/linux-variscite-fika.git"
 readonly LINUX_BRANCH="debian-5.15.60"
 readonly LINUX_REV="HEAD"
 
-readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"uboot"
+readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
 readonly UBOOT_GIT="git@github.com:MeticulousHome/uboot-variscite-fika.git"
 readonly UBOOT_BRANCH="v2022.04-imx-debian-5.15"
 readonly UBOOT_REV="HEAD"
+
+readonly ATF_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-atf"
+readonly ATF_GIT="https://github.com/varigit/imx-atf.git"
+readonly ATF_BRANCH="imx_5.4.24_2.1.0_var01"
+readonly ATF_REV="7575633e03ff952a18c0a2c0aa543dee793fda5f"
+
+readonly IMX_MKIMAGE_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-mkimage"
+readonly IMX_MKIMAGE_GIT="https://github.com/nxp-imx/imx-mkimage.git"
+readonly IMX_MKIMAGE_BRANCH="imx_5.4.24_2.1.0"
+readonly IMX_MKIMAGE_REV="6745ccdcf15384891639b7ced3aa6ce938682365"
+
+readonly IMX_BOOT_TOOLS_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-boot-tools"
+readonly BOOTLOADER_BUILD_DIR=${COMPONENTS_DIR}/"bootloader/build"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
 readonly DEBIAN_GIT="git@github.com:MeticulousHome/debian-variscite-fika"

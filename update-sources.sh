@@ -161,9 +161,13 @@ function update_uboot() {
     echo "Cloning / Updating uboot Repositories"
     get_git_src ${UBOOT_GIT} ${UBOOT_BRANCH} \
         ${UBOOT_SRC_DIR} ${UBOOT_REV}
+
+    get_git_src ${ATF_GIT} ${ATF_BRANCH} \
+        ${ATF_SRC_DIR} ${ATF_REV}
+
+    get_git_src ${IMX_MKIMAGE_GIT} ${IMX_MKIMAGE_BRANCH} \
+        ${IMX_MKIMAGE_SRC_DIR} ${IMX_MKIMAGE_REV}
 }
-
-
 
 function show_help() {
     cat <<EOF

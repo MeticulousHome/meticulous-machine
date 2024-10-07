@@ -75,6 +75,59 @@ function build_web() {
     popd >/dev/null
 }
 
+function build_uboot() {
+    if [ ! -d $UBOOT_SRC_DIR ]; then
+        echo "uboot is not checked out. Skipping"
+        return
+    fi
+
+    set -x
+    echo -e "\033[1;32mBuilding Uboot\033[0m"
+    if [ ! $(uname -m) == "aarch64" ]; then
+        export CROSS_COMPILE="aarch64-linux-gnu-"
+        export ARCH="arm64"
+        echo -e "\033[1;32mSetting \033[1;34mCROSS_COMPILE=\033[1;35m${CROSS_COMPILE}\033[0m and \033[1;34mARCH=\033[1;35m${ARCH}\033[0m"
+    fi
+    pushd $UBOOT_SRC_DIR >/dev/null
+    make mrproper
+    make imx8mn_var_som_meticulous_defconfig
+    make -j`nproc`
+
+    popd >/dev/null
+    pushd $ATF_SRC_DIR >/dev/null
+
+	sed -i 's|ERRORS := -Werror|ERRORS := -Werror -Wno-error=array-bounds|' Makefile
+	sed -i '/TF_LDFLAGS.*--gc-sections/a TF_LDFLAGS        +=      --no-warn-rwx-segment' Makefile
+
+    LDFLAGS="" make PLAT=imx8mn bl31
+    popd >/dev/null
+
+    cp -v ${ATF_SRC_DIR}/build/imx8mn/release/bl31.bin ${IMX_MKIMAGE_SRC_DIR}/iMX8M/bl31.bin
+	cp -v ${IMX_BOOT_TOOLS_SRC_DIR}/ddr4_imem_1d_201810.bin ${IMX_MKIMAGE_SRC_DIR}/iMX8M/ddr4_imem_1d_201810.bin
+	cp -v ${IMX_BOOT_TOOLS_SRC_DIR}/ddr4_dmem_1d_201810.bin ${IMX_MKIMAGE_SRC_DIR}/iMX8M/ddr4_dmem_1d_201810.bin
+	cp -v ${IMX_BOOT_TOOLS_SRC_DIR}/ddr4_imem_2d_201810.bin ${IMX_MKIMAGE_SRC_DIR}/iMX8M/ddr4_imem_2d_201810.bin
+	cp -v ${IMX_BOOT_TOOLS_SRC_DIR}/ddr4_dmem_2d_201810.bin ${IMX_MKIMAGE_SRC_DIR}/iMX8M/ddr4_dmem_2d_201810.bin
+	cp -v ${UBOOT_SRC_DIR}/u-boot.bin                               ${IMX_MKIMAGE_SRC_DIR}/iMX8M/
+	cp -v ${UBOOT_SRC_DIR}/u-boot-nodtb.bin                         ${IMX_MKIMAGE_SRC_DIR}/iMX8M/
+	cp -v ${UBOOT_SRC_DIR}/spl/u-boot-spl.bin                       ${IMX_MKIMAGE_SRC_DIR}/iMX8M/
+	cp -v ${UBOOT_SRC_DIR}/arch/arm/dts/imx8mn-var-som-symphony.dtb ${IMX_MKIMAGE_SRC_DIR}/iMX8M/
+    cp -v ${UBOOT_SRC_DIR}/tools/mkimage                            ${IMX_MKIMAGE_SRC_DIR}/iMX8M/mkimage_uboot
+
+    # imx-mkimage needs to be patched for non-evk boards
+    cp -v ${IMX_BOOT_TOOLS_SRC_DIR}/imx-boot/imx-mkimage-imx8m-soc.mak-add-var-som-imx8m-nano-support.patch ${IMX_MKIMAGE_SRC_DIR}
+    pushd ${IMX_MKIMAGE_SRC_DIR}
+
+    git checkout -f
+    git apply imx-mkimage-imx8m-soc.mak-add-var-som-imx8m-nano-support.patch
+	make SOC=iMX8MN dtbs=imx8mn-var-som-symphony.dtb flash_ddr4_evk
+
+    popd >/dev/null
+
+    mkdir -p ${BOOTLOADER_BUILD_DIR} || true
+	cp -v ${IMX_MKIMAGE_SRC_DIR}/iMX8M/flash.bin ${BOOTLOADER_BUILD_DIR}/imx-boot-sd.bin
+}
+
+
 function build_kernel() {
     if [ ! -d $LINUX_SRC_DIR ]; then
         echo "Linux Kernel is not checked out. Skipping"
@@ -173,6 +226,7 @@ Available options:
     --web  | --webapp         Build WebApp application
     --firmware                Build ESP32 Firmware
     --linux | --kernel        Build Linux Kernel
+    --uboot | --bootloader    Build U-Boot
     --history                 Build History UI
     --help                    Displays this help and exits
 
@@ -191,6 +245,7 @@ steps=(
     [build_history]=0
     [build_plotter]=0
     [build_kernel]=0
+    [build_uboot]=0
 )
 
 # Parse command line arguments
@@ -207,6 +262,8 @@ for arg in "$@"; do
     --plotter) steps[build_plotter]=1 ;;
     --kernel) steps[build_kernel]=1 ;;
     --linux) steps[build_kernel]=1 ;;
+    --uboot) steps[build_uboot]=1 ;;
+    --bootloader) steps[build_uboot]=1 ;;
     --help)
         show_help
         exit 0
