@@ -18,6 +18,8 @@ check_bash_version() {
 
 check_bash_version
 
+readonly DOCKER_DEB_BUILER_IMAGE="ghcr.io/meticuloushome/meticulous-machine/meticulous-deb-builder"
+
 readonly COMPONENTS_DIR="components"
 readonly ROOTFS_DIR="rootfs"
 readonly SERVICES_DIR="system-services"
@@ -86,18 +88,20 @@ readonly FIRMWARE_GIT="git@github.com:MeticulousHome/flow_machine_firmware"
 readonly FIRMWARE_BRANCH="dev"
 readonly FIRMWARE_REV="HEAD"
 
-readonly RAUC_SRC_DIR="${COMPONENTS_DIR}/rauc"
-readonly RAUC_GIT="https://github.com/rauc/rauc.git"
-readonly RAUC_BRANCH="master"
+readonly RAUC_SRC_DIR="${COMPONENTS_DIR}/rauc/rauc"
+readonly RAUC_GIT="https://github.com/MeticulousHome/rauc-deb"
+readonly RAUC_BRANCH="main"
 readonly RAUC_VERSION="1.12"
-readonly RAUC_REV="v${RAUC_VERSION}"
+readonly RAUC_REV="HEAD"
 
-readonly HAWKBIT_SRC_DIR="${COMPONENTS_DIR}/rauc-hawkbit-updater"
+readonly HAWKBIT_SRC_DIR="${COMPONENTS_DIR}/rauc/rauc-hawkbit-updater"
 readonly HAWKBIT_GIT="https://github.com/MeticulousHome/rauc-hawkbit-updater.git"
 readonly HAWKBIT_BRANCH="main"
 readonly HAWKBIT_REV="HEAD"
 # Manually set to the latest version, should be updated when the commit is updated
-readonly HAWKBIT_VERSION="1.4-devel-${HAWKBIT_REV:0:8}"
+readonly HAWKBIT_VERSION="1.4-devel-meticulous-$(date +'%Y-%m-%d_%H-%M-%S')"
+
+readonly RAUC_BUILD_DIR="${COMPONENTS_DIR}/rauc/build"
 
 readonly PIPER_VERSION="1.2.0"
 readonly PIPER_URL="https://github.com/rhasspy/piper/releases/download/${PIPER_VERSION}/piper_arm64.tar.gz"

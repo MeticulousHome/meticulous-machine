@@ -209,6 +209,44 @@ function build_plotter() {
     fi
 }
 
+function build_rauc() {
+    echo "Building RAUC and Hawkbit Updater inside a container"
+
+    # Build the rauc deb package for x86 and arm64
+    echo "Building rauc deb package (arm64)..."
+    docker run --platform arm64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${RAUC_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-arm64 /bin/bash -c "\
+        cd /debs/workspace && \
+        git config --global --add safe.directory '*' && \
+        mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
+        dpkg-buildpackage -b -rfakeroot -us -uc"
+
+    echo "Building rauc deb package (amd64)..."
+    docker run --platform amd64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive  -v ./${RAUC_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-amd64 /bin/bash -c "\
+        cd /debs/workspace && \
+        git config --global --add safe.directory '*' && \
+        mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
+        dpkg-buildpackage -b -rfakeroot -us -uc"
+
+    # Build the rauc-hawkbit-updater deb package for arm64 only
+    echo "Building hawkbit updater deb package (arm64)..."
+    docker run --platform arm64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${HAWKBIT_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-arm64 /bin/bash -c "\
+        cd /debs/workspace && \
+        git config --global --add safe.directory '*' && \
+        mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
+        dpkg-buildpackage -b -rfakeroot -us -uc"
+}
+
+function build_docker() {
+    if ! docker buildx inspect meticulous-builder 2>&1 1>/dev/null; then
+        docker buildx create --name meticulous-builder --driver docker-container --bootstrap
+    fi
+    # Docker currently does not support multi-platform builds for buildx
+    docker buildx build --builder meticulous-builder --platform linux/arm64,linux/amd64 -t ${DOCKER_DEB_BUILER_IMAGE}:latest -f deb-builder.Dockerfile .
+    # So we export the images separately
+    docker build --platform linux/arm64 -t ${DOCKER_DEB_BUILER_IMAGE}:latest-arm64 -f deb-builder.Dockerfile .
+    docker build --platform linux/amd64 -t ${DOCKER_DEB_BUILER_IMAGE}:latest-amd64 -f deb-builder.Dockerfile .
+}
+
 # Function to display help text
 show_help() {
     cat <<EOF
@@ -227,6 +265,8 @@ Available options:
     --firmware                Build ESP32 Firmware
     --linux | --kernel        Build Linux Kernel
     --uboot | --bootloader    Build U-Boot
+    --rauc                    Build RAUC and rauc-hawkbit-updater
+    --docker                  Build Docker image for building debian packages (not intcluded in --all)
     --history                 Build History UI
     --help                    Displays this help and exits
 
@@ -234,6 +274,7 @@ EOF
 }
 
 any_selected=0
+docker_selected=0
 all_selected=0
 declare -A steps
 steps=(
@@ -246,6 +287,7 @@ steps=(
     [build_plotter]=0
     [build_kernel]=0
     [build_uboot]=0
+    [build_rauc]=0
 )
 
 # Parse command line arguments
@@ -264,6 +306,8 @@ for arg in "$@"; do
     --linux) steps[build_kernel]=1 ;;
     --uboot) steps[build_uboot]=1 ;;
     --bootloader) steps[build_uboot]=1 ;;
+    --rauc) steps[build_rauc]=1 ;;
+    --docker) docker_selected=1 ;;
     --help)
         show_help
         exit 0
@@ -277,6 +321,11 @@ for arg in "$@"; do
         ;;
     esac
 done
+
+if [ $docker_selected -eq 1 ]; then
+    build_docker
+    any_selected=1
+fi
 
 for key in "${!steps[@]}"; do
     if [ ${steps[$key]} -eq 1 ] ||
