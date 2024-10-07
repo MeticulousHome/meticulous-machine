@@ -52,9 +52,9 @@ readonly IMX_MKIMAGE_REV="6745ccdcf15384891639b7ced3aa6ce938682365"
 readonly IMX_BOOT_TOOLS_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-boot-tools"
 readonly BOOTLOADER_BUILD_DIR=${COMPONENTS_DIR}/"bootloader/build"
 
-readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian"
-readonly DEBIAN_GIT="git@github.com:MeticulousHome/debian-variscite-fika"
-readonly DEBIAN_BRANCH="debian-bullseye"
+readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian-base"
+readonly DEBIAN_GIT="git@github.com:MeticulousHome/debian-fika"
+readonly DEBIAN_BRANCH="bookworm"
 readonly DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
@@ -119,7 +119,7 @@ readonly PLOTTER_UI_GIT="git@github.com:MeticulousHome/ProfilePlotter.git"
 readonly PLOTTER_UI_BRANCH="main"
 readonly PLOTTER_UI_REV="HEAD"
 
-readonly SYSTEM_PACKAGES="parted avahi-daemon libgirepository1.0-dev libgstreamer-plugins-base1.0-dev gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 libsystemd-dev zstd nginx ssl-cert exfatprogs"
+readonly SYSTEM_PACKAGES="parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs firmware-brcm80211"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\

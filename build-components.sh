@@ -7,10 +7,7 @@ function build_debian() {
     echo "Building debian"
 
     pushd $DEBIAN_SRC_DIR >/dev/null
-    if [ ! -e  src/uboot ]; then
-        sudo ./var_make_debian.sh -c deploy
-    fi
-    sudo ./var_make_debian.sh -c all
+    sudo ./create_rootfs.sh
     popd >/dev/null
 }
 
@@ -81,7 +78,6 @@ function build_uboot() {
         return
     fi
 
-    set -x
     echo -e "\033[1;32mBuilding Uboot\033[0m"
     if [ ! $(uname -m) == "aarch64" ]; then
         export CROSS_COMPILE="aarch64-linux-gnu-"
@@ -145,10 +141,11 @@ function build_kernel() {
         echo -e "\033[1;32mSetting \033[1;34mCROSS_COMPILE=\033[1;35m${CROSS_COMPILE}\033[0m and \033[1;34mARCH=\033[1;35m${ARCH}\033[0m"
     fi
 
-    make -j`nproc` imx8_var_meticulous_defconfig
     export DEBEMAIL="Mimoja <mimoja@meticuloushome.com>"
     export DPKG_DEB_COMPRESSOR_TYPE=xz
-
+    export DEB_BUILD_OPTIONS="parallel=`nproc`"
+    make mrproper
+    make imx8_var_meticulous_defconfig
     make -j`nproc` bindeb-pkg
     popd >/dev/null
 

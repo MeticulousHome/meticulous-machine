@@ -8,7 +8,7 @@ Type=simple
 Restart=always
 RestartSec=10
 ExecStartPre=-/bin/bash -c 'mkdir -p /meticulous-user/syslog/nginx || true'
-ExecStart=/opt/meticulous-venv/bin/python3.12 /opt/meticulous-backend/back.py
+ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-backend/back.py
 User=root
 
 

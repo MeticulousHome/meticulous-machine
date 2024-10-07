@@ -9,19 +9,19 @@ if (($EUID != 0)); then
 fi
 
 function a_unpack_base() {
-    if [ ! -f ${DEBIAN_SRC_DIR}/output/rootfs.tar.gz ]; then
+    if [ ! -f ${DEBIAN_SRC_DIR}/rootfs-base.tar.gz ]; then
         echo "#####################"
         echo "DEBIAN IMAGE DOES NOT EXIST!"
-        echo "BUILDING NOW!"
+        echo "BUILDING ALL COMPONENTS NOW!"
         echo "#####################"
-        bash build-components.sh --all
+        exit 1
     fi
 
     mkdir -p ${ROOTFS_DIR}
     # Unpack the image that includes the packages for Variscite
     echo "Unpacking the debian image that includes packages for Variscite"
     rm -rf ${ROOTFS_DIR}/*
-    pv ${DEBIAN_SRC_DIR}/output/rootfs.tar.gz | tar xz -C ${ROOTFS_DIR}
+    pv ${DEBIAN_SRC_DIR}/rootfs-base.tar.gz | tar xz -C ${ROOTFS_DIR}
 
     #Install user packages if any
     echo "rootfs: install user defined packages (user-stage)"
@@ -29,53 +29,25 @@ function a_unpack_base() {
     echo "rootfs: DEVELOPMENT_PACKAGES \"${DEVELOPMENT_PACKAGES}\" "
 
     systemd-nspawn -D ${ROOTFS_DIR} apt update
-    systemd-nspawn -D ${ROOTFS_DIR} apt install -y ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
+    systemd-nspawn -D ${ROOTFS_DIR} apt install -y -o Debug::pkgProblemResolver=yes ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
 
     echo "SystemMaxUse=1G" >>${ROOTFS_DIR}/etc/systemd/journald.conf
+
+    echo "Installing config files"
+    cp -Rv config/* ${ROOTFS_DIR}/etc/
 }
 
 function copy_services() {
 
-    # Install meticulous services
-    install -m 0644 ${SERVICES_DIR}/meticulous-dial.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -sf /lib/systemd/system/meticulous-dial.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-dial.service
-
-    install -m 0644 ${SERVICES_DIR}/meticulous-backend.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -sf /lib/systemd/system/meticulous-backend.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-backend.service
-
-    install -m 0644 ${SERVICES_DIR}/meticulous-watcher.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -sf /lib/systemd/system/meticulous-watcher.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-watcher.service
-
-    install -m 0644 ${SERVICES_DIR}/meticulous-rauc.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -sf /lib/systemd/system/meticulous-rauc.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-rauc.service
-
-    install -m 0644 ${SERVICES_DIR}/meticulous-brightness.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -sf /lib/systemd/system/meticulous-brightness.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-brightness.service
-
-    install -m 0644 ${SERVICES_DIR}/meticulous-usb-current.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-    ln -sf /lib/systemd/system/meticulous-usb-current.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/meticulous-usb-current.service
-
     rm -f ${ROOTFS_DIR}/lib/systemd/system/rauc-hawkbit-updater.service
-    install -m 0644 ${SERVICES_DIR}/rauc-hawkbit-updater.service \
-        ${ROOTFS_DIR}/lib/systemd/system
 
-    ln -sf /lib/systemd/system/rauc-hawkbit-updater.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc-hawkbit-updater.service
-
-    ln -sf /lib/systemd/system/rauc.service \
-        ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/rauc.service
+    # Install meticulous services
+    cp -v ${SERVICES_DIR}/*  ${ROOTFS_DIR}/lib/systemd/system
+    for service in ${SERVICES_DIR}/*; do
+        service_name=$(basename ${service})
+        ln -sfv /lib/systemd/system/${service_name} \
+            ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/${service_name}
+    done
 
     install -m 0644 ${SERVICES_DIR}/usb-rauc-install.service \
         ${ROOTFS_DIR}/lib/systemd/system
@@ -85,9 +57,13 @@ function copy_services() {
 function b_copy_components() {
 
     echo "Copying components into existing rootfs"
+
+    echo "Installing services"
+    copy_services
+
     # Install meticulous components
     # Install Dial app
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall /opt/meticulous-ui/meticulous-ui.deb"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall --no-install-recommends /opt/meticulous-ui/meticulous-ui.deb"
 
     # Install Backend
     echo "Installing Backend"
@@ -98,6 +74,7 @@ function b_copy_components() {
         echo "Installing Dash"
         cp -r ${DASH_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-dashboard
     fi
+
     # Install WebApp
     echo "Installing WebApp"
     cp -r ${WEB_APP_SRC_DIR}/out ${ROOTFS_DIR}/opt/meticulous-web-app
@@ -118,33 +95,35 @@ function b_copy_components() {
     echo "Installing Watcher"
     cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
 
-    # install python
-    echo "Installing Python"
-    tar xf misc/python3.12.tar.gz -C ${ROOTFS_DIR}
-
-    # Reinstall pip3.12 as it is usually expecting python at the wrong location
-    rm -rf ${ROOTFS_DIR}/usr/lib/python3.12/site-packages/pip*
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m ensurepip --upgrade --altinstall"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "python3.12 -m pip install --upgrade pip"
-
     echo "Creating python venv"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.12 -m venv /opt/meticulous-venv"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt install -y \
+                                                python3 \
+                                                python3-bleak \
+                                                python3-cairo \
+                                                python3-dbus-next \
+                                                python3-gi \
+                                                python3-setuptools \
+                                                python3-systemd \
+                                                python3-venv \
+                                                python3-wheel"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.11 -m venv --system-site-packages /opt/meticulous-venv"
 
-    # Updating python3.12 pip, wheel and setuptools to latest versions
+
+    # Updating pip, wheel and setuptools to latest versions
     echo "Installing python updates for pip, wheel and setuptools"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install --upgrade pip wheel setuptools"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install --upgrade pip"
 
     # Install python requirements for meticulous
     echo "Installing Backend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/vivante/pkgconfig /opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-backend/requirements.txt"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install -r /opt/meticulous-backend/requirements.txt"
 
     # Install python requirements for meticulous
     echo "Installing Watcher dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/python3.12 -m pip install -r /opt/meticulous-watcher/requirements.txt"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install -r /opt/meticulous-watcher/requirements.txt"
 
     # Install firmware if it exists on disk
     if [ -d $FIRMWARE_OUT_DIR ]; then
-        echo "Installing Firmware"
+        echo "Installing ESP32 Firmware"
         mkdir -p ${ROOTFS_DIR}/opt/meticulous-firmware
         cp -r $FIRMWARE_OUT_DIR/* ${ROOTFS_DIR}/opt/meticulous-firmware
     fi
@@ -152,30 +131,46 @@ function b_copy_components() {
     chown root:root ${ROOTFS_DIR}/opt/meticulous*
 
     echo "Installing config files"
-    cp -Rv etc/* ${ROOTFS_DIR}/etc/
+    cp -Rv config/* ${ROOTFS_DIR}/
 
     echo "Installing RAUC config"
-    export LATEST_RAUC=$(ls -Art ${MISC_DIR}/rauc_*_arm64.deb | tail -n 1)
-    export LATEST_HAWKBIT=$(ls -Art ${MISC_DIR}/rauc-hawkbit-updater_*_arm64.deb | tail -n 1)
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/${LATEST_RAUC}"
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${MISC_DIR}:/opt/misc bash -c "apt install -y /opt/${LATEST_HAWKBIT}"
+    export LATEST_RAUC=$(ls -Art ${RAUC_BUILD_DIR}/rauc_*_arm64.deb | tail -n 1)
+    export LATEST_RAUC_SERVICE=$(ls -Art ${RAUC_BUILD_DIR}/rauc-service_*_all.deb | tail -n 1)
+    export LATEST_HAWKBIT=$(ls -Art ${RAUC_BUILD_DIR}/rauc-hawkbit-updater_*_arm64.deb | tail -n 1)
+    if [ -z ${LATEST_RAUC} ] && [ -z ${LATEST_RAUC_SERVICE} ] && [ -z ${LATEST_HAWKBIT} ]; then
+        echo "No rauc, rauc-service, or rauc-hawkbit-updater deb found"
+        exit 1
+    fi
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${RAUC_BUILD_DIR}:/opt/${RAUC_BUILD_DIR} bash -c "apt install -y /opt/${LATEST_RAUC}"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${RAUC_BUILD_DIR}:/opt/${RAUC_BUILD_DIR} bash -c "apt install -y /opt/${LATEST_RAUC_SERVICE}"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${RAUC_BUILD_DIR}:/opt/${RAUC_BUILD_DIR} bash -c "apt install -y /opt/${LATEST_HAWKBIT}"
 
     sed -i ${ROOTFS_DIR}/etc/rauc/system.conf -e "s/__KEYRING_CERT__/${RAUC_CERT}/g"
     cp -v ${RAUC_CONFIG_DIR}/*.cert.pem ${ROOTFS_DIR}/etc/rauc/
 
-    echo "Installing services"
-    copy_services
+    date -Ru >${ROOTFS_DIR}/opt/ROOTFS_BUILD_DATE
+
+    export LATEST_KERNEL=$(ls -Art ${LINUX_BUILD_DIR}/linux-image*.deb | tail -n 1) || true
+    if [ -z ${LATEST_KERNEL} ]; then
+        echo "No Kernel found"
+        exit 1
+    fi
+
+    echo "Installing kernel"
+    KERNEL=$(ls ${LINUX_BUILD_DIR} | grep "^linux-image-" | grep --invert-match dbg | tail -n 1)
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${LINUX_BUILD_DIR}:/opt/linux" apt -y install --reinstall /opt/linux/${KERNEL}
+
+    echo "Disabeling framebuffer tty getty"
+    rm -v ${ROOTFS_DIR}/etc/systemd/system/getty.target.wants/getty@tty1.service
+    rm -v ${ROOTFS_DIR} /etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
 
     echo "giving permissions to usb handler scripts"
     chmod 777 ${ROOTFS_DIR}/etc/usb_updater/*.sh
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.12 -m pip cache purge"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt purge imx-gpu-sdk-gles2 imx-gpu-sdk-gles3 -y"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip cache purge"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt autoclean -y"
-
-    date -Ru >${ROOTFS_DIR}/opt/ROOTFS_BUILD_DATE
 }
 
 function c_pack_tar() {
@@ -189,7 +184,6 @@ function c_pack_tar() {
     echo "Compressing image"
     tar cf ${OUTPUT_TARBAL} . -I pigz
     popd >/dev/null
-
 }
 
 # Function to display help text

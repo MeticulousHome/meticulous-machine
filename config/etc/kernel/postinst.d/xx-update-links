@@ -13,6 +13,11 @@ image_path="$2"
 # linux-update-symlinks install $version $image_path
 # But as this is creating initrd links which we dont need a simple symlinking is good enough
 # This also means that kernel uninstalls will break :/
+if [ -e /boot/imx8mn-var-som-symphony.dtb ]; then
+    mv /boot/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony.dtb.old
+fi
+ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony.dtb
+
 if [ -e /boot/Image.gz ]; then
     mv /boot/Image.gz /boot/Image.gz.old
 fi
