@@ -40,19 +40,38 @@ if [ $USB_AS_UPDATER == true ] && [ -n "$rauc_files" ]; then
     systemctl stop rauc-hawkbit-updater.service
     #export the kernel name of the device to mount it on the rauc_install service
     #FIXME When doing the update from the rauc-hawkbit-client we might not need to export them, but send a signal directly with them as parameters
-    mkdir /tmp/rauc_install/
-    echo "FD_NAME=$DEVICE_KERNEL_NAME" > /tmp/rauc_install/env_file
 
     umount $MOUNT_POINT
     systemctl start usb-rauc-install.service
-    exit 0
 
+    #wait for the service to be up, and send the data through a dbus signal
+    sleep 2
+    busctl --system emit /handlers/massStorage com.Meticulous.Handler.MassStorage Updater s "/dev/$DEVICE_KERNEL_NAME"
+    
+    #wait for the service to respond
+    timeout --foreground 2 bash -c '
+    while read -r line ; do
+       echo $line
+       if [ -n "$(echo $line | grep /handlers/Updater)" ]; then
+           echo "usb-rauc-install.service is up"
+           break
+       fi
+    done < <(dbus-monitor --system "interface=com.Meticulous.Handler.Updater, member=Alive")
+    '
+
+    if [ $? -eq 124 ]; then
+        echo "usb-rauc-install.service didnt respond"
+        exit 3
+    else
+        echo "usb-rauc-install.service started"
+        exit 0
+    fi
 else
     if [ $USB_AS_UPDATER == false ]; then
         echo "updater device already mounted or partition not valid"
     else
         if [ -z "$rauc_files" ]; then
-            echo "RAUC file not found in $USB_PATH, notifying backend of new media"
+            echo "RAUC file not found in $USB_PATH, cleaning"
             umount $MOUNT_POINT
             rm -r $MOUNT_POINT
         fi
@@ -62,6 +81,7 @@ else
         exit 2
     fi
     #emiting dbus signal for a new mass storage device
+    echo "Notifying backend of new media"
     busctl --system emit /handlers/massStorage com.Meticulous.Handler.MassStorage NewUSB s "/dev/$DEVICE_KERNEL_NAME"
     
     exit 0
