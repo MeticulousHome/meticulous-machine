@@ -1,9 +1,27 @@
 #!/bin/bash
 
 MOUNT_POINT="/tmp/possible_updater"
-USB_PATH="/dev/$1"
+USB_PATH=""
 rauc_file=""
 ERROR_INSTALLING=true
+
+#wait for the name of the device that has the update bundle
+USB_PATH=$(timeout 10 bash -c '
+while read -r line ; do
+    if [ -n "$(echo $line | grep /dev/)" ]; then
+        busctl --system emit /handlers/Updater com.Meticulous.Handler.Updater Alive
+        echo "$line"
+        break
+    fi
+done < <(dbus-monitor --system "interface=com.Meticulous.Handler.MassStorage, member=Updater")')
+
+# echo "received = $USB_PATH"
+USB_PATH=$(echo $USB_PATH | awk '{print $2}' | tr -d '\n\r" ' )
+
+if [ -z $USB_PATH ]; then
+    echo "did not receive the name of the device, exiting"
+    exit 4
+fi
 
 #protect for usb disconnection
 echo "device to mount: $USB_PATH"
@@ -38,6 +56,7 @@ else
     fi
     # call the InstallBundle() method from rauc using d-bus
     echo "Installing from rauc bundle"
+    busctl --system emit /handlers/MassStorage com.Meticulous.Handler.MassStorage RecoveryUpdate
 
     while read -r line; do
         echo "$line"
