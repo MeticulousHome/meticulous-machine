@@ -4,6 +4,8 @@ import argparse
 import requests
 import attr
 import json
+import os
+from dotenv import load_dotenv
 
 
 class HawkbitError(Exception):
@@ -46,6 +48,18 @@ class HawkbitMgmtClient:
         if req.status_code not in [200, 201]:
             raise HawkbitError(f"HTTP error {req.status_code}: {req.content.decode()}")
         return req.json()
+    
+    def put(self, endpoint: str, json_data: dict):
+        url = self.url.format(endpoint=endpoint)
+        req = requests.put(
+            url,
+            headers={"Content-Type": "application/json;charset=UTF-8"},
+            auth=(self.username, self.password),
+            json=json_data,
+        )
+        if req.status_code not in [200, 204]:
+            raise HawkbitError(f"HTTP error {req.status_code}: {req.content.decode()}")
+        return req.json() if req.content else None
 
     def get_targets(self):
         return self.get(f"targets")
@@ -105,7 +119,7 @@ class HawkbitMgmtClient:
         controller_id: str,
         request_attributes: bool = False,
     ):
-        self.put(
+        return self.put(
             f"targets/{target_id}",
             {
                 "name": target_name,
@@ -115,40 +129,59 @@ class HawkbitMgmtClient:
         )
 
 
-def get_recent_action_status(client, target_id):
-    actions = client.get_target_actions(target_id)
-    if actions and "content" in actions:
-        for action in actions["content"]:
-            action_id = action.get("id")
-            status = action.get("status", "Unknown")
-            dist_set = action.get("distributionSet", {})
-            dist_name = dist_set.get("name", "Unknown")
-            dist_version = dist_set.get("version", "Unknown")
+def get_recent_action_status(client, target_id, latest_distribution_id):
+    try:
+        actions = client.get_target_actions(target_id)
+        if actions and "content" in actions and actions["content"]:
+            for action in actions["content"]:
+                action_id = action.get("id")
+                status = action.get("status", "Unknown")
+                dist_set = action.get("distributionSet", {})
+                dist_name = dist_set.get("name", "Unknown")
+                dist_version = dist_set.get("version", "Unknown")
+                dist_id = dist_set.get("id", "Unknown")
 
-            action_status = client.get_action_status(action_id, target_id)
+                action_status = client.get_action_status(action_id, target_id)
 
-            detailed_status = "No detailed status available"
-            if action_status:
-                latest_status = action_status[0]  # Most recent status
-                detailed_status = (
-                    f"Type: {latest_status.get('type', 'Unknown')}, Status: {status}"
+                detailed_status = "No detailed status available"
+                action_type = "Unknown"
+                if action_status:
+                    latest_status = action_status[0]  # Most recent status
+                    action_type = latest_status.get('type', 'Unknown')
+                    detailed_status = f"Type: {action_type}, Status: {status}"
+                    if "messages" in latest_status:
+                        detailed_status += f", Message: {latest_status['messages'][0] if latest_status['messages'] else 'No message'}"
+
+                needs_update = (
+                    action_type not in ["running", "finished"] or
+                    "Failed to install" in detailed_status or
+                    "canceled" in detailed_status.lower() or
+                    "force quit" in detailed_status.lower() or
+                    (action_type == "finished" and dist_id != latest_distribution_id)
                 )
-                if "messages" in latest_status:
-                    detailed_status += f", Message: {latest_status['messages'][0] if latest_status['messages'] else 'No message'}"
 
-            return {
-                "status": status,
-                "distribution": f"{dist_name} ({dist_version})",
-                "details": detailed_status,
-            }
-    return None
+                return {
+                    "status": status,
+                    "distribution": f"{dist_name} ({dist_version})",
+                    "distribution_id": dist_id,
+                    "details": detailed_status,
+                    "needs_update": needs_update,
+                    "action_type": action_type
+                }
+        return {"status": "No recent actions", "distribution": "N/A", "distribution_id": None, "details": "No actions found", "needs_update": True, "action_type": "Unknown"}
+    except HawkbitError as e:
+        print(f"Error getting action status for target {target_id}: {str(e)}")
+        return {"status": "Error", "distribution": "N/A", "distribution_id": None, "details": str(e), "needs_update": True, "action_type": "Unknown"}
 
-
-def process_targets(client, channel):
+def process_targets(client, channel, latest_distribution_id):
     if channel is not None:
-        filter_query = f'attribute.update_channel=="{channel}"'
-        targets = client.get_targets_by_filter(filter_query)
-        print(f"Targets with channel '{channel}':")
+        filter_query = f'attribute.update_channel=={channel}'
+        try:
+            targets = client.get_targets_by_filter(filter_query)
+            print(f"Targets with channel '{channel}':")
+        except HawkbitError as e:
+            print(f"Error fetching targets: {str(e)}")
+            return []
     else:
         targets = client.get_targets()
 
@@ -158,30 +191,17 @@ def process_targets(client, channel):
         for target in targets["content"]:
             target_id = target.get("controllerId")
             target_name = target.get("name")
-            action_status = get_recent_action_status(client, target_id)
+            try:
+                print(f"Processing target: ID: {target_id}, Name: {target_name}")
+                action_status = get_recent_action_status(client, target_id, latest_distribution_id)
 
-            # Request the target to update its attributes (this might cause the target to drop out of the channel)
-            client.update_target(target_id, target_name, target.get("controllerId"))
+                print(f"Status: {json.dumps(action_status, indent=2)}")
+                print("--------------------")
 
-            print(f"ID: {target_id}, Name: {target_name}")
-            print(f"Status: {action_status}")
-            print("--------------------")
-
-            if action_status:
-                details = action_status["details"].split(", ")
-                action_type = next(
-                    (d.split(": ")[1] for d in details if d.startswith("Type:")), None
-                )
-                message = next(
-                    (d.split(": ")[1] for d in details if d.startswith("Message:")),
-                    None,
-                )
-
-                if action_type != "running" and not (
-                    action_status["status"] == "finished"
-                    and message == "Software bundle installed successfully."
-                ):
+                if action_status["needs_update"] and action_status["action_type"] != "running" and action_status["distribution_id"] != latest_distribution_id:
                     targets_to_update.append(target_id)
+            except Exception as e:
+                print(f"Error processing target {target_id}: {str(e)}")
 
     return targets_to_update
 
@@ -200,21 +220,35 @@ def reassign_distribution(client, targets, distribution_id):
             print("Error details:")
             print(e.args[0] if e.args else "No additional details available")
 
-
-if __name__ == "__main__":
+def load_config():
+    load_dotenv()  # This loads the variables from .env file
+    
     parser = argparse.ArgumentParser(description="Monitor and update Hawkbit targets")
-    parser.add_argument("host", help="Hawkbit server")
-    parser.add_argument("port", type=int, help="Hawkbit port")
-    parser.add_argument("username", help="Hawkbit user")
-    parser.add_argument("password", help="Hawkbit password")
-    parser.add_argument(
-        "channel", help="Update channel (e.g., 'nightly')", default=None
-    )
+    parser.add_argument("--host", help="Hawkbit server")
+    parser.add_argument("--port", type=int, help="Hawkbit port")
+    parser.add_argument("--username", help="Hawkbit user")
+    parser.add_argument("--password", help="Hawkbit password")
+    parser.add_argument("--channel", help="Update channel (e.g., 'nightly')")
 
     args = parser.parse_args()
 
+    # Priority: Command line args > Environment variables > Default values
+    config = {
+        "host": args.host or os.getenv("HAWKBIT_HOST") or "localhost",
+        "port": args.port or int(os.getenv("HAWKBIT_PORT", 8080)),
+        "username": args.username or os.getenv("HAWKBIT_USERNAME") or "admin",
+        "password": args.password or os.getenv("HAWKBIT_PASSWORD") or "admin",
+        "channel": args.channel or os.getenv("HAWKBIT_CHANNEL")
+    }
+
+    return config
+
+
+if __name__ == "__main__":
+    config = load_config()
+
     client = HawkbitMgmtClient(
-        args.host, args.port, username=args.username, password=args.password
+        config["host"], config["port"], username=config["username"], password=config["password"]
     )
 
     try:
@@ -224,7 +258,7 @@ if __name__ == "__main__":
             f"Latest distribution found: {latest_distribution['name']} (ID: {distribution_id})"
         )
 
-        targets_to_update = process_targets(client, args.channel)
+        targets_to_update = process_targets(client, config["channel"], distribution_id)
 
         if targets_to_update:
             print("\nTargets that need updating:")
