@@ -172,41 +172,42 @@ def get_recent_action_status(client, target_id):
         print(f"Error getting action status for target {target_id}: {str(e)}")
         return {"status": "Error", "distribution": "N/A", "distribution_id": None, "details": str(e), "needs_update": False, "action_type": "Error"}
 
-
 def process_targets(client, channel):
     targets_to_update = []
     processed_targets = set()
     limit = 500
     offset = 0
     total_targets = None
+    filter_query = f'attribute.update_channel=="{channel}"'
 
     while True:
         try:
-            targets = client.get_targets(f"offset={offset}&limit={limit}")
+            targets = client.get_targets(f"offset={offset}&limit={limit}&q={filter_query}")
             
             if total_targets is None:
                 total_targets = targets.get('total', 0)
-                print(f"Total targets in the system: {total_targets}")
-
+                print(f"Total targets in the '{channel}' channel: {total_targets}")
+            
             page_targets = targets['content']
             print(f"Processing batch of {len(page_targets)} targets (offset: {offset})")
-
+            
             for target in page_targets:
                 target_id = target.get("controllerId")
                 target_name = target.get("name")
+                
+                target_channel = channel
         
                 if target_id not in processed_targets:
                     processed_targets.add(target_id)
-                    print(f"Processing target: ID: {target_id}, Name: {target_name}")
+                    print(f"Processing target: ID: {target_id}, Name: {target_name}, Channel: {target_channel}")
             
                     try:
                         action_status = get_recent_action_status(client, target_id)
                         print(f"Status: {action_status['status']}")
                         print(f"Distribution: {action_status['distribution']}")
-                        print(f"Action Type: {action_status['action_type']}")  # Added this line
+                        print(f"Action Type: {action_status['action_type']}")
                         print(f"Details: {action_status['details']}")
                         print(f"Needs update: {action_status['needs_update']}")
-
                         if action_status["needs_update"]:
                             targets_to_update.append(target_id)
                             print(f"Target {target_id} needs an update.")
@@ -215,16 +216,15 @@ def process_targets(client, channel):
                     except Exception as e:
                         print(f"Error processing target {target_id}: {str(e)}")
                     print("--------------------")
-
+            
             offset += len(page_targets)
             
             if offset >= total_targets or len(page_targets) < limit:
                 break
-
         except Exception as e:
             print(f"Error fetching targets with offset {offset}: {str(e)}")
             break
-
+    
     print(f"Total targets processed: {len(processed_targets)}")
     print(f"Targets that need to be reassigned a distribution: {len(targets_to_update)}")
     return targets_to_update
