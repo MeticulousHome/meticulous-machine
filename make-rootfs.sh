@@ -82,14 +82,6 @@ function copy_services() {
 
 }
 
-function copy_usb_handlers_scripts(){
-    
-    #Install shell scripts that handle USB detection and recovery update
-    etc/* ${ROOTFS_DIR}/etc/
-    install -m 0777 etc/usb_updater*.sh \
-        ${ROOTFS_DIR}/etc/usb_updater
-}
-
 function b_copy_components() {
 
     echo "Copying components into existing rootfs"
@@ -168,8 +160,8 @@ function b_copy_components() {
     echo "Installing services"
     copy_services
 
-    echo "Installing usb handlers"
-    copy_usb_handlers_scripts
+    echo "giving permissions to usb handler scripts"
+    chmod 777 ${ROOTFS_DIR}/etc/usb_updater/*.sh
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
