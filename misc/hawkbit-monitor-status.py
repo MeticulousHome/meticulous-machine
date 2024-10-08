@@ -61,8 +61,9 @@ class HawkbitMgmtClient:
             raise HawkbitError(f"HTTP error {req.status_code}: {req.content.decode()}")
         return req.json() if req.content else None
 
-    def get_targets(self):
-        return self.get(f"targets")
+    def get_targets(self, query_params=""):
+        endpoint = f"targets{('?' + query_params) if query_params else ''}"
+        return self.get(endpoint)
 
     def get_targets_by_filter(self, filter_query):
         return self.get(f"targets?q={filter_query}")
@@ -129,7 +130,7 @@ class HawkbitMgmtClient:
         )
 
 
-def get_recent_action_status(client, target_id, latest_distribution_id):
+def get_recent_action_status(client, target_id):
     try:
         actions = client.get_target_actions(target_id)
         if actions and "content" in actions and actions["content"]:
@@ -153,11 +154,9 @@ def get_recent_action_status(client, target_id, latest_distribution_id):
                         detailed_status += f", Message: {latest_status['messages'][0] if latest_status['messages'] else 'No message'}"
 
                 needs_update = (
-                    action_type not in ["running", "finished"] or
-                    "Failed to install" in detailed_status or
-                    "canceled" in detailed_status.lower() or
-                    "force quit" in detailed_status.lower() or
-                    (action_type == "finished" and dist_id != latest_distribution_id)
+                    action_type.lower() == "error" or
+                    "Error" in status or
+                    "Failed to install" in detailed_status
                 )
 
                 return {
@@ -166,43 +165,68 @@ def get_recent_action_status(client, target_id, latest_distribution_id):
                     "distribution_id": dist_id,
                     "details": detailed_status,
                     "needs_update": needs_update,
-                    "action_type": action_type
+                    "action_type": action_type  # Added this for clarity in the output
                 }
-        return {"status": "No recent actions", "distribution": "N/A", "distribution_id": None, "details": "No actions found", "needs_update": True, "action_type": "Unknown"}
-    except HawkbitError as e:
+        return {"status": "No recent actions", "distribution": "N/A", "distribution_id": None, "details": "No actions found", "needs_update": False, "action_type": "None"}
+    except Exception as e:
         print(f"Error getting action status for target {target_id}: {str(e)}")
-        return {"status": "Error", "distribution": "N/A", "distribution_id": None, "details": str(e), "needs_update": True, "action_type": "Unknown"}
+        return {"status": "Error", "distribution": "N/A", "distribution_id": None, "details": str(e), "needs_update": False, "action_type": "Error"}
 
-def process_targets(client, channel, latest_distribution_id):
-    if channel is not None:
-        filter_query = f'attribute.update_channel=={channel}'
-        try:
-            targets = client.get_targets_by_filter(filter_query)
-            print(f"Targets with channel '{channel}':")
-        except HawkbitError as e:
-            print(f"Error fetching targets: {str(e)}")
-            return []
-    else:
-        targets = client.get_targets()
 
+def process_targets(client, channel):
     targets_to_update = []
+    processed_targets = set()
+    limit = 500
+    offset = 0
+    total_targets = None
 
-    if isinstance(targets, dict) and "content" in targets:
-        for target in targets["content"]:
-            target_id = target.get("controllerId")
-            target_name = target.get("name")
-            try:
-                print(f"Processing target: ID: {target_id}, Name: {target_name}")
-                action_status = get_recent_action_status(client, target_id, latest_distribution_id)
+    while True:
+        try:
+            targets = client.get_targets(f"offset={offset}&limit={limit}")
+            
+            if total_targets is None:
+                total_targets = targets.get('total', 0)
+                print(f"Total targets in the system: {total_targets}")
 
-                print(f"Status: {json.dumps(action_status, indent=2)}")
-                print("--------------------")
+            page_targets = targets['content']
+            print(f"Processing batch of {len(page_targets)} targets (offset: {offset})")
 
-                if action_status["needs_update"] and action_status["action_type"] != "running" and action_status["distribution_id"] != latest_distribution_id:
-                    targets_to_update.append(target_id)
-            except Exception as e:
-                print(f"Error processing target {target_id}: {str(e)}")
+            for target in page_targets:
+                target_id = target.get("controllerId")
+                target_name = target.get("name")
+        
+                if target_id not in processed_targets:
+                    processed_targets.add(target_id)
+                    print(f"Processing target: ID: {target_id}, Name: {target_name}")
+            
+                    try:
+                        action_status = get_recent_action_status(client, target_id)
+                        print(f"Status: {action_status['status']}")
+                        print(f"Distribution: {action_status['distribution']}")
+                        print(f"Action Type: {action_status['action_type']}")  # Added this line
+                        print(f"Details: {action_status['details']}")
+                        print(f"Needs update: {action_status['needs_update']}")
 
+                        if action_status["needs_update"]:
+                            targets_to_update.append(target_id)
+                            print(f"Target {target_id} needs an update.")
+                        else:
+                            print(f"Target {target_id} does not need to be reassigned a distribution.")
+                    except Exception as e:
+                        print(f"Error processing target {target_id}: {str(e)}")
+                    print("--------------------")
+
+            offset += len(page_targets)
+            
+            if offset >= total_targets or len(page_targets) < limit:
+                break
+
+        except Exception as e:
+            print(f"Error fetching targets with offset {offset}: {str(e)}")
+            break
+
+    print(f"Total targets processed: {len(processed_targets)}")
+    print(f"Targets that need to be reassigned a distribution: {len(targets_to_update)}")
     return targets_to_update
 
 
@@ -258,16 +282,16 @@ if __name__ == "__main__":
             f"Latest distribution found: {latest_distribution['name']} (ID: {distribution_id})"
         )
 
-        targets_to_update = process_targets(client, config["channel"], distribution_id)
+        targets_to_update = process_targets(client, config["channel"])
 
         if targets_to_update:
-            print("\nTargets that need updating:")
+            print("\nTargets that need to be reassigned a distribution")
             for target_id in targets_to_update:
                 print(target_id)
 
             reassign_distribution(client, targets_to_update, distribution_id)
         else:
-            print("\nNo targets need updating.")
+            print("\nNo targets need to be reassigned a distribution")
     except HawkbitError as e:
         print(f"Error: {str(e)}")
         print("Error details:")
