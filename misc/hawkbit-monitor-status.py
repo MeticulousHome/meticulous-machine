@@ -172,21 +172,25 @@ def get_recent_action_status(client, target_id):
         print(f"Error getting action status for target {target_id}: {str(e)}")
         return {"status": "Error", "distribution": "N/A", "distribution_id": None, "details": str(e), "needs_update": False, "action_type": "Error"}
 
-def process_targets(client, channel):
+def process_targets(client, channel=None):
     targets_to_update = []
     processed_targets = set()
     limit = 500
     offset = 0
     total_targets = None
-    filter_query = f'attribute.update_channel=="{channel}"'
+    
+    filter_query = f'attribute.update_channel=="{channel}"' if channel else ''
 
     while True:
         try:
-            targets = client.get_targets(f"offset={offset}&limit={limit}&q={filter_query}")
+            if filter_query:
+                targets = client.get_targets(f"offset={offset}&limit={limit}&q={filter_query}")
+            else:
+                targets = client.get_targets(f"offset={offset}&limit={limit}")
             
             if total_targets is None:
                 total_targets = targets.get('total', 0)
-                print(f"Total targets in the '{channel}' channel: {total_targets}")
+                print(f"Total targets{'in the ' + channel + ' channel' if channel else ''}: {total_targets}")
             
             page_targets = targets['content']
             print(f"Processing batch of {len(page_targets)} targets (offset: {offset})")
@@ -195,7 +199,7 @@ def process_targets(client, channel):
                 target_id = target.get("controllerId")
                 target_name = target.get("name")
                 
-                target_channel = channel
+                target_channel = channel if channel else "All channels"
         
                 if target_id not in processed_targets:
                     processed_targets.add(target_id)
