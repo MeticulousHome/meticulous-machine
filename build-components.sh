@@ -144,6 +144,17 @@ function build_history() {
     fi
 }
 
+function build_plotter() {
+    if [ -d $PLOTTER_UI_SRC_DIR ]; then
+        echo "Building Plotter"
+        pushd $PLOTTER_UI_SRC_DIR >/dev/null
+        npm install
+        npm run build
+        popd >/dev/null
+    else
+        echo "Plotter is not checked out. Skipping"
+    fi
+}
 
 # Function to display help text
 show_help() {
@@ -178,6 +189,7 @@ steps=(
     [build_web]=0
     [build_firmware]=0
     [build_history]=0
+    [build_plotter]=0
     [build_kernel]=0
 )
 
@@ -192,6 +204,7 @@ for arg in "$@"; do
     --webapp) steps[build_web]=1 ;;
     --firmware) steps[build_firmware]=1 ;;
     --history) steps[build_history]=1 ;;
+    --plotter) steps[build_plotter]=1 ;;
     --kernel) steps[build_kernel]=1 ;;
     --linux) steps[build_kernel]=1 ;;
     --help)

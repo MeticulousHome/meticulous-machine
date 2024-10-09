@@ -43,6 +43,12 @@ server {
 		autoindex on;
 		try_files $uri $uri/ =404;
 	}
+	
+	location /debug/plotter-ui {
+		alias /opt/meticulous-plotter-ui/;
+		autoindex on;
+		try_files $uri $uri/ =404;
+	}
 
     # Combined proxy pass for /socket.io and /api
     location ~ ^/(socket\.io|api) {

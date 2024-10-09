@@ -105,6 +105,12 @@ function b_copy_components() {
         cp -r ${HISTORY_UI_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-history-ui
     fi
 
+    # Install Plotter UI
+    if [ -d ${PLOTTER_UI_SRC_DIR}/build ]; then
+        echo "Installing Plotter UI"
+        cp -r ${PLOTTER_UI_SRC_DIR}/build ${ROOTFS_DIR}/opt/meticulous-plotter-ui
+    fi
+
     # Install Watcher
     echo "Installing Watcher"
     cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt

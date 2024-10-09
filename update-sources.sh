@@ -123,6 +123,13 @@ function update_history() {
     popd
 }
 
+function update_plotter() {
+    echo "Cloning / Updating Plotter UI Repository"
+    get_git_src ${PLOTTER_UI_GIT} ${PLOTTER_UI_BRANCH} \
+        ${PLOTTER_UI_SRC_DIR} ${PLOTTER_UI_REV}
+    pushd $PLOTTER_UI_SRC_DIR
+    popd
+}
 
 function update_mobile() {
     echo "Cloning / Updating Firmware Repository"
@@ -180,6 +187,7 @@ Available options:
     --firmware                      Checkout / Update Firmware repository (Requires explicit access)
     --mobile                        Checkout / Update Mobile app repository (Requires explicit access)
     --history                       Checkout / Update History UI repository (Requires explicit access)
+    --plotter                       Checkout / Update Plotter UI repository (Requires explicit access)
     --rauc                          Checkout / Update rauc and rauc-hawkbit-updatere repositories
     --help                          Display this help and exit
 
@@ -192,6 +200,7 @@ firmware_selected=0
 mobile_selected=0
 install_ubuntu_dependencies_selected=0
 history_ui_selected=0
+plotter_ui_selected=0
 rauc_selected=0
 linux_selected=0
 uboot_selected=0
@@ -221,6 +230,7 @@ for arg in "$@"; do
     --mobile) mobile_selected=1 ;;
     --rauc) rauc_selected=1 ;;
     --history) history_ui_selected=1 ;;
+    --plotter) plotter_ui_selected=1 ;;
     --linux) linux_selected=1 ;;
     --kernel) linux_selected=1 ;;
     --uboot) uboot_selected=1 ;;
@@ -271,6 +281,11 @@ fi
 
 if [ ${history_ui_selected} -eq 1 ]; then
     update_history
+    any_selected=1
+fi
+
+if [ ${plotter_ui_selected} -eq 1 ]; then
+    update_plotter
     any_selected=1
 fi
 
