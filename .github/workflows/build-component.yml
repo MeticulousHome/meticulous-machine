@@ -31,11 +31,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2
-      with:
-        create-symlink: true
-
     - name: Set up Git authentication
       run: |
         git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
@@ -57,6 +52,11 @@ jobs:
 
     - name: 'Exporting pio'
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
+
+    - name: Setup ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        create-symlink: true
 
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }}

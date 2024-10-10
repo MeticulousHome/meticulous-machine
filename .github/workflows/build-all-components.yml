@@ -2,7 +2,7 @@ name: Build all components
 
 on:
   workflow_dispatch:
-  workflow_call: 
+  workflow_call:
 
 jobs:
     build_uboot:
@@ -62,5 +62,5 @@ jobs:
     build_plotter:
         uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
         with:
-            build-option: 'history'
+            build-option: 'plotter'
             build-path: components/meticulous-plotter-ui/build/
