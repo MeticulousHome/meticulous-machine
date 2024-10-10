@@ -9,11 +9,7 @@ on:
         type: string
       build-path:
         description: 'Custom path for artifacts to upload'
-        required: true
-        type: string
-      build-dependencies:
-        description: 'Dependencies to build'
-        required: true
+        required: false
         type: string
 
   workflow_call:  # Allows the workflow to be called from other workflows
@@ -24,10 +20,6 @@ on:
         type: string
       build-path:
         description: 'Custom path for artifacts to upload'
-        required: true
-        type: string
-      build-dependencies:
-        description: 'Dependencies to build'
         required: true
         type: string
 
