@@ -1,0 +1,59 @@
+name: Build an image component
+
+on:
+  workflow_dispatch:  # Allows manual triggering via the UI
+    inputs:
+      build-option:
+        description: 'component to build'
+        required: true
+        type: string
+      build-path:
+        description: 'Custom path for artifacts to upload'
+        required: true
+        type: string
+      build-dependencies:
+        description: 'Dependencies to build'
+        required: true
+        type: string
+
+  workflow_call:  # Allows the workflow to be called from other workflows
+    inputs:
+      build-option:
+        description: 'component to build'
+        required: true
+        type: string
+      build-path:
+        description: 'Custom path for artifacts to upload'
+        required: true
+        type: string
+      build-dependencies:
+        description: 'Dependencies to build'
+        required: true
+        type: string
+
+jobs:
+  build-component:
+    runs-on: ubuntu
+    container:
+      image: ghcr.io/meticuloushomoe/meticulousDebBuilder:latest
+      options: --privileged  # Required if your steps use privileged operations (like QEMU setup)
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Checkout the sources
+      run: ./update-sources.sh --${{ inputs['build-option'] }}
+
+    - name: Build components
+      run: ./build-components.sh --${{ inputs['build-option'] }}
+
+    - name: Upload ${{ inputs['build-option'] }} artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs['build-option'] }}
+        path: ${{ inputs['build-path'] }}
+        if-no-files-found: error
