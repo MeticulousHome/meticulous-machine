@@ -233,6 +233,16 @@ function build_rauc() {
         dpkg-buildpackage -b -rfakeroot -us -uc"
 }
 
+function build_psplash(){
+    echo "Building psplash deb inside a container"
+
+    docker run --platform arm64 --rm -v ./${PSPLASH_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${PSPLASH_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-arm64 /bin/bash -c "\
+        cd /debs/workspace && \
+        git config --global --add safe.directory '*' && \
+        mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
+        dpkg-buildpackage -b -rfakeroot -us -uc"
+}
+
 function build_docker() {
     if ! docker buildx inspect meticulous-builder 2>&1 1>/dev/null; then
         docker buildx create --name meticulous-builder --driver docker-container --bootstrap
@@ -265,6 +275,7 @@ Available options:
     --rauc                    Build RAUC and rauc-hawkbit-updater
     --docker                  Build Docker image for building debian packages (not intcluded in --all)
     --history                 Build History UI
+    --psplash | --splash      Build psplash
     --help                    Displays this help and exits
 
 EOF
@@ -285,6 +296,7 @@ steps=(
     [build_kernel]=0
     [build_uboot]=0
     [build_rauc]=0
+    [build_psplash]=0
 )
 
 # Parse command line arguments
@@ -305,6 +317,8 @@ for arg in "$@"; do
     --bootloader) steps[build_uboot]=1 ;;
     --rauc) steps[build_rauc]=1 ;;
     --docker) docker_selected=1 ;;
+    --psplash) steps[build_psplash]=1 ;;
+    --splash) steps[build_psplash]=1 ;;
     --help)
         show_help
         exit 0

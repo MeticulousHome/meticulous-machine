@@ -169,6 +169,12 @@ function update_uboot() {
         ${IMX_MKIMAGE_SRC_DIR} ${IMX_MKIMAGE_REV}
 }
 
+function update_psplash() {
+    echo "Cloning / Updating psplash Repositories"
+    get_git_src ${PSPLASH_GIT} ${PSPLASH_BRANCH} \
+        ${PSPLASH_SRC_DIR} ${PSPLASH_REV}
+}
+
 function show_help() {
     cat <<EOF
 Usage: ${0##*/} [OPTIONS]
@@ -194,8 +200,8 @@ Available options:
     --history                       Checkout / Update History UI repository (Requires explicit access)
     --plotter                       Checkout / Update Plotter UI repository (Requires explicit access)
     --rauc                          Checkout / Update rauc and rauc-hawkbit-updatere repositories
+    --psplash / --splash            Checkout / Update psplash repository
     --help                          Display this help and exit
-
 EOF
 }
 
@@ -217,6 +223,7 @@ steps=(
     [update_linux]=0
     [update_uboot]=0
     [update_rauc]=0
+    [update_psplash]=0
 )
 
 # Parse command line arguments, enable steps when selected
@@ -240,6 +247,8 @@ for arg in "$@"; do
     --kernel) steps[update_linux]=1 ;;
     --uboot) steps[update_uboot]=1 ;;
     --bootloader) steps[update_uboot]=1 ;;
+    --psplash) steps[update_psplash]=1 ;;
+    --splash) steps[update_psplash]=1 ;;
     --help) show_help; exit 0 ;;
 
     # Enable all steps via special case

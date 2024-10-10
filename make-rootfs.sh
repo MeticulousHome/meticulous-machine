@@ -163,6 +163,15 @@ function b_copy_components() {
     KERNEL=$(ls ${LINUX_BUILD_DIR} | grep "^linux-image-" | grep --invert-match dbg | tail -n 1)
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${LINUX_BUILD_DIR}:/opt/linux" apt -y install --reinstall /opt/linux/${KERNEL}
 
+
+    echo "Installing splash"
+    export LATEST_SPLASH=$(ls -Art ${PSPLASH_BUILD_DIR}/psplash_*_arm64.deb | tail -n 1)
+    if [ -z ${LATEST_SPLASH} ]; then
+        echo "No psplash found"
+        exit 1
+    fi
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${PSPLASH_BUILD_DIR}:/opt/${PSPLASH_BUILD_DIR} bash -c "apt install -y /opt/${LATEST_SPLASH}"
+
     echo "Disabeling framebuffer tty getty"
     rm -v ${ROOTFS_DIR}/etc/systemd/system/getty.target.wants/getty@tty1.service
 

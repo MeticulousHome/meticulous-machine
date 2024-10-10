@@ -103,6 +103,12 @@ readonly HAWKBIT_VERSION="1.4-devel-meticulous-$(date +'%Y-%m-%d_%H-%M-%S')"
 
 readonly RAUC_BUILD_DIR="${COMPONENTS_DIR}/rauc/build"
 
+readonly PSPLASH_SRC_DIR="${COMPONENTS_DIR}/psplash"
+readonly PSPLASH_GIT="https://github.com/MeticulousHome/psplash"
+readonly PSPLASH_BRANCH="main"
+readonly PSPLASH_REV="HEAD"
+readonly PSPLASH_BUILD_DIR="${COMPONENTS_DIR}/psplash-build"
+
 readonly PIPER_VERSION="1.2.0"
 readonly PIPER_URL="https://github.com/rhasspy/piper/releases/download/${PIPER_VERSION}/piper_arm64.tar.gz"
 # For browsing use https://huggingface.co/rhasspy/piper-voices/tree/v1.0.0
