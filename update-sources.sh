@@ -59,13 +59,6 @@ function update_debian() {
     echo "Cloning / Updating Debian Repository"
     get_git_src ${DEBIAN_GIT} ${DEBIAN_BRANCH} \
         ${DEBIAN_SRC_DIR} ${DEBIAN_REV}
-
-    if [ $(uname -s) == "Darwin" ]; then
-        echo "Skipping debian dependencies for MacOS"
-    else
-        echo "Asking debian to fetch its dependencies"
-        $DEBIAN_SRC_DIR/var_make_debian.sh -c deploy
-    fi
 }
 
 function update_backend() {
@@ -112,6 +105,11 @@ function update_firmware() {
     get_git_src ${FIRMWARE_GIT} ${FIRMWARE_BRANCH} \
         ${FIRMWARE_SRC_DIR} ${FIRMWARE_REV}
     pushd $FIRMWARE_SRC_DIR
+    if [ $(uname -s) == "Darwin" ]; then
+        echo "Skipping firmware dependencies for MacOS"
+    else
+        pio lib install
+    fi
     popd
 }
 
