@@ -43,4 +43,4 @@ jobs:
           push: true
           file: deb-builder.Dockerfile
           platforms: linux/amd64, linux/arm64
-          tags: ghcr.io/${{ env.REPOSITORY }}/meticulous-deb-builder:latest meticulous-deb-builder:latest
+          tags: ghcr.io/${{ env.REPOSITORY }}/meticulousDebBuilder:latest
