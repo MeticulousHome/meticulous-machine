@@ -12,8 +12,8 @@ function a_unpack_base() {
     if [ ! -f ${DEBIAN_SRC_DIR}/rootfs-base.tar.gz ]; then
         echo "#####################"
         echo "DEBIAN IMAGE DOES NOT EXIST!"
-        echo "BUILDING ALL COMPONENTS NOW!"
         echo "#####################"
+        find ${DEBIAN_SRC_DIR} -type f;
         exit 1
     fi
 
