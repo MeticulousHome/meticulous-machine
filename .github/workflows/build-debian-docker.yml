@@ -16,9 +16,6 @@ jobs:
         with:
           submodules: "true"
 
-      - name: Checkout the dependencies
-        run: ./update-sources.sh --rauc --psplash
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

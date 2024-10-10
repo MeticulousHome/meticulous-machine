@@ -33,13 +33,14 @@ RUN apt-get update -q && \
 RUN apt update
 RUN apt build-dep -y rauc
 
-COPY components/rauc/rauc/debian/control /tmp/control
-RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i /tmp/control \
+COPY ./config.sh ./update-sources.sh ./
+RUN ./update-sources.sh --rauc --psplash
+
+RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i components/rauc/rauc/debian/control \
     -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends'
 
-COPY components/rauc/rauc-hawkbit-updater/debian/control /tmp/control
-RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i /tmp/control \
+RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i components/rauc/rauc-hawkbit-updater/debian/control \
     -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends'
 
-# Install additional dependencies for psplash
-RUN apt-get install -y --no-install-recommends meson libsystemd-dev libgdk-pixbuf2.0-bin
+RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i components/psplash/debian/control \
+    -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends'
