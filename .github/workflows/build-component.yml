@@ -31,6 +31,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        create-symlink: true
+
     - name: Set up Git authentication
       run: |
         git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
