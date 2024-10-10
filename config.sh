@@ -90,7 +90,7 @@ readonly FIRMWARE_REV="HEAD"
 
 readonly RAUC_SRC_DIR="${COMPONENTS_DIR}/rauc/rauc"
 readonly RAUC_GIT="https://github.com/MeticulousHome/rauc-deb"
-readonly RAUC_BRANCH="main"
+readonly RAUC_BRANCH="bookworm-1.12"
 readonly RAUC_VERSION="1.12"
 readonly RAUC_REV="HEAD"
 
