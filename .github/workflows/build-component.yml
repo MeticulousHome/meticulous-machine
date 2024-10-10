@@ -53,6 +53,7 @@ jobs:
 
     - name: Upload ${{ inputs['build-option'] }} artifact
       uses: actions/upload-artifact@v4
+      if:  ${{ inputs['build-path'] != '' }}
       with:
         name: ${{ inputs['build-option'] }}
         path: ${{ inputs['build-path'] }}
