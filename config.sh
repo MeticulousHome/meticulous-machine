@@ -5,7 +5,7 @@ check_bash_version() {
     # Get the version of Bash
     local version=$(bash --version | awk '{print $4}')
     # Compare the version
-    if [[ "$version" < "5.2" ]]; then
+    if [[ "$version" < "5.0" ]]; then
         echo "Error: Bash version $version is less than 5.2."
         echo "Please update Bash or change your PATH to point to a newer version."
         echo "For macOS, you can install a newer version using Homebrew:"
