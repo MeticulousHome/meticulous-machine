@@ -180,10 +180,16 @@ jobs:
         name: 'rootfs.tar.gz'
         path: .
 
+    - name: Download rauc artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'rauc'
+        path:  components/rauc/build
+
     - name: Install Ubuntu dependencies
       run: |
         sudo apt update && sudo apt install -y pigz
-        sudo apt install --reinstall ./misc/rauc_*_amd64.deb
+        sudo apt install --reinstall components/rauc/build/rauc_*_amd64.deb
 
     - name: Build Bundles
       run: ./make-ota.sh  --nightly --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
