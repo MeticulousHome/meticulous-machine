@@ -19,6 +19,9 @@ jobs:
       - name: Checkout the dependencies
         run: ./update-sources.sh --rauc --psplash
 
+      - name: List the files in the directory
+        run: find components/ -type f
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
