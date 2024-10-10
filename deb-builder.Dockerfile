@@ -41,6 +41,5 @@ COPY components/rauc/rauc-hawkbit-updater/debian/control /tmp/control
 RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i /tmp/control \
     -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends'
 
-COPY components/psplash/debian/control /tmp/control
-RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i /tmp/control \
-    -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends'
+# Install additional dependencies for psplash
+RUN apt-get install -y --no-install-recommends meson libsystemd-dev libgdk-pixbuf2.0-bin
