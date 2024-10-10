@@ -31,7 +31,7 @@ readonly RAUC_CERT="beta.rsa4096.cert.pem"
 readonly LINUX_SRC_DIR=${COMPONENTS_DIR}/"linux"
 readonly LINUX_BUILD_DIR=${COMPONENTS_DIR}/"linux-build"
 readonly LINUX_GIT="git@github.com:MeticulousHome/linux-variscite-fika.git"
-readonly LINUX_BRANCH="debian-5.15.60"
+readonly LINUX_BRANCH="debian-6.1.36"
 readonly LINUX_REV="HEAD"
 
 readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
