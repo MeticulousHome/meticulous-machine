@@ -166,7 +166,7 @@ function create_image() {
     echo -e "\n## Installing"
 
     echo "Installing u-boot             to ${PARTITION}1"
-    dd if=${DEBIAN_SRC_DIR}/output/imx-boot-sd.bin of=${PARTITION}1 bs=1K status=noxfer status=progress 2>/dev/null
+    dd if=${BOOTLOADER_BUILD_DIR}/imx-boot-sd.bin of=${PARTITION}1 bs=1K status=noxfer status=progress 2>/dev/null
 
     echo "Installing OS A               to ${PARTITION}3"
     pv meticulous-rootfs.tar.gz | tar -xp -I pigz -C sdcard_a

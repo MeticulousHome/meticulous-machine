@@ -8,6 +8,7 @@ on:
 jobs:
 
   build-components:
+    secrets: inherit
     uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
 
   build-root:
@@ -109,17 +110,14 @@ jobs:
     - name: 'Exporting pio'
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
-    - name: Checkout all the sources
-      run: ./update-sources.sh  --backend --watcher --dial --web --firmware --history --plotter
-
-    - name: Build components
-      run: ./build-components.sh --dial --web --firmware --history --plotter
+    - name: Checkout all the python sources
+      run: ./update-sources.sh  --backend --watcher
 
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all
 
     - name: Delete original debian rootfs
-      run: rm -r ./components/debian/output/rootfs*
+      run: rm -r ./components/debian-base/rootfs-base.tar.gz
 
     - name: Upload rootfs artifact
       uses: actions/upload-artifact@v4
