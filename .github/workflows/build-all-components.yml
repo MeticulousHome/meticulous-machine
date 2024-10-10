@@ -1,0 +1,60 @@
+name: Build an image component
+
+on:
+  workflow_dispatch:
+  workflow_call: 
+
+jobs:
+    build_debian:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'debian'
+            build-path: components/debian-base/rootfs-base.tar.gz
+            
+    build_rauc:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'rauc'
+            build-path: components/rauc/build
+
+    build_dial:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'dial'
+            build-path: components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb
+
+    build_webapp:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'web'
+            build-path: components/meticulous-web-app/out/
+
+    build_linux:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'linux'
+            build-path: components/linux-build
+
+    build_firmware:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'firmware'
+            build-path: components/meticulous-firmware-build
+
+    build_uboot:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'bootloader'
+            build-path: components/bootloader/build/imx-boot-sd.bin
+
+    build_history:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'history'
+            build-path: components/meticulous-history-ui/build/
+
+    build_plotter:
+        uses: ${{ github.repository_owner }}/.github/workflows/build-component.yml@main
+        with:
+            build-option: 'history'
+            build-path: components/meticulous-plotter-ui/build/

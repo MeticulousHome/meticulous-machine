@@ -6,6 +6,10 @@ on:
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
+
+  build_components:
+    uses: ${{ github.repository_owner }}/.github/workflows/build-all-components.yml@main
+
   build-root:
     runs-on: ubuntu-24.04
 
