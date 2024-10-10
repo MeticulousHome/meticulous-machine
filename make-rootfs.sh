@@ -165,10 +165,9 @@ function b_copy_components() {
 
     echo "Disabeling framebuffer tty getty"
     rm -v ${ROOTFS_DIR}/etc/systemd/system/getty.target.wants/getty@tty1.service
-    rm -v ${ROOTFS_DIR} /etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
 
-    echo "giving permissions to usb handler scripts"
-    chmod 777 ${ROOTFS_DIR}/etc/usb_updater/*.sh
+    echo "Disableing NetworkManager-wait-online.service"
+    rm -v ${ROOTFS_DIR}/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
