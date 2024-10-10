@@ -1,4 +1,4 @@
-FROM arm64v8/debian:bookworm
+FROM debian:bookworm
 
 # Install dependencies
 ENV DEBIAN_FRONTEND=noninteractive
