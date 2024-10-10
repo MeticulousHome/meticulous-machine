@@ -33,10 +33,7 @@ on:
 
 jobs:
   build-component:
-    runs-on: ubuntu
-    container:
-      image: ghcr.io/meticuloushomoe/meticulousDebBuilder:latest
-      options: --privileged  # Required if your steps use privileged operations (like QEMU setup)
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout repository
@@ -44,6 +41,21 @@ jobs:
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
+
+    - name: Install Ubuntu dependencies
+      run: ./update-sources.sh --install_ubuntu_dependencies
+
+    - name: Downgrade qemu-user-static
+      run: |
+        sudo apt install -y --allow-downgrades ./misc/qemu-user-static_8.0.4+dfsg-1ubuntu5_amd64.deb
+        sudo apt-mark hold qemu-user-static
+
+    - name: Install qemu-img
+      run: |
+        sudo apt install -y qemu-utils
+
+    - name: 'Exporting pio'
+      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }}
