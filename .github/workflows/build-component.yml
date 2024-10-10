@@ -64,11 +64,20 @@ jobs:
       with:
         create-symlink: true
 
+    - name: Create additional ccache symlinks
+      run: |
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
+
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }}
 
     - name: Build components
-      run: ./build-components.sh --${{ inputs['build-option'] }}
+      run: |
+        export PATH=/usr/lib/ccache:/usr/local/bin:$PATH
+        ./build-components.sh --${{ inputs['build-option'] }}
 
     - name: Upload ${{ inputs['build-option'] }} artifact
       uses: actions/upload-artifact@v4
