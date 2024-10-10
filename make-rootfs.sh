@@ -48,10 +48,6 @@ function copy_services() {
         ln -sfv /lib/systemd/system/${service_name} \
             ${ROOTFS_DIR}/etc/systemd/system/multi-user.target.wants/${service_name}
     done
-
-    install -m 0644 ${SERVICES_DIR}/usb-rauc-install.service \
-        ${ROOTFS_DIR}/lib/systemd/system
-
 }
 
 function b_copy_components() {
@@ -171,9 +167,11 @@ function b_copy_components() {
         exit 1
     fi
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${PSPLASH_BUILD_DIR}:/opt/${PSPLASH_BUILD_DIR} bash -c "apt install -y /opt/${LATEST_SPLASH}"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${PSPLASH_BUILD_DIR}:/opt/${PSPLASH_BUILD_DIR} bash -c "systemctl enable psplash-start"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${PSPLASH_BUILD_DIR}:/opt/${PSPLASH_BUILD_DIR} bash -c "systemctl enable psplash-systemd"
 
     echo "Disabeling framebuffer tty getty"
-    rm -v ${ROOTFS_DIR}/etc/systemd/system/getty.target.wants/getty@tty1.service
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${PSPLASH_BUILD_DIR}:/opt/${PSPLASH_BUILD_DIR} bash -c "systemctl disable getty@"
 
     echo "Disableing NetworkManager-wait-online.service"
     rm -v ${ROOTFS_DIR}/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
