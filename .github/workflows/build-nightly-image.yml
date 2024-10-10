@@ -71,7 +71,7 @@ jobs:
         name: 'dial'
         path:  components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb
 
-    - name: Download dial artifact
+    - name: Download web artifact
       uses: actions/download-artifact@v4
       with:
         name: 'web'
@@ -89,7 +89,7 @@ jobs:
         name: 'history'
         path:  components/meticulous-history-ui/build/
 
-    - name: Download history artifact
+    - name: Download plotter artifact
       uses: actions/download-artifact@v4
       with:
         name: 'plotter'
