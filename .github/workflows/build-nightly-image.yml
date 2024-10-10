@@ -39,7 +39,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: 'bootloader'
-        path: components/bootloader/build/imx-boot-sd.bin
+        path: components/bootloader/build/
 
     - name: Download linux artifact
       uses: actions/download-artifact@v4
@@ -51,7 +51,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: 'debian'
-        path: components/debian-base/rootfs-base.tar.gz
+        path: components/debian-base/
 
     - name: Download psplash artifact
       uses: actions/download-artifact@v4
@@ -69,7 +69,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: 'dial'
-        path:  components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb
+        path:  components/meticulous-dial/out/make/deb/arm64/
 
     - name: Download web artifact
       uses: actions/download-artifact@v4

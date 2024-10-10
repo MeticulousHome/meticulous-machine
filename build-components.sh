@@ -146,6 +146,7 @@ function build_kernel() {
     export DEB_BUILD_OPTIONS="parallel=`nproc`"
     make mrproper
     make imx8_var_meticulous_defconfig
+    make -j`nproc` Image modules dtbs
     make -j`nproc` bindeb-pkg
     popd >/dev/null
 
