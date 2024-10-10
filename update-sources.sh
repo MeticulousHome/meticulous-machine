@@ -28,14 +28,6 @@ function install_ubuntu_dependencies() {
     fi
     sudo apt update
     sudo apt -y install ${HOST_PACKAGES}
-    if [ $(uname -m) == "aarch64" ]; then
-        if lsb_release -i | grep -i ubuntu; then
-            sudo dpkg -i ./misc/libssl1.1_1.1.1f-1ubuntu2.23_arm64.deb
-        fi
-        sudo apt -y install ./misc/rauc_*_arm64.deb 
-    else
-        sudo apt -y install ./misc/rauc_*_amd64.deb
-    fi
 
     if [ -z "$(which node)" ]; then
         curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash - &&
