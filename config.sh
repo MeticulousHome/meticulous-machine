@@ -18,7 +18,7 @@ check_bash_version() {
 
 check_bash_version
 
-readonly DOCKER_DEB_BUILER_IMAGE="ghcr.io/meticuloushome/meticulous-machine/meticulous-deb-builder"
+readonly DOCKER_DEB_BUILER_IMAGE="ghcr.io/meticuloushome/meticulous-deb-builder"
 
 readonly COMPONENTS_DIR="components"
 readonly ROOTFS_DIR="rootfs"

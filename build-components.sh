@@ -213,14 +213,14 @@ function build_rauc() {
 
     # Build the rauc deb package for x86 and arm64
     echo "Building rauc deb package (arm64)..."
-    docker run --platform arm64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${RAUC_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-arm64 /bin/bash -c "\
+    docker run --platform arm64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${RAUC_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest /bin/bash -c "\
         cd /debs/workspace && \
         git config --global --add safe.directory '*' && \
         mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
         dpkg-buildpackage -b -rfakeroot -us -uc"
 
     echo "Building rauc deb package (amd64)..."
-    docker run --platform amd64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive  -v ./${RAUC_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-amd64 /bin/bash -c "\
+    docker run --platform amd64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive  -v ./${RAUC_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest /bin/bash -c "\
         cd /debs/workspace && \
         git config --global --add safe.directory '*' && \
         mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
@@ -228,7 +228,7 @@ function build_rauc() {
 
     # Build the rauc-hawkbit-updater deb package for arm64 only
     echo "Building hawkbit updater deb package (arm64)..."
-    docker run --platform arm64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${HAWKBIT_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-arm64 /bin/bash -c "\
+    docker run --platform arm64 --rm -v ./${RAUC_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${HAWKBIT_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest /bin/bash -c "\
         cd /debs/workspace && \
         git config --global --add safe.directory '*' && \
         mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
