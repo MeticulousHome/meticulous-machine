@@ -238,7 +238,7 @@ function build_rauc() {
 function build_psplash(){
     echo "Building psplash deb inside a container"
 
-    docker run --platform arm64 --rm -v ./${PSPLASH_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${PSPLASH_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest-arm64 /bin/bash -c "\
+    docker run --platform arm64 --rm -v ./${PSPLASH_BUILD_DIR}:/debs -e CCACHE_DIR=/debs/.ccache -e DEBIAN_FRONTEND=noninteractive -v ./${PSPLASH_SRC_DIR}:/debs/workspace ${DOCKER_DEB_BUILER_IMAGE}:latest /bin/bash -c "\
         cd /debs/workspace && \
         git config --global --add safe.directory '*' && \
         mk-build-deps -r -i debian/control -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' && \
