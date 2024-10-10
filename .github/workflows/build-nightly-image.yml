@@ -190,7 +190,7 @@ jobs:
       run: |
         sudo apt update && sudo apt install -y pigz
         find components/rauc/build/
-        sudo apt install --reinstall components/rauc/build/rauc_1.12-meticulous_amd64.deb
+        sudo apt install --reinstall ./components/rauc/build/rauc_*_amd64.deb
 
     - name: Build Bundles
       run: ./make-ota.sh  --nightly --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
