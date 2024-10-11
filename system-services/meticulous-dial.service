@@ -4,7 +4,7 @@ After=network.target
 Before=weston.service
 
 [Service]
-ExecStart=/usr/lib/meticulous-ui/meticulous-ui --enable-features=UseOzonePlatform --ozone-platform=wayland  --no-sandbox --in-process-gpu --use-gl=egl --ignore-gpu-blacklist --ignore-gpu-blocklist
+ExecStart=/usr/lib/meticulous-ui/meticulous-ui --no-sandbox --ozone-platform=wayland --use-angle=opengles --use-vulkan
 Restart=always
 User=root
 
