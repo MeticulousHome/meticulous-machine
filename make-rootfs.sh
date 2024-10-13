@@ -61,9 +61,6 @@ function b_copy_components() {
     # Install Dial app
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall --no-install-recommends /opt/meticulous-ui/meticulous-ui.deb"
 
-    ln -sf /lib/aarch64-linux-gnu/libGLESv2.so ${ROOTFS_DIR}/usr/lib/meticulous-ui
-    ln -sf /lib/aarch64-linux-gnu/libEGL.so    ${ROOTFS_DIR}/usr/lib/meticulous-ui
-
     # Install Backend
     echo "Installing Backend"
     cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
