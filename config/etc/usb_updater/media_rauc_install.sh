@@ -4,7 +4,7 @@ MOUNT_POINT="/mnt/possible_updater"
 UPDATING_FLAG_FILE="/tmp/updating"
 USB_PATH=""
 rauc_files=""
-ERROR_INSTALLING=true
+ERROR_INSTALLING="unknown"
 PARTITION_NAME=""
 
 #wait for the name of the device that has the update bundle
@@ -64,17 +64,18 @@ if [ -n "$rauc_files" ]; then
     while read -r line; do
         echo "$line"
         if echo "$line" | grep -q "fail"; then
+            ERROR_INSTALLING="$line"
             break
         fi
         if echo "$line" | grep -q "Installing done"; then
             echo "rauc install completed successfully"
-            ERROR_INSTALLING=false
+            ERROR_INSTALLING=""
             break
         fi
 
     done < <(rauc install "$rauc_files")
 
-    if [ $ERROR_INSTALLING == false ]; then
+    if [ -z "$ERROR_INSTALLING" ]; then
         echo "restarting machine in 5 seconds"
     fi
 
@@ -84,11 +85,12 @@ if [ -n "$rauc_files" ]; then
     rm -r $MOUNT_POINT
 
     # restart the machine when the update finishes
-    if [ $ERROR_INSTALLING == false ]; then
+    if [ -z "$ERROR_INSTALLING" ]; then
         sleep 3
         reboot now
     else
         echo "Error while installing, not rebooting"
+        busctl --system emit /handlers/Updater com.Meticulous.Handler.Updater UpdateFailed s "$ERROR_INSTALLING"
         systemctl restart rauc-hawkbit-updater.service
         rm $UPDATING_FLAG_FILE
     fi
