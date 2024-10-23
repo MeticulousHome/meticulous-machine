@@ -5,8 +5,12 @@ on:
     - cron: '0 0 * * *'  # Nightly at midnight
   workflow_dispatch:  # Allows manual triggering
 
-jobs:
+permissions:
+  contents: read
+  actions: read
+  id-token: write
 
+jobs:
   build-components:
     name: Build all image components
     secrets: inherit
