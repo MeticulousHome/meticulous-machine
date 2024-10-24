@@ -37,7 +37,7 @@ jobs:
         git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
     - name: Set up Git authentication
-      if: ${{ github.event_name == 'workflow_call' }}
+      if: ${{ github.event_name != 'workflow_dispatch' }}
       run: |
         git config --global url."https://${{ secrets.GITHUB_TOKEN }}:@github.com/".insteadOf "git@github.com:"
 
