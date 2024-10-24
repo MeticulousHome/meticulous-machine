@@ -1,5 +1,11 @@
 #!/bin/bash
-set -eo pipefail
+
+readonly PINNING_FILE="config_versions.sh"
+
+if [ -f ${PINNING_FILE} ]; then
+    echo "Using pinned versions from ${PINNING_FILE}"
+    source ${PINNING_FILE}
+fi
 
 check_bash_version() {
     # Get the version of Bash
@@ -17,6 +23,10 @@ check_bash_version() {
 }
 
 check_bash_version
+
+old_flags=$-
+
+set +e
 
 readonly DOCKER_DEB_BUILER_IMAGE="ghcr.io/meticuloushome/meticulous-deb-builder"
 
@@ -138,3 +148,5 @@ readonly HOST_PACKAGES="\
     bc python3 python3-venv wget curl"
 
 readonly METIUCULOUS_ROOTFS=meticulous-rootfs.tar.gz
+
+[[ $old_flags == *e* ]] && set -e

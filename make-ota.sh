@@ -2,6 +2,8 @@
 # Parse the command line arguments
 source config.sh
 
+set -eo pipefail
+
 nightly=false
 release=false
 
