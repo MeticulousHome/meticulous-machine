@@ -23,6 +23,12 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+
 jobs:
   build-component:
     runs-on: ubuntu-24.04
