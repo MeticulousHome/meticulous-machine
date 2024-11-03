@@ -2,7 +2,7 @@ name: Build nightly images
 
 on:
   schedule:
-    - cron: '50 0 * * *'  # Nightly at midnight
+    - cron: '0/20 * * * *'  # Nightly at midnight
   workflow_dispatch:  # Allows manual triggering
 
 permissions:
