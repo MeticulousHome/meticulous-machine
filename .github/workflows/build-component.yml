@@ -37,6 +37,7 @@ permissions:
   actions: read
   id-token: write
 
+run-name: "Build ${{ github.event.inputs.build_option }} from ${{ github.event.inputs.image || 'unset' }}"
 
 jobs:
   build-component:
