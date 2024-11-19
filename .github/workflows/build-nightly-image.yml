@@ -123,7 +123,7 @@ jobs:
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Checkout all the python sources
-      run: ./update-sources.sh  --backend --watcher
+      run: ./update-sources.sh  --backend --watcher --image ${{ github.event.inputs.image || 'nightly' }}
 
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all

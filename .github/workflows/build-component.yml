@@ -81,7 +81,7 @@ jobs:
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
 
     - name: Checkout the sources
-      run: ./update-sources.sh --${{ inputs['build-option'] }}
+      run: ./update-sources.sh --${{ inputs['build-option'] }} --image ${{ inputs['image'] }}
 
     - name: Build components
       run: |
