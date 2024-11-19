@@ -1,4 +1,4 @@
-name: Build nightly images
+name: Build image
 
 on:
   schedule:
@@ -20,8 +20,6 @@ jobs:
     name: Build all image components
     secrets: inherit
     uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
-    with:
-      image: ${{ github.event.inputs.image || 'nightly' }}
 
   build-root:
     runs-on: ubuntu-24.04
@@ -237,7 +235,6 @@ jobs:
         pip install requests attrs requests-toolbelt
 
     - name: Upload emmc bundle
-      if: ${{ !github.event.inputs.image || github.event.inputs.image == 'nightly' }}
       run: |
         python misc/hawkbit-upload.py \
           "${{ secrets.HAWKBIT_SERVER }}" \

@@ -2,7 +2,20 @@ name: Build all components
 
 on:
   workflow_dispatch:
+    inputs:
+        image:
+            description: 'Image config to use'
+            required: true
+            type: string
+            default: 'nightly'
+
   workflow_call:
+    inputs:
+        image:
+            description: 'Image config to use'
+            required: true
+            type: string
+            default: 'nightly'
 
 permissions:
   contents: read
@@ -18,6 +31,7 @@ jobs:
         with:
             build-option: 'bootloader'
             build-path: components/bootloader/build/imx-boot-sd.bin
+            image: ${{ github.event.inputs.image }}
 
     build_linux:
         name: Build Linux
@@ -26,6 +40,7 @@ jobs:
         with:
             build-option: 'linux'
             build-path: components/linux-build
+            image: ${{ github.event.inputs.image }}
 
     build_debian:
         name: Build Debian
@@ -34,6 +49,8 @@ jobs:
         with:
             build-option: 'debian'
             build-path: components/debian-base/rootfs-base.tar.gz
+            image: ${{ github.event.inputs.image }}
+
 
     build_splash:
         name: Build psplash
@@ -42,6 +59,7 @@ jobs:
         with:
             build-option: 'psplash'
             build-path: components/psplash-build/
+            image: ${{ github.event.inputs.image }}
 
     build_rauc:
         name: Build rauc
@@ -50,6 +68,7 @@ jobs:
         with:
             build-option: 'rauc'
             build-path: components/rauc/build
+            image: ${{ github.event.inputs.image }}
 
     build_dial:
         name: Build dial app
@@ -58,6 +77,7 @@ jobs:
         with:
             build-option: 'dial'
             build-path: components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb
+            image: ${{ github.event.inputs.image }}
 
     build_webapp:
         name: Build web app
@@ -66,6 +86,7 @@ jobs:
         with:
             build-option: 'web'
             build-path: components/meticulous-web-app/out/
+            image: ${{ github.event.inputs.image }}
 
     build_firmware:
         name: Build firmware
@@ -74,6 +95,7 @@ jobs:
         with:
             build-option: 'firmware'
             build-path: components/meticulous-firmware-build
+            image: ${{ github.event.inputs.image }}
 
     build_history:
         name: Build history ui
@@ -82,6 +104,7 @@ jobs:
         with:
             build-option: 'history'
             build-path: components/meticulous-history-ui/build/
+            image: ${{ github.event.inputs.image }}
 
     build_plotter:
         name: Build plotter ui
@@ -90,3 +113,4 @@ jobs:
         with:
             build-option: 'plotter'
             build-path: components/meticulous-plotter-ui/build/
+            image: ${{ github.event.inputs.image }}

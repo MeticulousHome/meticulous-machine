@@ -11,6 +11,11 @@ on:
         description: 'Custom path for artifacts to upload'
         required: false
         type: string
+      image:
+        description: 'Image config to use'
+        required: true
+        type: string
+        default: 'nightly'
 
   workflow_call:  # Allows the workflow to be called from other workflows
     inputs:
@@ -22,6 +27,10 @@ on:
         description: 'Custom path for artifacts to upload'
         required: true
         type: string
+      image:
+        description: 'Image config to use'
+        type: string
+        default: 'nightly'
 
 permissions:
   contents: read
