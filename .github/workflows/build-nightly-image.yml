@@ -24,6 +24,7 @@ jobs:
       image: ${{ github.event.inputs.image || 'nightly' }}
 
   build-root:
+    name: Build RootFS
     runs-on: ubuntu-24.04
     needs: build-components
     steps:
@@ -156,6 +157,7 @@ jobs:
         if-no-files-found: error
 
   build-bundle:
+    name: Build RAUC bundle
     needs: build-root
     runs-on: ubuntu-24.04
 
@@ -214,6 +216,7 @@ jobs:
         if-no-files-found: error
 
   deploy-emmc-bundle:
+    name: Upload EMMC image to hawkbit
     needs: build-bundle
     runs-on: ubuntu-24.04
     steps:
@@ -252,6 +255,7 @@ jobs:
           "emmc"
 
   build-deployment-image:
+    name: Build Deployment Image
     needs: build-root
     runs-on: ubuntu-24.04
 
