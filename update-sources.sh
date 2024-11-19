@@ -218,39 +218,64 @@ steps=(
 )
 
 # Parse command line arguments, enable steps when selected
-for arg in "$@"; do
-    case $arg in
-    --install_ubuntu_dependencies) install_ubuntu_dependencies_selected=1 ;;
-    --debian) steps[update_debian]=1 ;;
-    --backend) steps[update_backend]=1 ;;
-    --watcher) steps[update_watcher]=1 ;;
-    --dial) steps[update_dial]=1 ;;
-    --dashboard) steps[update_dash]=1 ;;
-    --dash) steps[update_dash]=1 ;;
-    --web) steps[update_web]=1 ;;
-    --webapp) steps[update_web]=1 ;;
-    --firmware) firmware_selected=1 ;;
-    --mobile) mobile_selected=1 ;;
-    --rauc) steps[update_rauc]=1 ;;
-    --history) history_ui_selected=1 ;;
-    --plotter) plotter_ui_selected=1 ;;
-    --linux) steps[update_linux]=1 ;;
-    --kernel) steps[update_linux]=1 ;;
-    --uboot) steps[update_uboot]=1 ;;
-    --bootloader) steps[update_uboot]=1 ;;
-    --psplash) steps[update_psplash]=1 ;;
-    --splash) steps[update_psplash]=1 ;;
-    --help) show_help; exit 0 ;;
+while [[ $# -gt 0 ]]; do
+    arg="$1"
 
-    # Enable all steps via special case
-    --all) all_selected=1 ;;
-    *)
-        echo "Invalid option: $arg"
-        show_help
-        exit 1
-        ;;
-    esac
+    case $arg in
+        --image)
+            if [[ -n $2 && $2 != --* ]]; then
+                IMAGE_NAME="$2"                
+                shift
+            else
+                echo "Error: --image requires a NAME argument."
+                exit 1
+            fi
+            ;;
+        --install_ubuntu_dependencies) install_ubuntu_dependencies_selected=1 ;;
+        --debian) steps[update_debian]=1 ;;
+        --backend) steps[update_backend]=1 ;;
+        --watcher) steps[update_watcher]=1 ;;
+        --dial) steps[update_dial]=1 ;;
+        --dashboard) steps[update_dash]=1 ;;
+        --dash) steps[update_dash]=1 ;;
+        --web) steps[update_web]=1 ;;
+        --webapp) steps[update_web]=1 ;;
+        --firmware) firmware_selected=1 ;;
+        --mobile) mobile_selected=1 ;;
+        --rauc) steps[update_rauc]=1 ;;
+        --history) history_ui_selected=1 ;;
+        --plotter) plotter_ui_selected=1 ;;
+        --linux) steps[update_linux]=1 ;;
+        --kernel) steps[update_linux]=1 ;;
+        --uboot) steps[update_uboot]=1 ;;
+        --bootloader) steps[update_uboot]=1 ;;
+        --psplash) steps[update_psplash]=1 ;;
+        --splash) steps[update_psplash]=1 ;;
+        --help) show_help; exit 0 ;;
+
+        # Enable all steps via special case
+        --all) all_selected=1 ;;
+        *)
+            echo "Invalid option: $arg"
+            show_help
+            exit 1
+            ;;
+        esac
+    shift # Shift past the argument
 done
+
+if [[ $IMAGE_NAME ]]; then
+    VERSIONS_FILE="images/${IMAGE_NAME}.versions.sh"
+    if [[ -f "$VERSIONS_FILE" ]]; then
+        echo "Sourcing $VERSIONS_FILE"
+        source "$VERSIONS_FILE"
+    else
+        echo "Versions file $VERSIONS_FILE does not exist."
+        exit 1
+    fi
+else
+    echo "No image name provided, using default versions."
+fi
 
 if [ ${install_ubuntu_dependencies_selected} -eq 1 ]; then
     install_ubuntu_dependencies

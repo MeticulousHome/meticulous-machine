@@ -1,6 +1,21 @@
 #!/bin/bash
 set -eo pipefail
 
+# Check if the required arguments are provided
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <image_name>"
+  exit 1
+fi
+
+# Get the image name from the first argument
+IMAGE_NAME="$1"
+
+# Create the images directory if it doesn't exist
+mkdir -p images
+
+# Define the output file path
+OUTPUT_FILE="images/${IMAGE_NAME}.versions.sh"
+
 source config.sh
 
 # Function to pin the revision to a file
@@ -9,12 +24,12 @@ pin_revision() {
     local rev=$2
     local commit=$3
 
-    if [[ ! -f $PINNING_FILE ]]; then
-        echo "#!/bin/bash" > $PINNING_FILE
+    if [[ ! -f $OUTPUT_FILE ]]; then
+        echo "#!/bin/bash" > $OUTPUT_FILE
     fi
-    sed -i "/${repo_var}/d" "${PINNING_FILE}"
+    sed -i "/${repo_var}/d" "${OUTPUT_FILE}"
     echo "Pinning $repo_var to $rev ($commit)"
-    echo "readonly $repo_var=\"$rev\" # ${commit}" >> "${PINNING_FILE}"
+    echo "export $repo_var=\"$rev\" # ${commit}" >> "${OUTPUT_FILE}"
 }
 
 # Function to update a single repository
@@ -60,8 +75,8 @@ update_all_repos() {
 
 
 # If a specific path is provided, update only that repo
-if [[ -n $1 ]]; then
-    case $1 in
+if [[ -n $2 ]]; then
+    case $2 in
         "$LINUX_SRC_DIR") update_repo_rev "$LINUX_SRC_DIR" "LINUX_GIT" "LINUX_REV" ;;
         "$UBOOT_SRC_DIR") update_repo_rev "$UBOOT_SRC_DIR" "UBOOT_GIT" "UBOOT_REV" ;;
         "$ATF_SRC_DIR") update_repo_rev "$ATF_SRC_DIR" "ATF_GIT" "ATF_REV" ;;
