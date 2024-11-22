@@ -4,6 +4,9 @@ ConditionKernelCommandLine=|rauc.slot
 StartLimitInterval=20000
 StartLimitBurst=5
 
+After=meticulous-backend.service meticulous-dial.service meticulous-watcher.service
+Requires=meticulous-backend.service meticulous-dial.service meticulous-watcher.service
+
 [Service]
 Type=oneshot
 RemainAfterExit=yes
