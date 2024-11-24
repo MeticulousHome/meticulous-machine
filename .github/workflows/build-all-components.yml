@@ -26,8 +26,10 @@ permissions:
 jobs:
     create_markdown:
         name: Write Summary
-        run: |
-            echo 'Building all components for: ${{ github.event.inputs.image }}' >> $GITHUB_STEP_SUMMARY
+        steps:
+            - name: Write Summary
+              run: |
+                echo 'Building all components for: ${{ github.event.inputs.image:-'NOT SET' }}' >> $GITHUB_STEP_SUMMARY
 
     build_uboot:
         name: Build u-boot
