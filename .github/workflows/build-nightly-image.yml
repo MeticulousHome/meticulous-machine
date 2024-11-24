@@ -15,13 +15,15 @@ permissions:
   actions: read
   id-token: write
 
+run-name: "Build ${{ github.event.inputs.image:-'nightly' }} image"
+
 jobs:
   build-components:
     name: Build all image components
     secrets: inherit
     uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
     with:
-      image: ${{ github.event.inputs.image || 'nightly' }}
+      image: ${{ github.event.inputs.image:-'nightly'}}
 
   build-root:
     name: Build RootFS
@@ -124,7 +126,7 @@ jobs:
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Checkout all the python sources
-      run: ./update-sources.sh  --backend --watcher --image ${{ github.event.inputs.image || 'nightly' }}
+      run: ./update-sources.sh  --backend --watcher --image ${{ github.event.inputs.image:-'nightly' }}
 
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all
