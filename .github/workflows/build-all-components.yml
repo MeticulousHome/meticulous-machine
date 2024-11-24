@@ -26,23 +26,14 @@ env:
 
 
 jobs:
-  set-image:
-    name: "Define image to build"
-    runs-on: ubuntu-24.04
-    outputs:
-      IMAGE: ${{ steps.set-output.outputs.IMAGE }}
-    steps:
-      - id: set-output
-        run: echo "IMAGE=${{ env.IMAGE || 'nightly' }}" >> $GITHUB_OUTPUT
 
   build_components:
     name: Build ${{ matrix.component.name }}
-    needs: set-image
     uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
     with:
       build-option: ${{ matrix.component.build-option }}
       build-path: ${{ matrix.component.build-path }}
-      image: ${{needs.set-image.outputs.IMAGE}}
+      image: ${{ inputs['image'] }}
     secrets: inherit
     strategy:
       matrix:

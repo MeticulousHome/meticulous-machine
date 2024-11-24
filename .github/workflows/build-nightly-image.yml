@@ -14,35 +14,21 @@ permissions:
   actions: read
   id-token: write
 
-env:
-  IMAGE: ${{github.event.inputs.image || 'nightly' }}
-
-run-name: "Build '${{github.event.inputs.image || 'UNSET (defaulting to nightly)' }}' image"
+run-name: "Build ${{github.event.inputs.image || 'default (nightly)' }}' image"
 
 jobs:
-  set-image:
-    name: "Define image to build"
-    runs-on: ubuntu-24.04
-    outputs:
-      IMAGE: ${{ steps.set-output.outputs.IMAGE }}
-    steps:
-      - id: set-output
-        run: echo "IMAGE=${{ env.IMAGE || 'nightly' }}" >> $GITHUB_OUTPUT
-
   build-components:
     name: Build all image components
-    needs: set-image
     secrets: inherit
     uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
     with:
-      image: ${{needs.set-image.outputs.IMAGE}}
+      image: ${{ inputs['image'] || 'nightly' }}
 
   build-root:
     name: Build RootFS
     runs-on: ubuntu-24.04
     needs: 
       - build-components
-      - set-image
     steps:
 
     - name: Maximize build space
@@ -140,7 +126,7 @@ jobs:
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Checkout all the python sources
-      run: ./update-sources.sh  --backend --watcher --image ${{needs.set-image.outputs.IMAGE}}
+      run: ./update-sources.sh  --backend --watcher --image ${{ inputs['image'] || 'nightly' }}
 
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all

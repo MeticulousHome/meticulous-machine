@@ -42,7 +42,7 @@ run-name: "Build ${{ github.event.inputs.build_option }} from '${{github.event.i
 jobs:
   build-component:
     runs-on: ubuntu-24.04
-    name: Build ${{ github.event.inputs.build_option }}
+    name: Build ${{ inputs['build-option'] }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
