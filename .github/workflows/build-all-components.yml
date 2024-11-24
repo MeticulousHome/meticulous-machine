@@ -3,121 +3,57 @@ name: Build all components
 on:
   workflow_dispatch:
     inputs:
-        image:
-            description: 'Image config to use'
-            required: true
-            type: string
-            default: 'nightly'
+      image:
+        description: 'Image config to use'
+        type: string
+        default: 'nightly'
 
   workflow_call:
     inputs:
-        image:
-            description: 'Image config to use'
-            required: true
-            type: string
-            default: 'nightly'
+      image:
+        description: 'Image config to use'
+        required: true
+        type: string
+        default: 'nightly'
 
 permissions:
   contents: read
   actions: read
   id-token: write
 
+env:
+  IMAGE: ${{github.event.inputs.image || 'nightly' }}
+
 
 jobs:
-    create_markdown:
-        name: Write Summary
-        steps:
-            - name: Write Summary
-              run: |
-                echo 'Building all components for: ${{ github.event.inputs.image:-'NOT SET' }}' >> $GITHUB_STEP_SUMMARY
+  set-image:
+    name: "Define image to build"
+    runs-on: ubuntu-24.04
+    outputs:
+      IMAGE: ${{ steps.set-output.outputs.IMAGE }}
+    steps:
+      - id: set-output
+        run: echo "IMAGE=${{ env.IMAGE || 'nightly' }}" >> $GITHUB_OUTPUT
 
-    build_uboot:
-        name: Build u-boot
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'bootloader'
-            build-path: components/bootloader/build/imx-boot-sd.bin
-            image: ${{ github.event.inputs.image }}
-
-    build_linux:
-        name: Build Linux
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'linux'
-            build-path: components/linux-build
-            image: ${{ github.event.inputs.image }}
-
-    build_debian:
-        name: Build Debian
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'debian'
-            build-path: components/debian-base/rootfs-base.tar.gz
-            image: ${{ github.event.inputs.image }}
-
-
-    build_splash:
-        name: Build psplash
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'psplash'
-            build-path: components/psplash-build/
-            image: ${{ github.event.inputs.image }}
-
-    build_rauc:
-        name: Build rauc
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'rauc'
-            build-path: components/rauc/build
-            image: ${{ github.event.inputs.image }}
-
-    build_dial:
-        name: Build dial app
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'dial'
-            build-path: components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb
-            image: ${{ github.event.inputs.image }}
-
-    build_webapp:
-        name: Build web app
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'web'
-            build-path: components/meticulous-web-app/out/
-            image: ${{ github.event.inputs.image }}
-
-    build_firmware:
-        name: Build firmware
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'firmware'
-            build-path: components/meticulous-firmware-build
-            image: ${{ github.event.inputs.image }}
-
-    build_history:
-        name: Build history ui
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'history'
-            build-path: components/meticulous-history-ui/build/
-            image: ${{ github.event.inputs.image }}
-
-    build_plotter:
-        name: Build plotter ui
-        uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
-        secrets: inherit
-        with:
-            build-option: 'plotter'
-            build-path: components/meticulous-plotter-ui/build/
-            image: ${{ github.event.inputs.image }}
+  build_components:
+    name: Build ${{ matrix.component.name }}
+    needs: set-image
+    uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
+    with:
+      build-option: ${{ matrix.component.build-option }}
+      build-path: ${{ matrix.component.build-path }}
+      image: ${{needs.set-image.outputs.IMAGE}}
+    secrets: inherit
+    strategy:
+      matrix:
+        component:
+          - { name: "Build u-boot", build-option: "bootloader", build-path: "components/bootloader/build/imx-boot-sd.bin" }
+          - { name: "Build Linux", build-option: "linux", build-path: "components/linux-build" }
+          - { name: "Build Debian", build-option: "debian", build-path: "components/debian-base/rootfs-base.tar.gz" }
+          - { name: "Build psplash", build-option: "psplash", build-path: "components/psplash-build/" }
+          - { name: "Build rauc", build-option: "rauc", build-path: "components/rauc/build" }
+          - { name: "Build dial app", build-option: "dial", build-path: "components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb" }
+          - { name: "Build web app", build-option: "web", build-path: "components/meticulous-web-app/out/" }
+          - { name: "Build firmware", build-option: "firmware", build-path: "components/meticulous-firmware-build" }
+          - { name: "Build history ui", build-option: "history", build-path: "components/meticulous-history-ui/build/" }
+          - { name: "Build plotter ui", build-option: "plotter", build-path: "components/meticulous-plotter-ui/build/" }

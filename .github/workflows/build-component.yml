@@ -37,12 +37,12 @@ permissions:
   actions: read
   id-token: write
 
-run-name: "Build ${{ github.event.inputs.build_option }} from ${{ github.event.inputs.image:-'unset' }}"
+run-name: "Build ${{ github.event.inputs.build_option }} from '${{github.event.inputs.image || 'unset' }}'"
 
 jobs:
   build-component:
     runs-on: ubuntu-24.04
-
+    name: Build ${{ github.event.inputs.build_option }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
