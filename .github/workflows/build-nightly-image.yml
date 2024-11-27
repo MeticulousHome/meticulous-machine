@@ -14,7 +14,7 @@ permissions:
   actions: read
   id-token: write
 
-run-name: "Build ${{github.event.inputs.image || 'default (nightly)' }}' image"
+run-name: "Build ${{github.event.inputs.image || 'default (nightly)' }} image"
 
 jobs:
   build-components:
