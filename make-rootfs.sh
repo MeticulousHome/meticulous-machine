@@ -29,7 +29,7 @@ function a_unpack_base() {
     echo "rootfs: DEVELOPMENT_PACKAGES \"${DEVELOPMENT_PACKAGES}\" "
 
     systemd-nspawn -D ${ROOTFS_DIR} apt update
-    systemd-nspawn -D ${ROOTFS_DIR} apt install -y -o Debug::pkgProblemResolver=yes ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
+    systemd-nspawn -D ${ROOTFS_DIR} DEBIAN_FRONTEND=noninteractive apt install -y -o Debug::pkgProblemResolver=yes ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
 
     echo "SystemMaxUse=1G" >>${ROOTFS_DIR}/etc/systemd/journald.conf
 
