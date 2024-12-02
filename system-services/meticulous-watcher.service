@@ -4,7 +4,8 @@ After=network.target
 Before=weston.service
 
 [Service]
-Type=simple
+Type=notify
+Environment=PYTHONUNBUFFERED=true
 Restart=always
 RestartSec=10
 ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-watcher/watcher.py

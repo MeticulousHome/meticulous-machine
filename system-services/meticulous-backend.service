@@ -4,13 +4,13 @@ After=network.target pulseaudio.service
 Before=nginx.service
 
 [Service]
-Type=simple
+Type=notify
+Environment=PYTHONUNBUFFERED=true
 Restart=always
 RestartSec=10
 ExecStartPre=-/bin/bash -c 'mkdir -p /meticulous-user/syslog/nginx || true'
 ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-backend/back.py
 User=root
-
 
 [Install]
 WantedBy=multi-user.target
