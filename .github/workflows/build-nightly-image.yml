@@ -250,10 +250,10 @@ jobs:
           *_emmc_*.raucb \
           ${{ secrets.HAWKBIT_USER }} \
           ${{ secrets.HAWKBIT_PASSWORD }} \
-          "Nightly EMMC" \
+          "${{ github.event.inputs.image || 'Nightly' }} EMMC" \
           "Rootfs EMMC" \
           "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
-          "nightly" \
+          "${{ github.event.inputs.image || 'nightly' }}" \
           "emmc"
 
   build-deployment-image:
