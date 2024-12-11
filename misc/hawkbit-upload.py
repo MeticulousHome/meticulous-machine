@@ -385,12 +385,12 @@ class HawkbitMgmtClient:
         existing_dist = self.get_distributionset_by_name(name)
         if existing_dist:
             print(
-                f"Distribution set '{name}' already exists as ID={existing_dist["id"]}. Using existing distribution. Updating version!"
+                f"Distribution set '{name}' already exists as ID={existing_dist['id']}. Using existing distribution. Updating version!"
             )
             data = {
                 "version": self.version,
             }
-            response = self.put(f"distributionsets/{existing_dist["id"]}", data).json()
+            response = self.put(f"distributionsets/{existing_dist['id']}", data).json()
             self.id["distributionset"] = response["id"]
             return response["id"]
 
@@ -633,8 +633,9 @@ class HawkbitMgmtClient:
 
     def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
 
-        targets = self.get_targets_by_filter(target_filter_query)
+        channel = args.channel
 
+        targets = self.get_targets_by_filter(target_filter_query)
         print("Targets structure:")
         print(json.dumps(targets, indent=2))
 
@@ -646,24 +647,30 @@ class HawkbitMgmtClient:
 
         for target in targets:
             if isinstance(target, dict):
-                target_id = target.get("controllerId") or target.get("id")
-                target_name = target.get("name", "Unknown")
+                target_id = target.get('controllerId') or target.get('id')
+                target_name = target.get('name', 'Unknown')
             else:
                 print(f"Unexpected target type: {type(target)}")
                 continue
 
             if target_id:
                 print(f"Processing target: {target_name} (ID: {target_id})")
-                active_actions = self.get_active_actions(target_id)
-                for action in active_actions:
-                    try:
-                        print(
-                            f"Cancelling active action {action['id']} for target {target_name}"
-                        )
-                        self.cancel_action(action["id"], target_id, force=True)
-                    except HawkbitError as e:
-                        print(f"Error cancelling action {action['id']}: {str(e)}")
-                self.update_target(target_id, target_name, target.get("controllerId"))
+            
+                # Retrieve the target's attributes to verify their channel
+                target_attributes = self.get_attributes(target_id)
+                target_channel = target_attributes.get('update_channel')
+            
+                # Only cancel actions if the target belongs to the correct channel
+                if target_channel == channel:
+                    active_actions = self.get_active_actions(target_id)
+                    for action in active_actions:
+                        try:
+                            print(f"Cancelling active action {action['id']} for target {target_name} (channel: {target_channel})")
+                            self.cancel_action(action['id'], target_id, force=True)
+                        except HawkbitError as e:
+                            print(f"Error cancelling action {action['id']}: {str(e)}")
+                else:
+                    print(f"Skipping action cancellation for target {target_name} as it belongs to different channel: {target_channel}")
             else:
                 print(f"Could not determine target ID for: {target}")
 
@@ -675,8 +682,11 @@ class HawkbitMgmtClient:
         existing_rollouts = self.getAllRollouts()
 
         for rollout in existing_rollouts:
-            print(f"Deleting existing rollout: {rollout['name']}")
-            self.deleteRollout(rollout["id"])
+            if rollout.get('targetFilterQuery') == target_filter_query:
+                print(f"Deleting existing rollout: {rollout['name']}")
+                self.deleteRollout(rollout['id'])
+            else:
+                print(f"Skipping rollout deletion for different channel: {rollout['name']}")
 
         rollout_data = {
             "name": name,
@@ -831,6 +841,47 @@ if __name__ == "__main__":
     print("Uploading new artifact and removing all existing ones")
     client.add_or_update_artifact(args.bundle)
 
+    # Fetch all existing rollouts
+    print("Fetching existing rollouts...")
+    existing_rollouts = client.getAllRollouts() or []
+    
+    # Print all existing rollouts for inspection
+    print("Existing rollouts:")
+    for rollout in existing_rollouts:
+        print(json.dumps(rollout, indent=2))
+
+    # Build the targetFilterQuery for the current channel
+    current_channel_query = f'attribute.update_channel == "{args.channel}"'
+    
+    # Debug prints added here
+    print("\n=== Debug Information ===")
+    print(f"Current channel query: {current_channel_query}")
+    print("\nAnalyzing existing rollouts:")
+    for rollout in existing_rollouts:
+        print(f"\nChecking rollout: {rollout['name']}")
+        print(f"Filter query in rollout: {rollout.get('targetFilterQuery')}")
+        print(f"Does filter match?: {rollout.get('targetFilterQuery') == current_channel_query}")
+        print(f"Rollout channel: {args.channel}")
+    print("=== End Debug Information ===\n")
+    
+    # Filter rollouts by targetFilterQuery
+    rollouts_to_delete = [
+        rollout for rollout in existing_rollouts
+        if rollout.get("targetFilterQuery") == current_channel_query
+    ]
+    
+    # Print the rollouts selected for deletion
+    print("Rollouts selected for deletion:")
+    for rollout in rollouts_to_delete:
+        print(json.dumps(rollout, indent=2))
+
+    # Delete filtered rollouts
+    for rollout in rollouts_to_delete:
+        rollout_id = rollout["id"]
+        print(f"Deleting rollout: {rollout['name']} (ID: {rollout_id})")
+        client.deleteRollout(rollout_id)
+        print(f"Rollout {rollout_id} deleted successfully")
+
     # Creating a target filter
     filters = client.get_all_targetfilters().get("content") or []
 
@@ -849,7 +900,7 @@ if __name__ == "__main__":
     raucb_filename = os.path.basename(args.bundle)
     rollout_name = raucb_filename
 
-    target_filter_query = channel_filter["query"]
+    target_filter_query = current_channel_query
 
     print(f"Creating or replacing rollout: {rollout_name}")
     print(f"Using filter query: {target_filter_query}")
