@@ -251,7 +251,7 @@ jobs:
           ${{ secrets.HAWKBIT_USER }} \
           ${{ secrets.HAWKBIT_PASSWORD }} \
           "${{ github.event.inputs.image || 'Nightly' }} EMMC" \
-          "Rootfs EMMC" \
+          "${{ github.event.inputs.image || 'Nightly' }} Rootfs EMMC" \
           "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
           "${{ github.event.inputs.image || 'nightly' }}" \
           "emmc"
