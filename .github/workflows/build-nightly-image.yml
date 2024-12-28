@@ -207,6 +207,12 @@ jobs:
         find components/rauc/build/
         sudo apt install --reinstall ./components/rauc/build/rauc_*_amd64.deb
 
+    - name: Download bootloader artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'bootloader'
+        path: components/bootloader/build/
+
     - name: Build Bootloader Bundle
       run: ./boot-bundle.sh --nightly --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
 
@@ -216,7 +222,7 @@ jobs:
         name: bootloader-bundle.raucb
         path: rauc_meticulous_boot_*.raucb
         if-no-files-found: error
-        
+
     - name: Build Bundles
       run: ./make-ota.sh  --nightly --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
 
