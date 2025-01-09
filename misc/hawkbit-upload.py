@@ -730,18 +730,18 @@ class HawkbitMgmtClient:
             return mods[0]
         return None
 
-    def add_or_update_softwaremodule(self, name, version: str, module_type="os"):
-        existing_module = self.get_softwaremodule_by_name(name, module_type, version)
-
+    def add_or_update_softwaremodule(self, name, module_type="os"):
+        existing_module = self.get_softwaremodule_by_name(name, module_type)
+    
         if existing_module:
             print(f"Software module '{name}' already exists. Using existing module.")
-            self.id["softwaremodule"] = existing_module["id"]
-            return existing_module["id"]
-
+            self.id["softwaremodule"] = existing_module['id']
+            return existing_module['id']
+    
         data = [
             {
                 "name": name,
-                "version": version,
+                "version": str(self.version),
                 "type": module_type,
             }
         ]
@@ -749,7 +749,7 @@ class HawkbitMgmtClient:
         response = self.post("softwaremodules", data)
         self.id["softwaremodule"] = response[0]["id"]
         return self.id["softwaremodule"]
-
+    
     def get_all_artifacts(self, module_id):
         artifacts = self.get(f"softwaremodules/{module_id}/artifacts")
         # print("Artifact structure:")
@@ -818,6 +818,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    #Generate the full names fo the distribution ond softwaremodule
+    distribution_name = f"{args.distribution}"
+    software_module_name = f"{args.softwareModule}"
     client = HawkbitMgmtClient(
         args.host,
         args.port,
@@ -825,17 +828,14 @@ if __name__ == "__main__":
         username=args.username,
         version=args.version,
     )
-
     client.set_config("pollingTime", "00:00:30")
     client.set_config("pollingOverdueTime", "00:03:00")
     client.set_config("authentication.targettoken.enabled", True)
-
     print("Creating or updating software module")
-    client.add_or_update_softwaremodule(name=args.softwareModule, version=args.channel)
-
+    client.add_or_update_softwaremodule(name=software_module_name)
     print("Creating Distribution set")
     dist_id = client.add_or_update_distributionset(
-        args.distribution, module_ids=[client.get_softwaremodule().get("id")]
+        distribution_name, module_ids=[client.get_softwaremodule().get("id")]
     )
 
     print("Uploading new artifact and removing all existing ones")
