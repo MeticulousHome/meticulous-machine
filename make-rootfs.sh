@@ -146,6 +146,12 @@ function b_copy_components() {
 
     date -Ru >${ROOTFS_DIR}/opt/ROOTFS_BUILD_DATE
 
+    if [ -f ./image-build-channel ]; then
+        cp ./image-build-channel ${ROOTFS_DIR}/opt/
+    else
+        echo "Warning: image-build-channel not found. Skipping copy."
+    fi
+
     export LATEST_KERNEL=$(ls -Art ${LINUX_BUILD_DIR}/linux-image*.deb | tail -n 1) || true
     if [ -z ${LATEST_KERNEL} ]; then
         echo "No Kernel found"

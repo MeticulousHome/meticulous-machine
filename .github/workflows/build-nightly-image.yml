@@ -128,6 +128,10 @@ jobs:
     - name: Checkout all the python sources
       run: ./update-sources.sh  --backend --watcher --image ${{ inputs['image'] || 'nightly' }}
 
+    - name: Write build channel to image-build-channel
+      run: |
+        echo "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-channel > /dev/null
+
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all
 
