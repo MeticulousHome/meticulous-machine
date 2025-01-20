@@ -152,11 +152,11 @@ function b_copy_components() {
         echo "Warning: image-build-channel not found. Skipping copy."
     fi
 
-    if [ -f ./repository_info ]; then
-        cp ./repository_info ${ROOTFS_DIR}/opt/
-        echo "repository_info successfully copied to ${ROOTFS_DIR}/opt/"
+    if [ -f ./components/repo-info/summary.txt ]; then
+        cp ./components/repo-info/summary.txt ${ROOTFS_DIR}/opt/
+        echo "summary.txt successfully copied to ${ROOTFS_DIR}/opt/"
     else
-        echo "Warning: repository_info not found. Skipping copy."
+        echo "Warning: summary.txt not found. Skipping copy."
     fi
 
     export LATEST_KERNEL=$(ls -Art ${LINUX_BUILD_DIR}/linux-image*.deb | tail -n 1) || true

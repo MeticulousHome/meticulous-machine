@@ -84,6 +84,17 @@ jobs:
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }} --image ${{ inputs['image'] }}
 
+    - name: Save Git repository information
+      run: |
+        echo "Repository: ${{ inputs['build-option'] }}" > repository-info.txt
+        echo "Directory: $(pwd)" >> repository-info.txt
+        echo "URL: $(git config --get remote.origin.url)" >> repository-info.txt
+        echo "Branch: $(git branch --show-current)" >> repository-info.txt
+        echo "Hash: $(git rev-parse HEAD)" >> repository-info.txt
+        echo "Detail of hash (git show): $(git show --oneline -s)" >> repository-info.txt
+        mkdir -p $(dirname "${{ inputs['build-path'] }}")
+        mv repository-info.txt $(dirname "${{ inputs['build-path'] }}")
+
     - name: Build components
       run: |
         export PATH=/usr/lib/ccache:/usr/local/bin:$PATH
