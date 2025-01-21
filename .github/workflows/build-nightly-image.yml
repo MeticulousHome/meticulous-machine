@@ -273,8 +273,8 @@ jobs:
           *_emmc_*.raucb \
           ${{ secrets.HAWKBIT_USER }} \
           ${{ secrets.HAWKBIT_PASSWORD }} \
-          "${{ github.event.inputs.image || 'Nightly' }} EMMC" \
-          "${{ github.event.inputs.image || 'Nightly' }} Rootfs EMMC" \
+          "${{ github.event.inputs.image || 'nightly' }} EMMC" \
+          "${{ github.event.inputs.image || 'nightly' }} Rootfs EMMC" \
           "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
           "${{ github.event.inputs.image || 'nightly' }}" \
           "emmc"
