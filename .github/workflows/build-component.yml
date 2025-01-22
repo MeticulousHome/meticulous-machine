@@ -92,6 +92,7 @@ jobs:
           cat "$(dirname "${{ inputs['build-path'] }}")/repository-info.txt"
         else
           echo "Warning: repository-info.txt not found in expected location"
+        fi
 
     - name: Build components
       run: |
