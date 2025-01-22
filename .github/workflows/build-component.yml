@@ -84,16 +84,14 @@ jobs:
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }} --image ${{ inputs['image'] }}
 
-    - name: Save Git repository information
+    - name: Show repository information
       run: |
-        echo "Repository: ${{ inputs['build-option'] }}" > repository-info.txt
-        echo "Directory: $(pwd)" >> repository-info.txt
-        echo "URL: $(git config --get remote.origin.url)" >> repository-info.txt
-        echo "Branch: $(git branch --show-current)" >> repository-info.txt
-        echo "Hash: $(git rev-parse HEAD)" >> repository-info.txt
-        echo "Detail of hash (git show): $(git show --oneline -s)" >> repository-info.txt
-        mkdir -p $(dirname "${{ inputs['build-path'] }}")
-        mv repository-info.txt $(dirname "${{ inputs['build-path'] }}")
+        if [ -f "$(dirname "${{ inputs['build-path'] }}")/repository-info.txt" ]; then
+          echo "Found repository information at: $(dirname "${{ inputs['build-path'] }}")/repository-info.txt"
+          echo "Content of repository-info.txt:"
+          cat "$(dirname "${{ inputs['build-path'] }}")/repository-info.txt"
+        else
+          echo "Warning: repository-info.txt not found in expected location"
 
     - name: Build components
       run: |

@@ -18,6 +18,23 @@ function get_git_src() {
     git fetch origin --recurse-submodules
     git checkout origin/${2} -B ${2} -f --recurse-submodules
     git reset --hard ${4}
+
+    {
+        echo "Repository: $(basename ${3})"
+        echo "URL: ${1}"
+        echo "Branch: ${2}"
+        echo "Commit: ${4}"
+        echo "Last commit details:"
+        git log -1 --pretty=format:"%h - %s (%cr) <%an>"
+        echo
+        echo "Modified files:"
+        git diff --name-only HEAD~1
+    } > repository-info.txt
+    
+    echo "Generated repository information at: $(pwd)/repository-info.txt"
+    echo "Content of repository-info.txt:"
+    cat repository-info.txt
+
     cd -
 }
 
