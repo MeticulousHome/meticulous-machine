@@ -86,10 +86,15 @@ jobs:
 
     - name: Show repository information
       run: |
-        if [ -f "components/${{ inputs['build-option'] }}/repository-info.txt" ]; then
-          echo "Found repository information at: components/${{ inputs['build-option'] }}/repository-info.txt"
+        COMPONENT_DIR="components/${{ inputs['build-option'] }}"
+        if [ ! -f "${COMPONENT_DIR}/repository-info.txt" ]; then
+          COMPONENT_DIR="components/meticulous-${{ inputs['build-option'] }}"
+        fi
+        
+        if [ -f "${COMPONENT_DIR}/repository-info.txt" ]; then
+          echo "Found repository information at: ${COMPONENT_DIR}/repository-info.txt"
           echo "Content of repository-info.txt:"
-          cat "components/${{ inputs['build-option'] }}/repository-info.txt"
+          cat "${COMPONENT_DIR}/repository-info.txt"
         else
           echo "Warning: repository-info.txt not found in expected location"
         fi
