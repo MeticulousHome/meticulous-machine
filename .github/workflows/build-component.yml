@@ -86,10 +86,10 @@ jobs:
 
     - name: Show repository information
       run: |
-        if [ -f "$(dirname "${{ inputs['build-path'] }}")/repository-info.txt" ]; then
-          echo "Found repository information at: $(dirname "${{ inputs['build-path'] }}")/repository-info.txt"
+        if [ -f "components/${{ inputs['build-option'] }}/repository-info.txt" ]; then
+          echo "Found repository information at: components/${{ inputs['build-option'] }}/repository-info.txt"
           echo "Content of repository-info.txt:"
-          cat "$(dirname "${{ inputs['build-path'] }}")/repository-info.txt"
+          cat "components/${{ inputs['build-option'] }}/repository-info.txt"
         else
           echo "Warning: repository-info.txt not found in expected location"
         fi
