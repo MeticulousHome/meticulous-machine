@@ -86,10 +86,29 @@ jobs:
 
     - name: Show repository information
       run: |
-        COMPONENT_DIR="components/${{ inputs['build-option'] }}"
-        if [ ! -f "${COMPONENT_DIR}/repository-info.txt" ]; then
-          COMPONENT_DIR="components/meticulous-${{ inputs['build-option'] }}"
-        fi
+        case "${{ inputs['build-option'] }}" in
+          "bootloader")
+            COMPONENT_DIR="components/bootloader/uboot"
+            ;;
+          "rauc")
+            COMPONENT_DIR="components/rauc/rauc"
+            ;;
+          "web")
+            COMPONENT_DIR="components/meticulous-web-app"
+            ;;
+          "history")
+            COMPONENT_DIR="components/meticulous-history-ui"
+            ;;
+          "plotter")
+            COMPONENT_DIR="components/meticulous-plotter-ui"
+            ;;
+          *)
+            COMPONENT_DIR="components/${{ inputs['build-option'] }}"
+            if [ ! -f "${COMPONENT_DIR}/repository-info.txt" ]; then
+              COMPONENT_DIR="components/meticulous-${{ inputs['build-option'] }}"
+            fi
+            ;;
+        esac
         
         if [ -f "${COMPONENT_DIR}/repository-info.txt" ]; then
           echo "Found repository information at: ${COMPONENT_DIR}/repository-info.txt"
