@@ -127,16 +127,34 @@ jobs:
       run: |
         case "${{ inputs['build-option'] }}" in
           "bootloader")
+            echo "DEBUG bootloader:"
+            echo "Checking bootloader directory structure:"
+            ls -la components/bootloader/
+            echo "Checking build directory content:"
+            ls -la components/bootloader/build/
+            echo "Checking imx-mkimage directory content:"
+            ls -la components/bootloader/imx-mkimage/
+            echo "Current repository-info.txt location:"
+            find components/bootloader/ -name repository-info.txt
             sudo mkdir -p components/bootloader/build/repo-info/
             sudo cp components/bootloader/uboot/repository-info.txt components/bootloader/build/repo-info/
+            echo "After copy, checking repo-info directory:"
+            ls -la components/bootloader/build/repo-info/
             ;;
           "linux")
             sudo mkdir -p components/linux-build/repo-info/
             sudo cp components/linux/repository-info.txt components/linux-build/repo-info/
             ;;
           "debian")
+            echo "DEBUG debian:"
+            echo "Checking debian directory structure:"
+            ls -la components/debian-base/
+            echo "Current repository-info.txt location:"
+            find components/debian-base/ -name repository-info.txt
             sudo mkdir -p components/debian-base/repo-info/
             sudo cp components/debian-base/repository-info.txt components/debian-base/repo-info/
+            echo "After copy, checking repo-info directory:"
+            ls -la components/debian-base/repo-info/
             ;;
           "psplash")
             sudo mkdir -p components/psplash-build/repo-info/
@@ -147,8 +165,17 @@ jobs:
             sudo cp components/rauc/rauc/repository-info.txt components/rauc/build/repo-info/
             ;;
           "dial")
+            echo "DEBUG dial:"
+            echo "Checking dial directory structure:"
+            ls -la components/meticulous-dial/
+            echo "Checking out/make/deb/arm64 content:"
+            ls -la components/meticulous-dial/out/make/deb/arm64/
+            echo "Current repository-info.txt location:"
+            find components/meticulous-dial/ -name repository-info.txt
             sudo mkdir -p components/meticulous-dial/out/make/deb/arm64/repo-info/
             sudo cp components/meticulous-dial/repository-info.txt components/meticulous-dial/out/make/deb/arm64/repo-info/
+            echo "After copy, checking repo-info directory:"
+            ls -la components/meticulous-dial/out/make/deb/arm64/repo-info/
             ;;
           "web")
             sudo mkdir -p components/meticulous-web-app/out/repo-info/
