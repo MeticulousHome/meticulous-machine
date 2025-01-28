@@ -53,12 +53,15 @@ for component in "${!special_components[@]}"; do
     echo "## $component ##" >> "$REPORT_DIR/summary.txt"
     
     # Create repo-info directory
-    mkdir -p "${special_components[$component]}/repo-info"
-    output_file="${special_components[$component]}/repo-info/repository-info.txt"
-    
-    if generate_repo_info "${special_components[$component]}" "$output_file"; then
-        cp "$output_file" "$REPORT_DIR/${component}-info.txt"
-        cat "$output_file" >> "$REPORT_DIR/summary.txt"
+    if generate_repo_info "${special_components[$component]}" "${special_components[$component]}/repository-info.txt"; then
+        repo_info_file="${special_components[$component]}/repository-info.txt"
+        if [ -f "$repo_info_file" ]; then
+            cp "$repo_info_file" "$REPORT_DIR/${component}-info.txt"
+            cat "$repo_info_file" >> "$REPORT_DIR/summary.txt"
+        else
+            echo "Warning: Repository info file not found at $repo_info_file"
+            echo "No repository information found" >> "$REPORT_DIR/summary.txt"
+        fi
     else
         echo "No repository information found" >> "$REPORT_DIR/summary.txt"
     fi
