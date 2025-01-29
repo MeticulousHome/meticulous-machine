@@ -1,0 +1,60 @@
+name: Update one image to another
+
+on:
+  schedule:
+    # 1. Entry: Minute when the process will be started [0-60]
+    # 2. Entry: Hour when the process will be started [0-23]
+    # 3. Entry: Day of the month when the process will be started [1-28/29/30/31]
+    # 4. Entry: Month of the year when the process will be started [1-12]
+    # 5. Entry: Weekday when the process will be started [0-6] [0 is Sunday]
+    # from: https://stackoverflow.com/a/16717986
+    - cron: "0 0 * * 0"
+  workflow_dispatch: # Allows manual triggering
+    inputs:
+        image:
+            description: The version set to update
+            default: beta-candidate
+        target_image:
+            description: The version to update to
+            default: nightly
+
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
+run-name: "Pin ${{github.event.inputs.image || 'beta-candidate' }} version set to ${{github.event.inputs.target_image || 'nightly' }}"
+
+jobs:
+  pin-beta-candidate:
+    name: Pin Beta Candidate
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Git authentication
+        run: |
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout the nightly sources and pin beta-candidate
+        run: |
+            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }}
+            ./pin-versions.sh ${{ inputs['image'] || 'beta-candidate' }}
+  
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "mimoja"
+          git config user.email "mimoja@meticuloushome.com"
+          
+          # Stage the new version file
+          git add images/
+          
+          # Commit only if there are changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "image: Pin ${{ inputs['image'] || 'beta-candidate' }} to ${{ inputs['target_image'] || 'nightly' }}"
+            git push
+          fi
