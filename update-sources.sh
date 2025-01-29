@@ -193,7 +193,10 @@ Specific components can be fetched and updated by passing their names as options
 
 Available options:
     --all                           Checkout / Update All repositories except for the firmware
+    --image [IMAGE]                 Checkout a specific image version / pinning
+
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
+
     --debian                        Checkout / Update Debian repository
     --backend                       Checkout / Update Backend repository
     --watcher                       Checkout / Update Watcher repository
