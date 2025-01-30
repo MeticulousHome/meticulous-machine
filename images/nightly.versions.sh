@@ -5,7 +5,7 @@
 
 export ATF_BRANCH="imx_5.4.24_2.1.0_var01"
 export ATF_REV="7575633e03ff952a18c0a2c0aa543dee793fda5f"
-export BACKEND_BRANCH="mimoja_dev"
+export BACKEND_BRANCH="main"
 export BACKEND_REV="HEAD"
 export DASH_BRANCH="mimoja_wip"
 export DASH_REV="HEAD"
