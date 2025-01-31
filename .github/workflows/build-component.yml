@@ -16,6 +16,10 @@ on:
         required: true
         type: string
         default: 'nightly'
+      runner:
+          description: "Overwrite the default runner"
+          type: string
+          default: "ubuntu-24.04"
 
   workflow_call:  # Allows the workflow to be called from other workflows
     inputs:
@@ -31,6 +35,10 @@ on:
         description: 'Image config to use'
         type: string
         default: 'nightly'
+      runner:
+        description: "Overwrite the default runner"
+        type: string
+        default: "ubuntu-24.04"
 
 permissions:
   contents: read
@@ -41,7 +49,7 @@ run-name: "Build ${{ github.event.inputs.build-option }} from '${{github.event.i
 
 jobs:
   build-component:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event.inputs.runner || 'ubuntu-24.04' }}
     name: Build ${{ inputs['build-option'] }}
     steps:
     - name: Checkout repository
