@@ -45,7 +45,7 @@ permissions:
   actions: read
   id-token: write
 
-run-name: "Build ${{ github.event.inputs.build-option }} from '${{github.event.inputs.image || 'unset' }}'"
+run-name: "Build ${{ github.event.inputs.build-option }} from '${{github.event.inputs.image || 'unset' }}' on ${{ github.event.inputs.runner || 'ubuntu-24.04' }}"
 
 jobs:
   build-component:
