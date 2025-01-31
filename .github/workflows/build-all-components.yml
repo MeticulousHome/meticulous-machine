@@ -33,6 +33,7 @@ jobs:
     with:
       build-option: ${{ matrix.component.build-option }}
       build-path: ${{ matrix.component.build-path }}
+      runner: ${{ matrix.component.runner }}
       image: ${{ inputs['image'] }}
     secrets: inherit
     strategy:
