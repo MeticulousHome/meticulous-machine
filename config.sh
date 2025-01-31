@@ -70,7 +70,7 @@ export   DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
 readonly BACKEND_GIT="git@github.com:MeticulousHome/backend_for_esp32/"
-export   BACKEND_BRANCH="mimoja_dev"
+export   BACKEND_BRANCH="main"
 export   BACKEND_REV="HEAD"
 
 readonly DIAL_SRC_DIR="${COMPONENTS_DIR}/meticulous-dial"
