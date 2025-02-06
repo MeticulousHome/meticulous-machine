@@ -136,7 +136,7 @@ readonly PLOTTER_UI_GIT="git@github.com:MeticulousHome/ProfilePlotter.git"
 export   PLOTTER_UI_BRANCH="main"
 export   PLOTTER_UI_REV="HEAD"
 
-readonly SYSTEM_PACKAGES="parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs firmware-brcm80211 dnsmasq iptables-persistent gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good"
+readonly SYSTEM_PACKAGES="parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs firmware-brcm80211 dnsmasq iptables-persistent gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good alembic"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\
