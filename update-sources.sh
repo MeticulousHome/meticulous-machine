@@ -88,26 +88,21 @@ function update_dial() {
     get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
         ${DIAL_SRC_DIR} ${DIAL_REV}
 
-    echo "Installing Dial App dependencies"
-    pushd $DIAL_SRC_DIR
-    npm install
-    popd
+    if [ -z "$(which pio)" ]; then
+        echo "node / npm not found. Not checking out Dial App dependencies."
+    else
+        echo "Installing Dial App dependencies"
+        pushd $DIAL_SRC_DIR
+        npm install
+        popd
+    fi
 }
 
-function update_dash() {
-    echo "Cloning / Updating Dash Repository"
-    get_git_src ${DASH_GIT} ${DASH_BRANCH} \
-        ${DASH_SRC_DIR} ${DASH_REV}
-    pushd $DASH_SRC_DIR
-    popd
-}
 
 function update_web() {
     echo "Cloning / Updating WebApp Repository"
     get_git_src ${WEB_APP_GIT} ${WEB_APP_BRANCH} \
         ${WEB_APP_SRC_DIR} ${WEB_APP_REV}
-    pushd $WEB_APP_SRC_DIR
-    popd
 }
 
 function update_firmware() {
@@ -117,6 +112,8 @@ function update_firmware() {
     pushd $FIRMWARE_SRC_DIR
     if [ $(uname -s) == "Darwin" ]; then
         echo "Skipping firmware dependencies for MacOS"
+    elif [ -z "$(which pio)" ]; then
+        echo "PlatformIO not found. Not checking out Firmware dependencies."
     else
         pio lib install
     fi
@@ -229,7 +226,6 @@ steps=(
     [update_backend]=0
     [update_watcher]=0
     [update_dial]=0
-    [update_dash]=0
     [update_web]=0
     [update_linux]=0
     [update_uboot]=0
@@ -256,8 +252,6 @@ while [[ $# -gt 0 ]]; do
         --backend) steps[update_backend]=1 ;;
         --watcher) steps[update_watcher]=1 ;;
         --dial) steps[update_dial]=1 ;;
-        --dashboard) steps[update_dash]=1 ;;
-        --dash) steps[update_dash]=1 ;;
         --web) steps[update_web]=1 ;;
         --webapp) steps[update_web]=1 ;;
         --firmware) firmware_selected=1 ;;
