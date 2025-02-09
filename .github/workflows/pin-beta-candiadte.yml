@@ -1,14 +1,14 @@
 name: Update one image to another
 
 on:
-  schedule:
-    # 1. Entry: Minute when the process will be started [0-60]
-    # 2. Entry: Hour when the process will be started [0-23]
-    # 3. Entry: Day of the month when the process will be started [1-28/29/30/31]
-    # 4. Entry: Month of the year when the process will be started [1-12]
-    # 5. Entry: Weekday when the process will be started [0-6] [0 is Sunday]
-    # from: https://stackoverflow.com/a/16717986
-    - cron: "0 0 * * 0"
+#   schedule:
+#     # 1. Entry: Minute when the process will be started [0-60]
+#     # 2. Entry: Hour when the process will be started [0-23]
+#     # 3. Entry: Day of the month when the process will be started [1-28/29/30/31]
+#     # 4. Entry: Month of the year when the process will be started [1-12]
+#     # 5. Entry: Weekday when the process will be started [0-6] [0 is Sunday]
+#     # from: https://stackoverflow.com/a/16717986
+#     - cron: "0 0 * * 0"
   workflow_dispatch: # Allows manual triggering
     inputs:
         image:
@@ -39,7 +39,7 @@ jobs:
 
       - name: Checkout the nightly sources and pin beta-candidate
         run: |
-            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }}
+            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }} --firmware
             ./pin-versions.sh ${{ inputs['image'] || 'beta-candidate' }}
   
 
