@@ -37,6 +37,7 @@ update_repo_rev() {
     local repo_dir=$1
     local repo_var=$2
     local rev_var=$3
+    local is_optional=$4
 
     if [[ -d $repo_dir ]]; then
         echo "Updating $repo_dir"
@@ -48,8 +49,12 @@ update_repo_rev() {
         # Pin the revision to the file
         pin_revision "$rev_var" "$current_rev" "$current_commit"
     else
-        echo "Error: Directory $repo_dir not found!"
-        exit 1
+        if  [ "${is_optional}" == "optional" ]; then
+            echo "Warn: Directory $repo_dir not found!"
+        else
+            echo "Error: Directory $repo_dir not found!"
+            exit 1
+        fi
     fi
 }
 
@@ -62,15 +67,14 @@ update_all_repos() {
     update_repo_rev "$DEBIAN_SRC_DIR" "DEBIAN_GIT" "DEBIAN_REV"
     update_repo_rev "$BACKEND_SRC_DIR" "BACKEND_GIT" "BACKEND_REV"
     update_repo_rev "$DIAL_SRC_DIR" "DIAL_GIT" "DIAL_REV"
-    update_repo_rev "$DASH_SRC_DIR" "DASH_GIT" "DASH_REV"
     update_repo_rev "$WEB_APP_SRC_DIR" "WEB_APP_GIT" "WEB_APP_REV"
     update_repo_rev "$WATCHER_SRC_DIR" "WATCHER_GIT" "WATCHER_REV"
     update_repo_rev "$FIRMWARE_SRC_DIR" "FIRMWARE_GIT" "FIRMWARE_REV"
     update_repo_rev "$RAUC_SRC_DIR" "RAUC_GIT" "RAUC_REV"
     update_repo_rev "$HAWKBIT_SRC_DIR" "HAWKBIT_GIT" "HAWKBIT_REV"
     update_repo_rev "$PSPLASH_SRC_DIR" "PSPLASH_GIT" "PSPLASH_REV"
-    update_repo_rev "$HISTORY_UI_SRC_DIR" "HISTORY_UI_GIT" "HISTORY_UI_REV"
-    update_repo_rev "$PLOTTER_UI_SRC_DIR" "PLOTTER_UI_GIT" "PLOTTER_UI_REV"
+    update_repo_rev "$HISTORY_UI_SRC_DIR" "HISTORY_UI_GIT" "HISTORY_UI_REV" "optional"
+    update_repo_rev "$PLOTTER_UI_SRC_DIR" "PLOTTER_UI_GIT" "PLOTTER_UI_REV" "optional"
 }
 
 
@@ -84,15 +88,14 @@ if [[ -n $2 ]]; then
         "$DEBIAN_SRC_DIR") update_repo_rev "$DEBIAN_SRC_DIR" "DEBIAN_GIT" "DEBIAN_REV" ;;
         "$BACKEND_SRC_DIR") update_repo_rev "$BACKEND_SRC_DIR" "BACKEND_GIT" "BACKEND_REV" ;;
         "$DIAL_SRC_DIR") update_repo_rev "$DIAL_SRC_DIR" "DIAL_GIT" "DIAL_REV" ;;
-        "$DASH_SRC_DIR") update_repo_rev "$DASH_SRC_DIR" "DASH_GIT" "DASH_REV" ;;
         "$WEB_APP_SRC_DIR") update_repo_rev "$WEB_APP_SRC_DIR" "WEB_APP_GIT" "WEB_APP_REV" ;;
         "$WATCHER_SRC_DIR") update_repo_rev "$WATCHER_SRC_DIR" "WATCHER_GIT" "WATCHER_REV" ;;
         "$FIRMWARE_SRC_DIR") update_repo_rev "$FIRMWARE_SRC_DIR" "FIRMWARE_GIT" "FIRMWARE_REV" ;;
         "$RAUC_SRC_DIR") update_repo_rev "$RAUC_SRC_DIR" "RAUC_GIT" "RAUC_REV" ;;
         "$HAWKBIT_SRC_DIR") update_repo_rev "$HAWKBIT_SRC_DIR" "HAWKBIT_GIT" "HAWKBIT_REV" ;;
         "$PSPLASH_SRC_DIR") update_repo_rev "$PSPLASH_SRC_DIR" "PSPLASH_GIT" "PSPLASH_REV" ;;
-        "$HISTORY_UI_SRC_DIR") update_repo_rev "$HISTORY_UI_SRC_DIR" "HISTORY_UI_GIT" "HISTORY_UI_REV" ;;
-        "$PLOTTER_UI_SRC_DIR") update_repo_rev "$PLOTTER_UI_SRC_DIR" "PLOTTER_UI_GIT" "PLOTTER_UI_REV" ;;
+        "$HISTORY_UI_SRC_DIR") update_repo_rev "$HISTORY_UI_SRC_DIR" "HISTORY_UI_GIT" "HISTORY_UI_REV" "optional";;
+        "$PLOTTER_UI_SRC_DIR") update_repo_rev "$PLOTTER_UI_SRC_DIR" "PLOTTER_UI_GIT" "PLOTTER_UI_REV" "optional";;
         *)
             echo "Error: Invalid repository path specified."
             exit 1
