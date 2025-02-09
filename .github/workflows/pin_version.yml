@@ -13,7 +13,7 @@ on:
     inputs:
         image:
             description: The version set to update
-            default: beta-candidate
+            default: beta
         target_image:
             description: The version to update to
             default: nightly
@@ -23,7 +23,7 @@ permissions:
   actions: read
   id-token: write
 
-run-name: "Pin ${{github.event.inputs.image || 'beta-candidate' }} version set to ${{github.event.inputs.target_image || 'nightly' }}"
+run-name: "Pin ${{github.event.inputs.image || 'beta' }} version set to ${{github.event.inputs.target_image || 'nightly' }}"
 
 jobs:
   pin-beta-candidate:
@@ -37,10 +37,13 @@ jobs:
         run: |
           git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
-      - name: Checkout the nightly sources and pin beta-candidate
+      - name: Checkout the nightly sources
         run: |
-            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }} --firmware
-            ./pin-versions.sh ${{ inputs['image'] || 'beta-candidate' }}
+            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }} --firmware --history --plotter
+        
+      - name: Pin the versions
+        run: |
+            ./pin-versions.sh ${{ inputs['image'] || 'beta' }}
   
 
       - name: Commit and push changes
