@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'echo 4095 > /sys/class/backlight/backlight/brightness'
+ExecStart=/bin/bash -c 'cat /sys/class/backlight/backlight/max_brightness > /sys/class/backlight/backlight/brightness'
 RemainAfterExit=yes
 
 [Install]
