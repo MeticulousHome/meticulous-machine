@@ -221,7 +221,7 @@ jobs:
         path: components/bootloader/build/
 
     - name: Build Bootloader Bundle
-      run: ./boot-bundle.sh --nightly --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
+      run: ./boot-bundle.sh --variant "${{ inputs.image || 'nightly' }}" --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
 
     - name: Upload Bootloader bundle
       uses: actions/upload-artifact@v4
@@ -231,7 +231,7 @@ jobs:
         if-no-files-found: error
 
     - name: Build Bundles
-      run: ./make-ota.sh  --nightly --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
+      run: ./make-ota.sh  --variant "${{ inputs.image || 'nightly' }}" --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
 
     - name: Upload EMMC bundle
       uses: actions/upload-artifact@v4

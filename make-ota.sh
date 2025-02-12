@@ -4,9 +4,6 @@ source config.sh
 
 set -eo pipefail
 
-nightly=false
-release=false
-
 variant=""
 
 # Check if $ROOTFS_PATH exists as a file
@@ -19,23 +16,9 @@ fi
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
-    --nightly)
-        # Check if --release was already passed
-        if [[ $release == true ]]; then
-            echo "Only one of --nightly or --release can be passed"
-            exit 1
-        fi
-        nightly=true
-        variant="nightly"
-        ;;
-    --release)
-        # Check if --nightly was already passed
-        if [[ $nightly == true ]]; then
-            echo "Only one of --nightly or --release can be passed"
-            exit 1
-        fi
-        release=true
-        variant="release"
+    --variant)
+        shift
+        variant="$1"
         ;;
     --cert)
         shift
@@ -59,6 +42,11 @@ if [[ -z $cert || -z $key ]]; then
     exit 1
 fi
 
+if [[ -z $variant ]]; then
+    echo "Variant must be passed"
+    exit 1
+fi
+
 # Check if $cert and $key exist as files
 if [[ ! -f $cert ]]; then
     echo "Certificate file does not exist: $cert"
@@ -67,13 +55,6 @@ fi
 
 if [[ ! -f $key ]]; then
     echo "Key file does not exist: $key"
-    exit 1
-fi
-
-
-# Check if either --nightly or --release was passed
-if [[ $nightly == false && $release == false ]]; then
-    echo "Either --nightly or --release must be passed"
     exit 1
 fi
 

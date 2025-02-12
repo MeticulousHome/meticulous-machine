@@ -3,21 +3,21 @@
 # Parse command line arguments 
 CERT=""
 KEY=""
-VERSION="development"
+VERSION=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --cert)
-            CERT="$2"
-            shift 2
+            shift
+            CERT="$1"
             ;;
         --key) 
-            KEY="$2"
-            shift 2
-            ;;
-        --nightly)
-            VERSION="nightly-$(date -u +%Y%m%d)"
             shift
+            KEY="$1"
+            ;;
+        --variant)
+            shift
+            VARIANT="$1-$(date -u +%Y%m%d)"
             ;;
         *)
             echo "Unknown option: $1"
@@ -25,6 +25,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ -z $VARIANT ]]; then
+    echo "Variant must be passed"
+    exit 1
+fi
 
 # Validate required parameters
 if [ -z "$CERT" ] || [ -z "$KEY" ]; then
@@ -80,7 +85,7 @@ chmod +x "$CONTENT_DIR/hook.sh"
 cat > "$CONTENT_DIR/manifest.raucm" << EOF
 [update]
 compatible=rauc-meticulous-update
-version=$VERSION
+version=$VARIANT
 [bundle]
 format=verity
 [hooks]
@@ -95,7 +100,7 @@ rauc bundle \
   --cert="$CERT" \
   --key="$KEY" \
   "$CONTENT_DIR" \
-  "rauc_meticulous_boot_${VERSION}.raucb"
+  "rauc_meticulous_boot_${VARIANT}.raucb"
 
 # Cleanup
 rm -rf "$TEMP_DIR"
