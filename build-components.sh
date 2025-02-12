@@ -52,18 +52,6 @@ function build_dial() {
     popd >/dev/null
 }
 
-function build_dash() {
-    if [ -d $DASH_SRC_DIR ]; then
-        echo "Building Dashboard app"
-        pushd $DASH_SRC_DIR >/dev/null
-        npm install
-        npm run build
-        popd >/dev/null
-    else
-        echo "Dashboard is not checked out. Skipping"
-    fi
-}
-
 function build_web() {
     echo "Building WebApp"
     pushd $WEB_APP_SRC_DIR >/dev/null
@@ -270,7 +258,6 @@ Available options:
     --all                     Build all components
     --debian                  Build Debian
     --dial                    Build Dial application
-    --dash | --dashboard      Build Dashboard application
     --web  | --webapp         Build WebApp application
     --firmware                Build ESP32 Firmware
     --linux | --kernel        Build Linux Kernel
@@ -291,7 +278,6 @@ declare -A steps
 steps=(
     [build_debian]=0
     [build_dial]=0
-    [build_dash]=0
     [build_web]=0
     [build_firmware]=0
     [build_history]=0
@@ -307,8 +293,6 @@ for arg in "$@"; do
     case $arg in
     --debian) steps[build_debian]=1 ;;
     --dial) steps[build_dial]=1 ;;
-    --dash) steps[build_dash]=1 ;;
-    --dashboard) steps[build_dash]=1 ;;
     --web) steps[build_web]=1 ;;
     --webapp) steps[build_web]=1 ;;
     --firmware) steps[build_firmware]=1 ;;
