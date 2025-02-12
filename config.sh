@@ -146,7 +146,7 @@ readonly HOST_PACKAGES="\
     texi2html docbook-utils help2man make gcc g++ desktop-file-utils libgl1-mesa-dev\
     libglu1-mesa-dev mercurial automake groff curl lzop asciidoc u-boot-tools mtd-utils\
     libgnutls28-dev flex bison libssl-dev systemd-container pigz libcurl4-openssl-dev libgirepository1.0-dev
-    bc python3 python3-venv wget curl"
+    bc python3 python3-venv wget curl debhelper-compat libelf-dev"
 
 readonly METIUCULOUS_ROOTFS=meticulous-rootfs.tar.gz
 
