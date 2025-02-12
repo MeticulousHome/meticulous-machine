@@ -76,6 +76,7 @@ jobs:
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         create-symlink: true
+        max-size: 1G
 
     - name: Create additional ccache symlinks
       run: |
