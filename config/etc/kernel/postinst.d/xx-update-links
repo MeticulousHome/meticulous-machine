@@ -16,7 +16,14 @@ image_path="$2"
 if [ -e /boot/imx8mn-var-som-symphony.dtb ]; then
     mv /boot/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony.dtb.old
 fi
-ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony.dtb
+
+# We have our own new meticulous dtb for upstream kernel, but we want to keep the backwards compat 
+if [ -e /usr/lib/linux-image-$version/freescale/imx8mn-var-som-meticulous.dtb ]; then
+  ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-meticulous.dtb /boot/imx8mn-var-som-symphony.dtb
+  ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-meticulous.dtb /boot/imx8mn-var-som-meticulous.dtb
+else
+  ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony.dtb
+fi
 
 if [ -e /boot/Image.gz ]; then
     mv /boot/Image.gz /boot/Image.gz.old
