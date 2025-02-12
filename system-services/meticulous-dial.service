@@ -4,7 +4,7 @@ After=network.target
 Before=weston.service
 
 [Service]
-ExecStart=/usr/lib/meticulous-ui/meticulous-ui --no-sandbox --ozone-platform=wayland --use-angle=opengles --use-vulkan
+ExecStart=/usr/bin/meticulous-dial
 Restart=always
 User=root
 
