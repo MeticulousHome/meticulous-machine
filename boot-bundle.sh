@@ -8,16 +8,16 @@ VERSION=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --cert)
-            shift
-            CERT="$1"
+            CERT="$2"
+            shift 2
             ;;
         --key) 
-            shift
-            KEY="$1"
+            KEY="$2"
+            shift 2
             ;;
         --variant)
-            shift
-            VARIANT="$1-$(date -u +%Y%m%d)"
+            VARIANT="$2-$(date -u +%Y%m%d)"
+            shift 2
             ;;
         *)
             echo "Unknown option: $1"
@@ -34,7 +34,7 @@ fi
 # Validate required parameters
 if [ -z "$CERT" ] || [ -z "$KEY" ]; then
     echo "Error: Both --cert and --key parameters are required"
-    echo "Usage: $0 [--nightly] --cert <cert_file> --key <key_file>"
+    echo "Usage: $0 --variant <variant> --cert <cert_file> --key <key_file>"
     exit 1
 fi
 
