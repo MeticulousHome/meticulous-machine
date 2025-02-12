@@ -30,7 +30,7 @@ function get_git_src() {
         echo "Modified files:"
         git diff --name-only HEAD~1
     } > repository-info.txt
-    
+
     echo "Generated repository information at: $(pwd)/repository-info.txt"
     echo "Content of repository-info.txt:"
     cat repository-info.txt
@@ -44,7 +44,16 @@ function install_ubuntu_dependencies() {
         apt update
         apt install -y sudo
     fi
+
+    sudo dpkg --add-architecture 'arm64'
+    sudo sed -i "s/URIs:/Architectures: amd64\nURIs:/g" /etc/apt/sources.list.d/ubuntu.sources
+    sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu_arm64.sources
+    sudo sed -i "s/amd64/arm64/g" /etc/apt/sources.list.d/ubuntu_arm64.sources
+    sudo sed -i "s\http://archive.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
+    sudo sed -i "s\http://security.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
+
     sudo apt update
+    sudo apt -y install libssl-dev:arm64
     sudo apt -y install ${HOST_PACKAGES}
 
     if [ -z "$(which node)" ]; then
@@ -240,7 +249,7 @@ while [[ $# -gt 0 ]]; do
     case $arg in
         --image)
             if [[ -n $2 && $2 != --* ]]; then
-                IMAGE_NAME="$2"                
+                IMAGE_NAME="$2"
                 shift
             else
                 echo "Error: --image requires a NAME argument."
