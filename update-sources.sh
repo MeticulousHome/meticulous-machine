@@ -47,12 +47,14 @@ function install_ubuntu_dependencies() {
 
     sudo dpkg --add-architecture 'arm64'
     if [ -e /etc/apt/sources.list.d/ubuntu.sources ]; then
+        echo "Ubuntu >= 24.04 detected"
         sudo sed -i "s/URIs:/Architectures: amd64\nURIs:/g" /etc/apt/sources.list.d/ubuntu.sources
         sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu_arm64.sources
         sudo sed -i "s/amd64/arm64/g" /etc/apt/sources.list.d/ubuntu_arm64.sources
         sudo sed -i "s\http://archive.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
         sudo sed -i "s\http://security.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
     else
+        echo "Ubuntu < 24.04 detected"
         sudo apt update
         sudo apt install -y lsb-release
 
