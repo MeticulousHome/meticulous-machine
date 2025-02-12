@@ -46,12 +46,22 @@ function install_ubuntu_dependencies() {
     fi
 
     sudo dpkg --add-architecture 'arm64'
-    sudo sed -i "s/URIs:/Architectures: amd64\nURIs:/g" /etc/apt/sources.list.d/ubuntu.sources
-    sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu_arm64.sources
-    sudo sed -i "s/amd64/arm64/g" /etc/apt/sources.list.d/ubuntu_arm64.sources
-    sudo sed -i "s\http://archive.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
-    sudo sed -i "s\http://security.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
+    if [ -e /etc/apt/sources.list.d/ubuntu.sources ]; then
+        sudo sed -i "s/URIs:/Architectures: amd64\nURIs:/g" /etc/apt/sources.list.d/ubuntu.sources
+        sudo cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu_arm64.sources
+        sudo sed -i "s/amd64/arm64/g" /etc/apt/sources.list.d/ubuntu_arm64.sources
+        sudo sed -i "s\http://archive.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
+        sudo sed -i "s\http://security.ubuntu.com/ubuntu\http://ports.ubuntu.com/ubuntu-ports\g" /etc/apt/sources.list.d/ubuntu_arm64.sources
+    else
+        sudo apt update
+        sudo apt install -y lsb-release
 
+        ubuntu_release=$(lsb_release -cs)
+        sudo sed -i "s/^deb /deb [arch=amd64] /g"  /etc/apt/sources.list
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release} main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/ubuntu_arm64.list
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
+    fi
     sudo apt update
     sudo apt -y install libssl-dev:arm64
     sudo apt -y install ${HOST_PACKAGES}
