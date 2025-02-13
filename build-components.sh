@@ -149,7 +149,7 @@ function build_firmware() {
         echo "Building Firmware for ESP32 || FIKA_V6"
         pushd $FIRMWARE_SRC_DIR >/dev/null
         if [ $(uname -s) == "Darwin" ]; then
-            pio lib install
+            pio pkg update
         fi
 
         pio run -e fika_latest-s1 -e fika_latest-s3

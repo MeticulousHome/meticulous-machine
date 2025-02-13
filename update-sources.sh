@@ -161,7 +161,7 @@ function update_firmware() {
     elif [ -z "$(which pio)" ]; then
         echo "PlatformIO not found. Not checking out Firmware dependencies."
     else
-        pio lib install
+        pio pkg update
     fi
     popd
 }
