@@ -134,7 +134,7 @@ function update_dial() {
     get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
         ${DIAL_SRC_DIR} ${DIAL_REV}
 
-    if [ -z "$(which pio)" ]; then
+    if [ -z "$(which npm)" ]; then
         echo "node / npm not found. Not checking out Dial App dependencies."
     else
         echo "Installing Dial App dependencies"
