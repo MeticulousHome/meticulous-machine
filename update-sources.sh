@@ -14,9 +14,31 @@ function get_git_src() {
         # clone src code
         git clone ${1} -b ${2} ${3} --recurse-submodules
     fi
-    cd ${3}
-    git fetch origin --recurse-submodules
-    git checkout origin/${2} -B ${2} -f --recurse-submodules
+    pushd ${3}
+
+    repo_remote="origin"
+    # get the original cloning repo
+    origin=$(git config --get remote.origin.url)
+    if [ -z ${origin} ]; then
+        echo "Repository ${3} has no origin"
+        exit 1
+    fi
+    if [ ${origin} != ${1} ]; then
+        echo "Repository ${3} is not the original repository"
+        echo "Original repository: ${origin}"
+        echo "Current repository: ${1}"
+        new_remote=$(basename ${1})
+        if [ $(git config --get "remote.${new_remote}.url") ]; then
+            echo "Using existing remote ${new_remote}"
+        else
+            echo "Creating new remote as ${new_remote}"
+            git remote add ${new_remote} ${1}
+        fi
+        repo_remote=${new_remote}
+    fi
+
+    git fetch ${repo_remote} --recurse-submodules
+    git checkout "${repo_remote}/${2}" -B ${2} -f --recurse-submodules
     git reset --hard ${4}
 
     {
@@ -35,7 +57,7 @@ function get_git_src() {
     echo "Content of repository-info.txt:"
     cat repository-info.txt
 
-    cd -
+    popd
 }
 
 function install_ubuntu_dependencies() {
