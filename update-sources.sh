@@ -302,7 +302,7 @@ while [[ $# -gt 0 ]]; do
     shift # Shift past the argument
 done
 
-if [[ $IMAGE_NAME ]]; then
+if [[ ${IMAGE_NAME} && ${IMAGE_NAME} != "nightly" ]]; then
     VERSIONS_FILE="images/${IMAGE_NAME}.versions.sh"
     if [[ -f "$VERSIONS_FILE" ]]; then
         echo "Sourcing $VERSIONS_FILE"
@@ -311,6 +311,8 @@ if [[ $IMAGE_NAME ]]; then
         echo "Versions file $VERSIONS_FILE does not exist."
         exit 1
     fi
+elif [[ ${IMAGE_NAME} == "nightly" ]]; then
+    echo "Nightly image was requested, always using the defaults in config.sh"
 else
     echo "No image name provided, using default versions."
 fi
