@@ -1,8 +1,11 @@
 #!/bin/bash
+export LINUX_GIT="git@github.com:MeticulousHome/linux-variscite-fika.git"
+export LINUX_BRANCH="debian-6.1.36"
 export LINUX_REV="c5db7fb607994bb8e93c7fcd4b2bfb5597583085" # video: update boot logo to meticulous DOT
 export UBOOT_REV="7fdc6b1de1358248e7743069ff335f4168228374" # Enable fastboot recovery on boot via recovery pin
 export ATF_REV="7575633e03ff952a18c0a2c0aa543dee793fda5f" # imx: Fix multiple definition of ipc_handle
 export IMX_MKIMAGE_REV="6745ccdcf15384891639b7ced3aa6ce938682365" # imx8m: Add script to generate SIT (secondary image table)
+export DEBIAN_BRANCH="bookworm"
 export DEBIAN_REV="2cca02c2a06e3213e23727ca7cd323676001ca57" # weston: build vnc and rdp support
 export BACKEND_REV="5cdcf558f7e3a746bb7bd01d4b79212f20452eea" # fix: user timezone overwritten
 export DIAL_REV="c97759abe3c42ab3b464f0484663d1eeb613bed1" # chore(release): v1.35.1 [skip ci]

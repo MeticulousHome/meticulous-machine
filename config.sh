@@ -40,8 +40,8 @@ readonly RAUC_CERT="beta.rsa4096.cert.pem"
 
 readonly LINUX_SRC_DIR=${COMPONENTS_DIR}/"linux"
 readonly LINUX_BUILD_DIR=${COMPONENTS_DIR}/"linux-build"
-readonly LINUX_GIT="git@github.com:MeticulousHome/linux-variscite-fika.git"
-export   LINUX_BRANCH="debian-6.1.36"
+export   LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
+export   LINUX_BRANCH="linux-6.12.y"
 export   LINUX_REV="HEAD"
 
 readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
@@ -64,12 +64,12 @@ readonly IMX_BOOT_TOOLS_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-boot-tools"
 readonly BOOTLOADER_BUILD_DIR=${COMPONENTS_DIR}/"bootloader/build"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian-base"
-readonly DEBIAN_GIT="git@github.com:MeticulousHome/debian-fika"
-export   DEBIAN_BRANCH="bookworm"
+export   DEBIAN_GIT="git@github.com:MeticulousHome/debian-fika"
+export   DEBIAN_BRANCH="bookworm-mainline"
 export   DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
-readonly BACKEND_GIT="git@github.com:MeticulousHome/backend_for_esp32/"
+export   BACKEND_GIT="git@github.com:MeticulousHome/backend_for_esp32/"
 export   BACKEND_BRANCH="main"
 export   BACKEND_REV="HEAD"
 
