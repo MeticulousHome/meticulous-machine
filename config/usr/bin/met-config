@@ -1,0 +1,6 @@
+#!/bin/sh
+
+export LOGLEVEL=ERROR
+export DEBUG=n
+
+/opt/meticulous-venv/bin/python3 /opt/meticulous-backend/met-config.py "$@"
