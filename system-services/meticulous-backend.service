@@ -8,7 +8,7 @@ Type=simple
 Environment=PYTHONUNBUFFERED=true
 Restart=always
 RestartSec=10
-ExecStartPre=-/bin/bash -c 'mkdir -p /meticulous-user/syslog/nginx || true'
+ExecStartPre=-/bin/bash -c 'mkdir -p /meticulous-user/syslog/nginx /meticulous-user/syslog/journal || true'
 ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-backend/back.py
 User=root
 
