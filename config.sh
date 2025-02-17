@@ -69,7 +69,7 @@ export   DEBIAN_BRANCH="bookworm-mainline"
 export   DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
-export   BACKEND_GIT="git@github.com:MeticulousHome/backend_for_esp32/"
+export   BACKEND_GIT="git@github.com:MeticulousHome/meticulous-backend.git"
 export   BACKEND_BRANCH="main"
 export   BACKEND_REV="HEAD"
 
