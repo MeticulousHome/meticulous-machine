@@ -1,7 +1,6 @@
 #!/bin/bash
-export LINUX_GIT="git@github.com:MeticulousHome/linux-variscite-fika.git"
-export LINUX_BRANCH="debian-6.1.36"
-export DEBIAN_BRANCH="bookworm"
+export LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
+export LINUX_BRANCH="linux-6.12.y"
 export LINUX_REV="2e9d63be6eef51ecfdfa2bbd702a959d621b9a3f" # dts/freescale/meticulous: add sound controller
 export UBOOT_REV="7fdc6b1de1358248e7743069ff335f4168228374" # Enable fastboot recovery on boot via recovery pin
 export ATF_REV="7575633e03ff952a18c0a2c0aa543dee793fda5f" # imx: Fix multiple definition of ipc_handle
