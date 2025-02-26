@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CHROMIUM_PARAMS='--ozone-platform=wayland --no-sandbox --google-search-domain-check-url=localhost --no-pings \
+CHROMIUM_PARAMS='--no-sandbox --google-search-domain-check-url=localhost --no-pings \
   --disable-component-extensions-with-background-pages --disable-background-networking \
   --connectivity-check-url=local --disable-crash-reporter'
 
@@ -10,7 +10,7 @@ THIS_KERNEL=$(uname -r);
 
 if [ "${THIS_KERNEL}" = "`echo -e "${THIS_KERNEL}\n${MAINLINE}" | sort -V | head -n1`" ]; then
   echo "Running with software rendering via angle and vulkan"
-  CHROMIUM_PARAMS="${CHROMIUM_PARAMS} --use-angle=opengles --use-vulkan"
+  CHROMIUM_PARAMS="${CHROMIUM_PARAMS} --ozone-platform=wayland --use-angle=opengles --use-vulkan"
 else
   echo "Running with HW rendering"
   CHROMIUM_PARAMS="${CHROMIUM_PARAMS} --disable-gpu-sandbox"
