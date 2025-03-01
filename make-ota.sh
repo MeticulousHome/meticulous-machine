@@ -78,6 +78,7 @@ echo -e "\e[1;31mIT IS YOUR RESPONSIBILITY TO ENSURE ${cert} EXISTS IN THE ROOTF
 rm -rf rauc_build
 mkdir -p rauc_build
 cp ${METIUCULOUS_ROOTFS} rauc_build/${METIUCULOUS_ROOTFS}
+cp rauc-config/hooks.sh rauc_build/hooks.sh
 
 # Write the modified template to a new file
 echo -e "\e[1;34mRAUC config:\e[1;32m\n"
@@ -91,8 +92,12 @@ description=${variant}
 [bundle]
 format=verity
 
+[hooks]
+filename=hooks.sh
+
 [image.rootfs]
 filename=${METIUCULOUS_ROOTFS}
+hooks=post-install
 " | tee rauc_build/manifest.raucm
 
 echo -e "\e[0m"
