@@ -146,20 +146,14 @@ function build_kernel() {
 function build_firmware() {
     PLATFORMIO_FRAMEWORK="${HOME}/.platformio/packages/framework-arduinoespressif32"
     if [ -d $FIRMWARE_SRC_DIR ]; then
-        echo "Building Firmware for ESP32 || FIKA_V6"
+        echo "Building Firmware for ESP32"
         pushd $FIRMWARE_SRC_DIR >/dev/null
         if [ $(uname -s) == "Darwin" ]; then
             pio pkg update
         fi
 
-        pio run -e fika_latest-s1 -e fika_latest-s3
+        pio run -e fika_latest-s3
         popd >/dev/null
-
-        mkdir -p ${FIRMWARE_OUT_DIR}/esp32
-        cp -v ${PLATFORMIO_FRAMEWORK}/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s1/bootloader.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s1/partitions.bin ${FIRMWARE_OUT_DIR}/esp32/
-        cp -v ${FIRMWARE_SRC_DIR}/.pio/build/fika_latest-s1/firmware.bin ${FIRMWARE_OUT_DIR}/esp32/
 
         mkdir -p ${FIRMWARE_OUT_DIR}/esp32-s3
         cp -v ${PLATFORMIO_FRAMEWORK}/tools/partitions/boot_app0.bin ${FIRMWARE_OUT_DIR}/esp32-s3/
