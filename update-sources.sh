@@ -155,15 +155,6 @@ function update_firmware() {
     echo "Cloning / Updating Firmware Repository"
     get_git_src ${FIRMWARE_GIT} ${FIRMWARE_BRANCH} \
         ${FIRMWARE_SRC_DIR} ${FIRMWARE_REV}
-    pushd $FIRMWARE_SRC_DIR
-    if [ $(uname -s) == "Darwin" ]; then
-        echo "Skipping firmware dependencies for MacOS"
-    elif [ -z "$(which pio)" ]; then
-        echo "PlatformIO not found. Not checking out Firmware dependencies."
-    else
-        pio pkg update
-    fi
-    popd
 }
 
 function update_history() {
