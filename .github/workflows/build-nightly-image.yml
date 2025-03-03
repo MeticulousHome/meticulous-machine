@@ -128,8 +128,11 @@ jobs:
         echo "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-channel > /dev/null
 
     - name: Generate repository information
-      run: ./generate_repo_info.sh
-    
+      run: |
+        ./generate_repo_info.sh
+        cat components/summary.txt | sed 's/ ##$//g' >> $GITHUB_STEP_SUMMARY
+
+
     - name: Build rootfs
       run: sudo ./make-rootfs.sh --all
 

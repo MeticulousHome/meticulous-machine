@@ -125,47 +125,38 @@ jobs:
 
     - name: Copy repository information
       run: |
-        echo "## ${{ inputs['build-option'] }}" >> /tmp/summary.txt
         case "${{ inputs['build-option'] }}" in
           "bootloader")
             sudo mkdir -p components/bootloader/build/repo-info/
             sudo cp components/bootloader/uboot/repository-info.txt components/bootloader/build/repo-info/
-            cat /tmp/summary.txt components/bootloader/uboot/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "linux")
             sudo mkdir -p components/linux-build/repo-info/
             sudo cp components/linux/repository-info.txt components/linux-build/repo-info/
-            cat /tmp/summary.txt components/linux/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "debian")
             sudo mkdir -p components/debian-base/repo-info/
             sudo cp components/debian-base/repository-info.txt components/debian-base/repo-info/
-            cat /tmp/summary.txt components/debian-base/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "psplash")
             sudo mkdir -p components/psplash-build/repo-info/
             sudo cp components/psplash/repository-info.txt components/psplash-build/repo-info/
-            cat /tmp/summary.txt components/psplash/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "rauc")
             sudo mkdir -p components/rauc/build/repo-info/
             sudo cp components/rauc/rauc/repository-info.txt components/rauc/build/repo-info/
-            cat /tmp/summary.txt components/rauc/rauc/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "dial")
             sudo mkdir -p components/meticulous-dial/out/make/deb/arm64/repo-info/
             sudo cp components/meticulous-dial/repository-info.txt components/meticulous-dial/out/make/deb/arm64/repo-info/
-            cat /tmp/summary.txt components/meticulous-dial/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "web")
             sudo mkdir -p components/meticulous-web-app/out/repo-info/
             sudo cp components/meticulous-web-app/repository-info.txt components/meticulous-web-app/out/repo-info/
-            cat /tmp/summary.txt components/meticulous-web-app/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "firmware")
             sudo mkdir -p components/meticulous-firmware-build/repo-info/
             sudo cp components/meticulous-firmware/repository-info.txt components/meticulous-firmware-build/repo-info/
-            cat /tmp/summary.txt components/meticulous-firmware/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
           "history")
             sudo mkdir -p components/meticulous-history-ui/build/repo-info/
@@ -175,7 +166,6 @@ jobs:
           "plotter")
             sudo mkdir -p components/meticulous-plotter-ui/build/repo-info/
             sudo cp components/meticulous-plotter-ui/repository-info.txt components/meticulous-plotter-ui/build/repo-info/
-            cat /tmp/summary.txt components/meticulous-plotter-ui/repository-info.txt >> $GITHUB_STEP_SUMMARY
             ;;
         esac
 
