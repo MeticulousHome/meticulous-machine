@@ -89,7 +89,7 @@ jobs:
         sudo dpkg --add-architecture 'arm64'
 
         sudo apt update
-        sudo apt -y install libssl-dev:arm64 libelf-dev debhelper bc bison flex libssl-dev libncurses5-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+        sudo apt -y install build-essential libssl-dev:arm64 libelf-dev debhelper bc bison flex libssl-dev libncurses5-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
     - name: Install qemu-img
       if: ${{ fromJSON(env.needs-deps) }}
