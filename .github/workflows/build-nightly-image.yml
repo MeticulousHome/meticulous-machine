@@ -124,11 +124,11 @@ jobs:
     - name: Generate repository information
       run: |
         ./generate_repo_info.sh
-        cat components/summary.txt | sed 's/ ##$//g' >> $GITHUB_STEP_SUMMARY
-
 
     - name: Build rootfs
-      run: sudo ./make-rootfs.sh --all
+      run: |
+        sudo ./make-rootfs.sh --all
+        sudo cat rootfs/opt/summary.txt | sed 's/ ##$//g' >> $GITHUB_STEP_SUMMARY
 
     - name: Delete original debian rootfs
       run: rm -r ./components/debian-base/rootfs-base.tar.gz
