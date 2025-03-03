@@ -158,10 +158,6 @@ jobs:
             sudo mkdir -p components/meticulous-firmware-build/repo-info/
             sudo cp components/meticulous-firmware/repository-info.txt components/meticulous-firmware-build/repo-info/
             ;;
-          "history")
-            sudo mkdir -p components/meticulous-history-ui/build/repo-info/
-            sudo cp components/meticulous-history-ui/repository-info.txt components/meticulous-history-ui/build/repo-info/
-            ;;
           "plotter")
             sudo mkdir -p components/meticulous-plotter-ui/build/repo-info/
             sudo cp components/meticulous-plotter-ui/repository-info.txt components/meticulous-plotter-ui/build/repo-info/

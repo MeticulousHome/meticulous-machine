@@ -38,12 +38,6 @@ server {
                 try_files $uri $uri/ =404;
 	}
 
-	location  /debug/history/ {
-		alias /opt/meticulous-history-ui/;
-		autoindex on;
-		try_files $uri $uri/ =404;
-	}
-	
 	location /debug/plotter-ui {
 		alias /opt/meticulous-plotter-ui/;
 		autoindex on;
