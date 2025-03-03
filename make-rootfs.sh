@@ -31,8 +31,6 @@ function a_unpack_base() {
     systemd-nspawn -D ${ROOTFS_DIR} apt update
     systemd-nspawn -D ${ROOTFS_DIR} -E DEBIAN_FRONTEND=noninteractive apt install -y -o Debug::pkgProblemResolver=yes ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
 
-    echo "SystemMaxUse=1G" >>${ROOTFS_DIR}/etc/systemd/journald.conf
-
     echo "Installing config files"
     cp -Rv config/* ${ROOTFS_DIR}/etc/
 }
