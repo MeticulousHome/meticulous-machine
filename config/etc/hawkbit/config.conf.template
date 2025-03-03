@@ -22,3 +22,5 @@
   update_channel            = __UPDATE_CHANNEL__
   boot_mode                 = __BOOT_MODE__
   serial                    = __SERIAL__
+  boot_partition            = __BOOTED__
+  build_date                = __BUILD_DATE__
