@@ -52,7 +52,8 @@ jobs:
     runs-on: ${{ inputs['runner'] || 'ubuntu-24.04' }}
     name: Build ${{ inputs['build-option'] }}
     env:
-      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter'}} 
+      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter'}}
+      needs-cross-compile: ${{ inputs['build-option'] == 'linux' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -62,31 +63,52 @@ jobs:
         git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
     - name: Set up QEMU
-      if: ${{ fromJSON(env.needs-deps) }} 
+      if: ${{ fromJSON(env.needs-deps) }}
       uses: docker/setup-qemu-action@v3
 
     - name: Install Ubuntu dependencies
-      if: ${{ fromJSON(env.needs-deps) }} 
-      run: ./update-sources.sh --install_ubuntu_dependencies
+      if: ${{ fromJSON(env.needs-deps) && ! fromJSON(env.needs-cross-compile) }}
+      run: |
+        sudo apt update
+        ./update-sources.sh --install_ubuntu_dependencies
+
+    - name: Install Cross-Compilation tools
+      if: ${{ fromJSON(env.needs-deps) && fromJSON(env.needs-cross-compile) }}
+      run: |
+        ubuntu_release=$(lsb_release -cs)
+        sudo rm -rf /etc/apt/sources.list.d/ubuntu.sources
+
+        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/  ${ubuntu_release} main restricted universe multiverse" | sudo tee /etc/apt/sources.list
+        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/  ${ubuntu_release}-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+        echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ ${ubuntu_release}-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release} main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/ubuntu_arm64.list
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
+
+        sudo dpkg --add-architecture 'arm64'
+
+        sudo apt update
+        sudo apt -y install libssl-dev:arm64 libelf-dev debhelper bc bison flex libssl-dev libncurses5-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
     - name: Install qemu-img
-      if: ${{ fromJSON(env.needs-deps) }} 
+      if: ${{ fromJSON(env.needs-deps) }}
       run: |
         sudo apt install -y qemu-utils qemu-user-static
 
     - name: 'Exporting pio'
-      if: ${{ fromJSON(env.needs-deps) }} 
+      if: ${{ fromJSON(env.needs-deps) }}
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Setup ccache
-      if: ${{ fromJSON(env.needs-deps) }} 
+      if: ${{ fromJSON(env.needs-deps) }}
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         create-symlink: true
         max-size: 1G
 
     - name: Create additional ccache symlinks
-      if: ${{ fromJSON(env.needs-deps) }} 
+      if: ${{ fromJSON(env.needs-deps) }}
       run: |
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
@@ -164,7 +186,7 @@ jobs:
         name: ${{ inputs['build-option'] }}
         path: |
           ${{ inputs['build-path'] }}
-          ${{ 
+          ${{
             inputs['build-option'] == 'bootloader' && 'components/bootloader/build/repo-info/**' ||
             inputs['build-option'] == 'dial' && 'components/meticulous-dial/out/make/deb/arm64/repo-info/**' ||
             inputs['build-option'] == 'debian' && 'components/debian-base/repo-info/**' ||
