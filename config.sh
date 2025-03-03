@@ -126,11 +126,6 @@ readonly PIPER_URL="https://github.com/rhasspy/piper/releases/download/${PIPER_V
 readonly PIPER_VOICE_BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/"
 readonly PIPER_SEMAINE="en/en_GB/semaine/medium/en_GB-semaine-medium.onnx"
 
-readonly HISTORY_UI_SRC_DIR="${COMPONENTS_DIR}/meticulous-history-ui"
-readonly HISTORY_UI_GIT="git@github.com:MeticulousHome/REL-Infinite-Shot-Test-UI"
-export   HISTORY_UI_BRANCH="main"
-export   HISTORY_UI_REV="HEAD"
-
 readonly PLOTTER_UI_SRC_DIR="${COMPONENTS_DIR}/meticulous-plotter-ui"
 readonly PLOTTER_UI_GIT="git@github.com:MeticulousHome/ProfilePlotter.git"
 export   PLOTTER_UI_BRANCH="main"

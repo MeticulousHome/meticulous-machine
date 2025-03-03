@@ -47,5 +47,4 @@ jobs:
           - { name: "Build dial app", build-option: "dial", build-path: "components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb" }
           - { name: "Build web app", build-option: "web", build-path: "components/meticulous-web-app/out/" }
           - { name: "Build firmware", build-option: "firmware", build-path: "components/meticulous-firmware-build" }
-          - { name: "Build history ui", build-option: "history", build-path: "components/meticulous-history-ui/build/" }
           - { name: "Build plotter ui", build-option: "plotter", build-path: "components/meticulous-plotter-ui/build/" }

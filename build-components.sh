@@ -166,19 +166,6 @@ function build_firmware() {
     fi
 }
 
-
-function build_history() {
-    if [ -d $HISTORY_UI_SRC_DIR ]; then
-        echo "Building HISTORY UI"
-        pushd $HISTORY_UI_SRC_DIR >/dev/null
-        npm install
-        npm run build
-        popd >/dev/null
-    else
-        echo "History UI is not checked out. Skipping"
-    fi
-}
-
 function build_plotter() {
     if [ -d $PLOTTER_UI_SRC_DIR ]; then
         echo "Building Plotter"
@@ -274,7 +261,6 @@ steps=(
     [build_dial]=0
     [build_web]=0
     [build_firmware]=0
-    [build_history]=0
     [build_plotter]=0
     [build_kernel]=0
     [build_uboot]=0
@@ -290,7 +276,6 @@ for arg in "$@"; do
     --web) steps[build_web]=1 ;;
     --webapp) steps[build_web]=1 ;;
     --firmware) steps[build_firmware]=1 ;;
-    --history) steps[build_history]=1 ;;
     --plotter) steps[build_plotter]=1 ;;
     --kernel) steps[build_kernel]=1 ;;
     --linux) steps[build_kernel]=1 ;;

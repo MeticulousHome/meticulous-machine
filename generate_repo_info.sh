@@ -37,7 +37,6 @@ declare -A components=(
     ["dial"]="components/meticulous-dial/out/make/deb/arm64/repo-info/repository-info.txt"
     ["web"]="components/meticulous-web-app/out/repo-info/repository-info.txt"
     ["firmware"]="components/meticulous-firmware-build/repo-info/repository-info.txt"
-    ["history"]="components/meticulous-history-ui/build/repo-info/repository-info.txt"
     ["plotter"]="components/meticulous-plotter-ui/build/repo-info/repository-info.txt"
 )
 

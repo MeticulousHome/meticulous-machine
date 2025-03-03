@@ -97,12 +97,6 @@ jobs:
         name: 'firmware'
         path:  components/meticulous-firmware-build
 
-    - name: Download history artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'history'
-        path:  components/meticulous-history-ui/build/
-
     - name: Download plotter artifact
       uses: actions/download-artifact@v4
       with:
