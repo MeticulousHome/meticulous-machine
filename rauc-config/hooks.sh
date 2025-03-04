@@ -11,6 +11,7 @@ case "$1" in
                 # Copy over the config
                 cp -rv /etc/hostname              "$RAUC_SLOT_MOUNT_POINT/etc/"
                 cp -rv /etc/timezone              "$RAUC_SLOT_MOUNT_POINT/etc/"
+                cp -rv /etc/machine-id            "$RAUC_SLOT_MOUNT_POINT/etc/"
 
                 # Keep the SSH host keys stable for this machine
                 cp -rv /etc/ssh/ssh_host_*_key*   "$RAUC_SLOT_MOUNT_POINT/etc/ssh"
