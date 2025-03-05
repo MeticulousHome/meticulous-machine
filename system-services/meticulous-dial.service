@@ -1,7 +1,7 @@
 [Unit]
 Description=Meticulous Dial App
 After=network.target
-Before=weston.service
+After=weston.service
 
 [Service]
 ExecStart=/usr/bin/meticulous-dial
