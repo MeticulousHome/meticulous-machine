@@ -39,7 +39,7 @@ jobs:
 
       - name: Checkout the nightly sources
         run: |
-            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }} --firmware --history --plotter
+            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }} --firmware --plotter
         
       - name: Pin the versions
         run: |
