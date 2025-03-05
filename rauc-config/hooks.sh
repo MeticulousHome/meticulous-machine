@@ -13,18 +13,8 @@ case "$1" in
                 cp -rv /etc/timezone              "$RAUC_SLOT_MOUNT_POINT/etc/"
                 cp -rv /etc/machine-id            "$RAUC_SLOT_MOUNT_POINT/etc/"
 
-                # Dial app cache
-                mkdir -p "$RAUC_SLOT_MOUNT_POINT/root/.config/"
-                mkdir -p "$RAUC_SLOT_MOUNT_POINT/root/.cache/"
-                if [ -d /root/.config/meticulous-ui ]; then
-                        cp -rv /root/.config/meticulous-ui    "$RAUC_SLOT_MOUNT_POINT/root/.config/"
-                fi
-                if [ -d /root/.config/meticulous-ui ]; then
-                        cp -rv /root/.cache/mesa_shader_cache "$RAUC_SLOT_MOUNT_POINT/root/.cache/"
-                fi
-
                 # Keep the SSH host keys stable for this machine
-                cp -rv /etc/ssh/ssh_host_*_key*      "$RAUC_SLOT_MOUNT_POINT/etc/ssh"
+                cp -rv /etc/ssh/ssh_host_*_key*   "$RAUC_SLOT_MOUNT_POINT/etc/ssh"
                 ;;
         *)
                 exit 1
