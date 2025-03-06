@@ -8,3 +8,5 @@ rauc-config/u-boot.scr
 misc/python-*
 bundle.rauc
 *.raucb
+.venv
+venv
