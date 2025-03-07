@@ -15,6 +15,11 @@ case "$1" in
 
                 # Keep the SSH host keys stable for this machine
                 cp -rv /etc/ssh/ssh_host_*_key*   "$RAUC_SLOT_MOUNT_POINT/etc/ssh"
+
+                if [ -e /root/.ssh/authorized_keys ]; then
+                        mkdir -p "$RAUC_SLOT_MOUNT_POINT/root/.ssh"
+                        cp -rv /root/.ssh/authorized_keys "$RAUC_SLOT_MOUNT_POINT/root/.ssh/"
+                fi
                 ;;
         *)
                 exit 1
