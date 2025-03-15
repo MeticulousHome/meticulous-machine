@@ -374,6 +374,49 @@ class HawkbitMgmtClient:
 
         if "softwaremodule" in self.id and module_id == self.id["softwaremodule"]:
             del self.id["softwaremodule"]
+            
+    def push_latest_distributionset(self, name, modules : list, dist_type="os"):
+        '''
+            Pushes a new distribution set module into the distribution adding the "_latest" sufix to the module
+            renames / deletes the existing submodules 
+            
+            latest     ->  previous
+            
+            previous   ->  backup
+    
+            backup [deleted]
+        '''
+                
+        existing_latest_distro = self.get_distributionset_by_name(name + " latest")
+        existing_previous_distro = self.get_distributionset_by_name(name + " previous")
+        existing_backup_distro = self.get_distributionset_by_name(name + " backup")
+        existing_unID_distro = self.get_distributionset_by_name(name)
+        
+        if existing_backup_distro:
+            self.delete_distributionset(existing_backup_distro['id'])
+        
+        if existing_previous_distro:
+            new_name : str = existing_previous_distro['name']
+            new_name.replace(" previous", " backup")
+            self.add_or_update_distributionset(existing_previous_distro['id'], 
+                                               {
+                                                   "name" : new_name
+                                               })
+            
+        if existing_latest_distro:
+            new_name : str = existing_latest_distro['name']
+            new_name.replace(" latest", " previous")
+            self.add_or_update_distributionset(existing_latest_distro['id'],
+                                               {
+                                                   "name" : new_name
+                                               })
+        
+        if existing_unID_distro:
+            self.delete_distributionset(existing_unID_distro['id'])
+        
+        self.add_or_update_distributionset(name=f"{name} latest", module_ids=modules)
+            
+            
 
     def add_or_update_distributionset(
         self,
@@ -381,6 +424,7 @@ class HawkbitMgmtClient:
         description: str = "",
         module_ids: list = [],
         dist_type: str = "os",
+        custom_data = None
     ):
         existing_dist = self.get_distributionset_by_name(name)
         if existing_dist:
@@ -390,6 +434,8 @@ class HawkbitMgmtClient:
             data = {
                 "version": self.version,
             }
+            if custom_data is not None:
+                data = data | custom_data
             response = self.put(f"distributionsets/{existing_dist['id']}", data).json()
             self.id["distributionset"] = response["id"]
             return response["id"]
@@ -729,7 +775,74 @@ class HawkbitMgmtClient:
         elif len(mods) == 1:
             return mods[0]
         return None
-
+    
+    def get_all_softwaremodules(self) -> list:
+        '''
+            Returns all the sotwaremodules available on the hawkbit server
+        '''
+        modules = self.get("softwaremodules")
+        return modules.get("content", [])
+    
+    def push_new_module(self, name, module_type="os", module_stack_size = 3):
+        '''
+            Pushes a new module into the modules stack and removes older modules going over stack size
+            
+            MAX_STACK_SIZE = 10
+        '''
+        MAX_MODULE_STACK_SIZE = 10
+        
+        assert module_stack_size >= 1
+        
+        stack_size : int = min(module_stack_size, 10)
+        existing_modules = self.get_all_softwaremodules()
+        
+        #remove older modules over the stack size and non-indexed modules
+        # indexed software modules have the following template as name
+        # "<softwaremodule name> [<idx>]"
+        for module in existing_modules:
+            module_index = module['name'][-2:-1]
+            try:
+                index = int(module_index)
+                if index >= (stack_size - 1):
+                    id = module['id']
+                    print(f"Deleting software module: {module['name']}")        
+                    self.delete_softwaremodule(id)
+            except ValueError:
+                id = module['id']
+                print(f"Deleting un-indexed software module: {module['name']}")        
+                self.delete_softwaremodule(id)
+                
+        #Displaces all existing modules down the stack
+        
+        existing_latest_distro = self.get_distributionset_by_name(name + " 0")
+        existing_previous_distro = self.get_distributionset_by_name(name + " 1")
+        existing_backup_distro = self.get_distributionset_by_name(name + " 2")
+        existing_unID_distro = self.get_distributionset_by_name(name)
+        
+        if existing_backup_distro:
+            self.delete_distributionset(existing_backup_distro['id'])
+        
+        if existing_previous_distro:
+            new_name : str = existing_previous_distro['name']
+            new_name.replace(" previous", " backup")
+            self.add_or_update_distributionset(existing_previous_distro['id'], 
+                                               {
+                                                   "name" : new_name
+                                               })
+            
+        if existing_latest_distro:
+            new_name : str = existing_latest_distro['name']
+            new_name.replace(" latest", " previous")
+            self.add_or_update_distributionset(existing_latest_distro['id'],
+                                               {
+                                                   "name" : new_name
+                                               })
+        
+        if existing_unID_distro:
+            self.delete_distributionset(existing_unID_distro['id'])
+        
+        self.add_or_update_distributionset(name=f"{name} latest", module_ids=modules)
+        
     def add_or_update_softwaremodule(self, name, module_type="os"):
         existing_module = self.get_softwaremodule_by_name(name, module_type)
     
@@ -833,9 +946,13 @@ if __name__ == "__main__":
     client.set_config("authentication.targettoken.enabled", True)
     print("Creating or updating software module")
     client.add_or_update_softwaremodule(name=software_module_name)
-    print("Creating Distribution set")
-    dist_id = client.add_or_update_distributionset(
-        distribution_name, module_ids=[client.get_softwaremodule().get("id")]
+    # print("Creating Distribution set")
+    # dist_id = client.add_or_update_distributionset(
+    #     distribution_name, module_ids=[client.get_softwaremodule().get("id")]
+    # )
+    print("Pushing new Distribution set")
+    dist_id = client.push_latest_distributionset(
+        distribution_name, modules=[client.get_softwaremodule().get("id")]
     )
 
     print("Uploading new artifact and removing all existing ones")
