@@ -1,0 +1,14 @@
+[Unit]
+Description=Memory logger to OOM error
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/memory-log/mem_log.sh
+Restart=always
+RestartSec=5
+User=root
+WorkingDirectory=/memory-log
+
+[Install]
+WantedBy=multi-user.target

@@ -63,6 +63,9 @@ function b_copy_components() {
     # Install Dial app
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall --no-install-recommends trash-cli /opt/meticulous-ui/meticulous-ui.deb"
 
+    echo "Installing Memory Logger for OOM error"
+    cp -r ${MISC_DIR}/mem_log.sh ${ROOTFS_DIR}/memory-log
+
     # Install Backend
     echo "Installing Backend"
     cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
