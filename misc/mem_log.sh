@@ -30,8 +30,7 @@ echo "Press Ctrl + C to stop the script."
 
 while true; do
     echo "-------------------------- $(date) --------------------------" >> "$OUTPUT_FILE"
-    # Log the first 27 processes sorted by memory usage
-    top -b -o +%MEM | awk '{$6=$6/1024; $7=$7/1024; $8=$8/1024; print $0}' | head -n 27 >> "$OUTPUT_FILE"
+    ps -eo pid,user,pri,ni,vsize,rss,pmem,pcpu,etime,comm --sort=-%mem | head -n 27 >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
     
     sleep $INTERVAL
