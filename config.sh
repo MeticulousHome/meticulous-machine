@@ -107,7 +107,7 @@ export   RAUC_REV="HEAD"
 
 readonly HAWKBIT_SRC_DIR="${COMPONENTS_DIR}/rauc/rauc-hawkbit-updater"
 readonly HAWKBIT_GIT="https://github.com/MeticulousHome/rauc-hawkbit-updater.git"
-export   HAWKBIT_BRANCH="main"
+export   HAWKBIT_BRANCH="feat/report_download_progress"
 export   HAWKBIT_REV="HEAD"
 # Manually set to the latest version, should be updated when the commit is updated
 export   HAWKBIT_VERSION="1.4-devel-meticulous-$(date +'%Y-%m-%d_%H-%M-%S')"
