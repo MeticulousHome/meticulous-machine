@@ -111,6 +111,9 @@ jobs:
       run: |
         sudo apt install -y qemu-utils qemu-user-static
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
     - name: 'Exporting pio'
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
