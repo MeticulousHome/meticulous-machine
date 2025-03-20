@@ -66,6 +66,7 @@ function b_copy_components() {
     echo "Installing Memory Logger for OOM error"
     mkdir -p ${ROOTFS_DIR}/memory-log
     cp -r ${MISC_DIR}/mem_log.sh ${ROOTFS_DIR}/memory-log
+    chmod +x ${ROOTFS_DIR}/mem_log.sh
 
     # Install Backend
     echo "Installing Backend"
