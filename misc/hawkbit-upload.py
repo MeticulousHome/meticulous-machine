@@ -786,7 +786,6 @@ class HawkbitMgmtClient:
         existing_module = self.get_softwaremodule_by_name(name, version=self.version)
         if existing_module:
             print(f"module {name} with version {self.version} already exists, using that")
-            self.id["newSoftwaremodule"] = response[0]['id']
             return existing_module['id']
         
         data = [
