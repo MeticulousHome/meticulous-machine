@@ -814,9 +814,9 @@ class HawkbitMgmtClient:
         new_module_id = self.push_new_os_softwaremodule(softwaremodule_name)
         
         #define the corresponding data for the distribution set
-        assert isinstance(module_ids, list)
         modules_list = [new_module_id]
-        modules_list.extend(module_ids)
+        if isinstance(module_ids, list):            
+            modules_list.extend(module_ids)
         
         data = [
             {
