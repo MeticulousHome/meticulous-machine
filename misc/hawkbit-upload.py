@@ -12,6 +12,8 @@ import json
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
+MAX_IMAGES_ON_SERVER = 3
+
 
 class HawkbitError(Exception):
     pass
@@ -382,7 +384,7 @@ class HawkbitMgmtClient:
         module_ids: list = [],
         dist_type: str = "os",
     ):
-        existing_dist = self.get_distributionset_by_name(name)
+        existing_dist = self.get_distributionsets_by_name(name)[0]
         if existing_dist:
             print(
                 f"Distribution set '{name}' already exists as ID={existing_dist['id']}. Using existing distribution. Updating version!"
@@ -707,26 +709,25 @@ class HawkbitMgmtClient:
             print(f"Error creating rollout: {str(e)}")
             return None
 
-    def get_distributionset_by_name(self, name: str):
-        distributions = self.get("distributionsets")
-        for dist in distributions.get("content", []):
-            if dist["name"] == name:
-                return dist
-        return None
+    def get_distributionsets_by_name(self, name: str):
+        all_distributions_response = self.get("distributionsets")
+        all_distributions : list = all_distributions_response.get("content", [])
+        named_distributions = [ dist for dist in all_distributions if dist.get('name','Unknown') == name]
+        if len(named_distributions) == 0:
+            return None
+        return named_distributions
 
     def get_softwaremodule_by_name(self, name, module_type="os", version: str = None):
-        # Search for a software module by name and type
+        # Search for a software module by name and version
         modules = self.get("softwaremodules")
         mods = []
         for module in modules.get("content", []):
             if module["name"] == name:
                 mods.append(module)
-        if (len(mods)) > 1 and version is not None:
+        if version is not None:
+            mods = [module for module in mods if module["version"] == version]
+        if(len(mods)) >= 1:
             print(f"Warning: Found multiple distributions with the name '{name}'")
-            for module in mods:
-                if module["version"] == version:
-                    return module
-        elif len(mods) == 1:
             return mods[0]
         return None
 
@@ -776,8 +777,118 @@ class HawkbitMgmtClient:
         )
         self.id["artifact"] = response["id"]
         return self.id["artifact"]
+    
+    def push_new_os_softwaremodule(
+        self,
+        name,
+    ):
+        # validate that both name and version does not exist
+        existing_module = self.get_softwaremodule_by_name(name, version=self.version)
+        if existing_module:
+            print(f"module {name} with version {self.version} already exists, using that")
+            self.id["newSoftwaremodule"] = response[0]['id']
+            return existing_module['id']
+        
+        data = [
+            {
+                "name": name,
+                "version": str(self.version),
+                "type": "os"
+            }
+        ]
+        
+        response = self.post("softwaremodules", data)
+        self.id["newSoftwaremodule"] = response[0]['id']
+        return self.id["newSoftwaremodule"]
+        
+    def push_new_distribution_set_with_os(
+        self,
+        distribution_name: str,
+        softwaremodule_name: str,
+        description: str = "",
+        module_ids: list = [],
+        dist_type: str = "os",
+        os_bundle_name: str = None
+    ): 
+        # Create the corresponding software "OS" Module
+        new_module_id = self.push_new_os_softwaremodule(softwaremodule_name)
+        
+        #define the corresponding data for the distribution set
+        assert isinstance(module_ids, list)
+        modules_list = [new_module_id]
+        modules_list.extend(module_ids)
+        
+        data = [
+            {
+                "name": distribution_name,
+                "description": description,
+                "version": str(self.version),
+                "modules": [{"id": module_id} for module_id in modules_list],
+                "type": dist_type,
+            }
+        ]
+        
+        response = self.post("distributionsets", data)
+        self.id["newDistributionset"] = response[0]["id"] 
+        
+        if os_bundle_name is None:
+            print("No bundle file provided to upload")
+            return self.id["newDistributionset"], self.id["newSoftwaremodule"], None
+        
+        # Upload the artifact to the os software module
+        new_artifact_id = self.add_or_update_artifact(os_bundle_name, str(new_module_id))
+        
+        return self.id["newDistributionset"], self.id["newSoftwaremodule"], str(new_artifact_id)
+    
+    def purge_distributionsets(
+        self,
+        distributionset_ids: list
+    ):
+        # validate the distribution_id
+        for dist_id in distributionset_ids:
+            distributionset_response = self.get_distributionset(dist_id)
+            isError = distributionset_response.get("errorCode", None)
+            
+            if isError:
+                error = distributionset_response.get("message", isError)
+                print(f"Error getting distributionset with id {dist_id}: {error}")
+                continue
+            
+            # delete the artifacts of all of its modules
+            assert distributionset_response.get("modules") is not None, 'attribute "modules" not found in distributionset GET response'
+            
+            modules = distributionset_response.get("modules", [])
+            for module in modules:
+                
+                existing_artifacts = self.get_all_artifacts(module['id'])
 
-
+                for artifact in existing_artifacts:
+                    artifact_id = artifact.get("id")
+                    artifact_name = artifact.get("filename", "Unknown filename")
+                    if artifact_id:
+                        print(f"Deleting existing artifact: {artifact_name}")
+                        self.delete_artifact(artifact_id, module['id'])
+                    else:
+                        print(f"Warning: Found artifact without ID: {artifact_name}")
+                
+                self.delete_softwaremodule(module['id'])
+                print(f"Deleting existing software module : {module['name']}:{module['version']}")
+            
+            self.delete_distributionset(dist_id)
+            print(f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}")
+            return True
+    
+    def sort_distributions_by_version(
+        self,
+        dist_name : str
+    ):
+        from datetime import datetime
+        distributions = self.get_distributionsets_by_name(dist_name)
+        if distributions is None:
+            return None
+        
+        return sorted(distributions, key=lambda dist: datetime.strptime(dist['version'],'%Y-%m-%dT%H_%M_%S+0000'), reverse=True)
+        
 def ensure_filter(
     client, filters, query: str, name: str, dist_id: str, action_type: str = "forced"
 ):
@@ -831,15 +942,19 @@ if __name__ == "__main__":
     client.set_config("pollingTime", "00:00:30")
     client.set_config("pollingOverdueTime", "00:03:00")
     client.set_config("authentication.targettoken.enabled", True)
-    print("Creating or updating software module")
-    client.add_or_update_softwaremodule(name=software_module_name)
-    print("Creating Distribution set")
-    dist_id = client.add_or_update_distributionset(
-        distribution_name, module_ids=[client.get_softwaremodule().get("id")]
-    )
-
-    print("Uploading new artifact and removing all existing ones")
-    client.add_or_update_artifact(args.bundle)
+    print("Pushing new distribution set")
+    (dist_id, module_id, artifact_id) = client.push_new_distribution_set_with_os(distribution_name, software_module_name, os_bundle_name=args.bundle)
+    print(f"sorting available {distribution_name} distributions")
+    sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
+    print("removing extra distributions")
+    distribution_ids_to_purge = []
+    for index, dist in enumerate(sorted_distributionsets):
+        if index >= MAX_IMAGES_ON_SERVER:
+            print(f"Marking distributionset {distribution_name}:{dist['version']} to be purged")
+            distribution_ids_to_purge.append(dist['id'])
+    
+    if client.purge_distributionsets(distribution_ids_to_purge):
+        print("Distribution sets successfuly purged")
 
     # Fetch all existing rollouts
     print("Fetching existing rollouts...")
@@ -871,9 +986,12 @@ if __name__ == "__main__":
     ]
     
     # Print the rollouts selected for deletion
-    print("Rollouts selected for deletion:")
-    for rollout in rollouts_to_delete:
-        print(json.dumps(rollout, indent=2))
+    if len(rollouts_to_delete) != 0:
+        print("Rollouts selected for deletion:")
+        for rollout in rollouts_to_delete:
+            print(json.dumps(rollout, indent=2))
+    else:
+        print(" - No rollouts to delete")
 
     # Delete filtered rollouts
     for rollout in rollouts_to_delete:
