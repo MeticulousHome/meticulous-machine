@@ -384,8 +384,9 @@ class HawkbitMgmtClient:
         module_ids: list = [],
         dist_type: str = "os",
     ):
-        existing_dist = self.get_distributionsets_by_name(name)[0]
-        if existing_dist:
+        named_distributions = self.get_distributionsets_by_name(name)
+        if named_distributions:
+            existing_dist = named_distributions[0]
             print(
                 f"Distribution set '{name}' already exists as ID={existing_dist['id']}. Using existing distribution. Updating version!"
             )
