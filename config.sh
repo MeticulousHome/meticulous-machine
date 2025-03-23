@@ -41,7 +41,7 @@ readonly RAUC_CERT="beta.rsa4096.cert.pem"
 readonly LINUX_SRC_DIR=${COMPONENTS_DIR}/"linux"
 readonly LINUX_BUILD_DIR=${COMPONENTS_DIR}/"linux-build"
 export   LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
-export   LINUX_BRANCH="debian-6.1.36"
+export   LINUX_BRANCH="linux-6.12.y"
 export   LINUX_REV="HEAD"
 
 readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
@@ -65,7 +65,7 @@ readonly BOOTLOADER_BUILD_DIR=${COMPONENTS_DIR}/"bootloader/build"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian-base"
 export   DEBIAN_GIT="git@github.com:MeticulousHome/debian-fika"
-export   DEBIAN_BRANCH="bookworm"
+export   DEBIAN_BRANCH="bookworm-mainline"
 export   DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
