@@ -7,6 +7,9 @@ After=weston.service
 ExecStart=/usr/bin/meticulous-dial
 Restart=always
 User=root
+MemoryHigh=500M
+MemoryMax=600M
+Slice=meticulous.slice
 
 Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/0"

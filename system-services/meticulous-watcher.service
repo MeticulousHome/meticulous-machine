@@ -10,6 +10,7 @@ Restart=always
 RestartSec=10
 ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-watcher/watcher.py
 User=root
+Slice=meticulous.slice
 
 [Install]
 WantedBy=multi-user.target

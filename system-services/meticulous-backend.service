@@ -12,5 +12,9 @@ ExecStartPre=-/bin/bash -c 'mkdir -p /meticulous-user/syslog/nginx /meticulous-u
 ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-backend/back.py
 User=root
 
+Slice=meticulous.slice
+MemoryHigh=250M
+MemoryMax=300M
+
 [Install]
 WantedBy=multi-user.target
