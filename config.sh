@@ -96,7 +96,7 @@ export   WATCHER_REV="HEAD"
 readonly FIRMWARE_SRC_DIR="${COMPONENTS_DIR}/meticulous-firmware"
 readonly FIRMWARE_OUT_DIR="${COMPONENTS_DIR}/meticulous-firmware-build"
 readonly FIRMWARE_GIT="git@github.com:MeticulousHome/flow_machine_firmware"
-export   FIRMWARE_BRANCH="dev"
+export   FIRMWARE_BRANCH="ulyon/rel"
 export   FIRMWARE_REV="HEAD"
 
 readonly RAUC_SRC_DIR="${COMPONENTS_DIR}/rauc/rauc"
