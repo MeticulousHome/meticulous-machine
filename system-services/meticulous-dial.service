@@ -7,8 +7,8 @@ After=weston.service
 ExecStart=/usr/bin/meticulous-dial
 Restart=always
 User=root
-MemoryHigh=500M
-MemoryMax=600M
+MemoryHigh=800M
+MemoryMax=900M
 Slice=meticulous.slice
 
 Environment="DISPLAY=:0"
