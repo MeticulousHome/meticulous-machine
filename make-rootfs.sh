@@ -65,8 +65,8 @@ function b_copy_components() {
 
     # Install Memory Logger dependency
     echo "Installing Memory Logger dependencies"
-    apt-get update
-    apt-get install -y smem sysstat
+    sudo apt-get update
+    sudo apt-get install -y smem sysstat
 
     echo "Installing Memory Logger for OOM error"
     mkdir -p ${ROOTFS_DIR}/memory-log
