@@ -3,6 +3,7 @@
 INTERVAL=300
 MEMORY_LOG="/memory-log/memory_use.csv"
 PROCESS_INFO="/memory-log/process_info.csv"
+FREE_MEMORY="/memory-log/free_memory.csv"  # Nuevo archivo para free -m
 PROCESS_NAMES="meticulous-ui|meticulous-dial|meticulous-backend"
 
 # Function to rotate logs
@@ -23,17 +24,32 @@ rotate_logs() {
 # Rotate logs and create new files
 rotate_logs "$MEMORY_LOG"
 rotate_logs "$PROCESS_INFO"
+rotate_logs "$FREE_MEMORY"  # Rotación para el nuevo archivo
 
 echo "timestamp,pid,name,command,minflt/s,majflt/s,VSZ_MB,RSS_MB,%MEM" > "$MEMORY_LOG"
 echo "timestamp,pid,process_type,full_command" > "$PROCESS_INFO"
+echo "timestamp,total,used,free,shared,buffers,cache,available" > "$FREE_MEMORY"  # Cabecera para free -m
 
 echo "Tracking memory usage every $INTERVAL seconds..."
 echo "Logging memory metrics to $MEMORY_LOG"
 echo "Logging process info to $PROCESS_INFO"
+echo "Logging free memory to $FREE_MEMORY"
 echo "Press Ctrl+C to stop."
 
 while true; do
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+
+    # Capturar salida de free -m y guardarla en FREE_MEMORY
+    free_output=$(free -m)
+    
+    # Extraer línea de memoria
+    mem_line=$(echo "$free_output" | grep "^Mem:")
+    if [[ -n "$mem_line" ]]; then
+        # Extraer valores (total, used, free, shared, buffers, cache, available)
+        read -r _ total used free shared buffers cache available <<< "$mem_line"
+        # Escribir al archivo CSV
+        echo "$TIMESTAMP,$total,$used,$free,$shared,$buffers,$cache,$available" >> "$FREE_MEMORY"
+    fi
 
     # Get process info and write to process_info.csv
     for pid in $(pgrep -f "$PROCESS_NAMES"); do
