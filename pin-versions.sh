@@ -75,6 +75,7 @@ update_all_repos() {
     update_repo_rev "$PSPLASH_SRC_DIR" "PSPLASH_GIT" "PSPLASH_REV"
     update_repo_rev "$HISTORY_UI_SRC_DIR" "HISTORY_UI_GIT" "HISTORY_UI_REV" "optional"
     update_repo_rev "$PLOTTER_UI_SRC_DIR" "PLOTTER_UI_GIT" "PLOTTER_UI_REV" "optional"
+    update_repo_rev "$CRASH_REPORTER_SRC_DIR" "CRASH_REPORTER_GIT" "CRASH_REPORTER_REV"
 }
 
 
@@ -96,6 +97,7 @@ if [[ -n $2 ]]; then
         "$PSPLASH_SRC_DIR") update_repo_rev "$PSPLASH_SRC_DIR" "PSPLASH_GIT" "PSPLASH_REV" ;;
         "$HISTORY_UI_SRC_DIR") update_repo_rev "$HISTORY_UI_SRC_DIR" "HISTORY_UI_GIT" "HISTORY_UI_REV" "optional";;
         "$PLOTTER_UI_SRC_DIR") update_repo_rev "$PLOTTER_UI_SRC_DIR" "PLOTTER_UI_GIT" "PLOTTER_UI_REV" "optional";;
+        "$CRASH_REPORTER_SRC_DIR") update_repo_rev "$CRASH_REPORTER_SRC_DIR" "CRASH_REPORTER_GIT" "CRASH_REPORTER_REV" ;;
         *)
             echo "Error: Invalid repository path specified."
             exit 1

@@ -52,8 +52,8 @@ jobs:
     runs-on: ${{ inputs['runner'] || 'ubuntu-24.04' }}
     name: Build ${{ inputs['build-option'] }}
     env:
-      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter'}}
-      needs-cross-compile: ${{ inputs['build-option'] == 'linux' }}
+      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' }}
+      needs-cross-compile: ${{ inputs['build-option'] == 'linux' || inputs['build-option'] == 'crash-reporter'}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -161,6 +161,10 @@ jobs:
           "plotter")
             sudo mkdir -p components/meticulous-plotter-ui/build/repo-info/
             sudo cp components/meticulous-plotter-ui/repository-info.txt components/meticulous-plotter-ui/build/repo-info/
+            ;;
+          "crash-reporter")
+            sudo mkdir -p components/crash-reporter/build/repo-info/
+            sudo cp components/crash-reporter/repository-info.txt components/crash-reporter/build/repo-info/
             ;;
         esac
 

@@ -226,6 +226,18 @@ function build_docker() {
     docker build --platform linux/amd64 -t ${DOCKER_DEB_BUILER_IMAGE}:latest-amd64 -f deb-builder.Dockerfile .
 }
 
+function build_crash_reporter() {
+    if [ -d $CRASH_REPORTER_SRC_DIR ]; then
+        echo "Building Crash Report"
+        pushd $CRASH_REPORTER_SRC_DIR >/dev/null
+        ./build.sh
+        popd >/dev/null
+    else
+        echo "Crash Reporter is not checked out. Skipping"
+    fi
+}
+
+
 # Function to display help text
 show_help() {
     cat <<EOF
@@ -266,6 +278,7 @@ steps=(
     [build_uboot]=0
     [build_rauc]=0
     [build_psplash]=0
+    [build_crash_reporter]=0
 )
 
 # Parse command line arguments
@@ -285,6 +298,8 @@ for arg in "$@"; do
     --docker) docker_selected=1 ;;
     --psplash) steps[build_psplash]=1 ;;
     --splash) steps[build_psplash]=1 ;;
+    --crash) steps[build_crash_reporter]=1 ;;
+    --crash-reporter) steps[build_crash_reporter]=1 ;;
     --help)
         show_help
         exit 0

@@ -131,6 +131,11 @@ readonly PLOTTER_UI_GIT="git@github.com:MeticulousHome/ProfilePlotter.git"
 export   PLOTTER_UI_BRANCH="main"
 export   PLOTTER_UI_REV="HEAD"
 
+readonly CRASH_REPORTER_SRC_DIR="${COMPONENTS_DIR}/crash-reporter"
+readonly CRASH_REPORTER_GIT="https://github.com/MeticulousHome/systemd-crash-reporter.git"
+export   CRASH_REPORTER_BRANCH="main"
+export   CRASH_REPORTER_REV="HEAD"
+
 readonly SYSTEM_PACKAGES="parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs dnsmasq iptables-persistent gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good alembic chrony"
 readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
 readonly HOST_PACKAGES="\

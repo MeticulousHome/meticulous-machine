@@ -48,3 +48,4 @@ jobs:
           - { name: "Build web app", build-option: "web", build-path: "components/meticulous-web-app/out/" }
           - { name: "Build firmware", build-option: "firmware", build-path: "components/meticulous-firmware-build" }
           - { name: "Build plotter ui", build-option: "plotter", build-path: "components/meticulous-plotter-ui/build/" }
+          - { name: "Build crash reporter", build-option: "crash-reporter", build-path: "components/crash-reporter/target" }

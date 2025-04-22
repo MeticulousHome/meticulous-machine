@@ -67,6 +67,12 @@ jobs:
         name: 'debian'
         path: components/debian-base/
 
+    - name: Download crash reporter artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'crash-reporter'
+        path: components/crash-reporter/target
+
     - name: Download psplash artifact
       uses: actions/download-artifact@v4
       with:

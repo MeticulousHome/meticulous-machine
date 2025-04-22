@@ -209,6 +209,12 @@ function update_psplash() {
         ${PSPLASH_SRC_DIR} ${PSPLASH_REV}
 }
 
+function update_crash_reporter() {
+    echo "Cloning / Updating Crash Reporter Repository"
+    get_git_src ${CRASH_REPORTER_GIT} ${CRASH_REPORTER_BRANCH} \
+        ${CRASH_REPORTER_SRC_DIR} ${CRASH_REPORTER_REV}
+}
+
 function show_help() {
     cat <<EOF
 Usage: ${0##*/} [OPTIONS]
@@ -259,6 +265,7 @@ steps=(
     [update_uboot]=0
     [update_rauc]=0
     [update_psplash]=0
+    [update_crash_reporter]=0
 )
 
 # Parse command line arguments, enable steps when selected
@@ -292,6 +299,8 @@ while [[ $# -gt 0 ]]; do
         --bootloader) steps[update_uboot]=1 ;;
         --psplash) steps[update_psplash]=1 ;;
         --splash) steps[update_psplash]=1 ;;
+        --crash) steps[update_crash_reporter]=1 ;;
+        --crash-reporter) steps[update_crash_reporter]=1 ;;
         --help) show_help; exit 0 ;;
 
         # Enable all steps via special case
