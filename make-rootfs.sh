@@ -57,7 +57,7 @@ function b_copy_components() {
 
     # Install Crash Reporter
     echo "Installing Crash reporter"
-    cp -r ${CRASH_REPORTER_SRC_DIR}/target/release/crash-reporter ${ROOTFS_DIR}/opt/meticulous-crash-reporter
+    cp -r ${CRASH_REPORTER_SRC_DIR}/target/aarch64-unknown-linux-gnu/release/crash-reporter ${ROOTFS_DIR}/opt/meticulous-crash-reporter
 
     # Install meticulous components
     # Install Dial app
