@@ -2,6 +2,7 @@
 Description=Meticulous Watcher
 After=network.target
 Before=weston.service
+OnFailure=crash-reporter.service
 
 [Service]
 Type=simple

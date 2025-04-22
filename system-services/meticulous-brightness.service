@@ -1,6 +1,7 @@
 [Unit]
 Description=Set Full Brightness at Startup
 After=multi-user.target
+OnFailure=crash-reporter.service
 
 [Service]
 Type=oneshot

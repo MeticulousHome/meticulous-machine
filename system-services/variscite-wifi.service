@@ -2,6 +2,7 @@
 Description=Variscite WIFI setup service
 Before=network.target
 After=sysinit.target
+OnFailure=crash-reporter.service
 
 [Service]
 Type=oneshot

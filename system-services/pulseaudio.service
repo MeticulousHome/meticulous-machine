@@ -1,5 +1,6 @@
 [Unit]
 Description=PulseAudio system server
+OnFailure=crash-reporter.service
 
 [Service]
 Type=forking

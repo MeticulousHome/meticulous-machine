@@ -6,6 +6,7 @@ StartLimitBurst=5
 
 After=meticulous-backend.service meticulous-watcher.service
 Requires=meticulous-backend.service meticulous-watcher.service
+OnFailure=crash-reporter.service
 
 [Service]
 Type=oneshot
