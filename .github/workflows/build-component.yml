@@ -52,8 +52,8 @@ jobs:
     runs-on: ${{ inputs['runner'] || 'ubuntu-24.04' }}
     name: Build ${{ inputs['build-option'] }}
     env:
-      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' }}
-      needs-cross-compile: ${{ inputs['build-option'] == 'linux' || inputs['build-option'] == 'crash-reporter'}}
+      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter'}}
+      needs-cross-compile: ${{ inputs['build-option'] == 'linux' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
