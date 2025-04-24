@@ -98,7 +98,7 @@ function b_copy_components() {
                                                 python3-systemd \
                                                 python3-venv \
                                                 python3-wheel"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.11 -m venv --system-site-packages /opt/meticulous-venv"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3 -m venv --system-site-packages /opt/meticulous-venv"
 
 
     # Updating pip, wheel and setuptools to latest versions
