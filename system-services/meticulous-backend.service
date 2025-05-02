@@ -14,7 +14,7 @@ ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-backend/back.py
 User=root
 
 Slice=meticulous.slice
-MemoryMax=1200M
+#MemoryMax=1200M
 
 [Install]
 WantedBy=multi-user.target
