@@ -13,7 +13,7 @@ function a_unpack_base() {
         echo "#####################"
         echo "DEBIAN IMAGE DOES NOT EXIST!"
         echo "#####################"
-        find ${DEBIAN_SRC_DIR} -type f;
+        find ${DEBIAN_SRC_DIR} -type f
         exit 1
     fi
 
@@ -40,7 +40,7 @@ function copy_services() {
     rm -f ${ROOTFS_DIR}/lib/systemd/system/rauc-hawkbit-updater.service
 
     # Install meticulous services
-    cp -v ${SERVICES_DIR}/*  ${ROOTFS_DIR}/lib/systemd/system
+    cp -v ${SERVICES_DIR}/* ${ROOTFS_DIR}/lib/systemd/system
     for service in ${SERVICES_DIR}/*; do
         service_name=$(basename ${service})
         ln -sfv /lib/systemd/system/${service_name} \
@@ -99,7 +99,6 @@ function b_copy_components() {
                                                 python3-venv \
                                                 python3-wheel"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3 -m venv --system-site-packages /opt/meticulous-venv"
-
 
     # Updating pip, wheel and setuptools to latest versions
     echo "Installing python updates for pip, wheel and setuptools"
@@ -165,7 +164,6 @@ function b_copy_components() {
     KERNEL=$(ls ${LINUX_BUILD_DIR} | grep "^linux-image-" | grep --invert-match dbg | tail -n 1)
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${LINUX_BUILD_DIR}:/opt/linux" apt -y install --reinstall /opt/linux/${KERNEL}
 
-
     echo "Installing splash"
     export LATEST_SPLASH=$(ls -Art ${PSPLASH_BUILD_DIR}/psplash_*_arm64.deb | tail -n 1)
     if [ -z ${LATEST_SPLASH} ]; then
@@ -177,7 +175,10 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${PSPLASH_BUILD_DIR}:/opt/${PSPLASH_BUILD_DIR} bash -c "systemctl enable psplash-systemd"
 
     echo "Disabeling framebuffer tty getty"
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro ${PSPLASH_BUILD_DIR}:/opt/${PSPLASH_BUILD_DIR} bash -c "systemctl disable getty@"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl disable getty@"
+
+    echo "Disabeling dnsmasq"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl disable dnsmasq"
 
     echo "Disableing NetworkManager-wait-online.service"
     rm -v ${ROOTFS_DIR}/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
