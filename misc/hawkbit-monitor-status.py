@@ -97,12 +97,6 @@ class HawkbitMgmtClient:
         data = [{"id": distribution_id, "type": "forced"}]
         return self.post(endpoint, data)
 
-    def get_latest_distribution(self):
-        distributions = self.get("distributionsets?sort=createdAt:DESC&limit=1")
-        if distributions and "content" in distributions and distributions["content"]:
-            return distributions["content"][0]
-        raise HawkbitError("No available distributions found")
-
     def request_attributes(
         self,
         target_id: str,
@@ -234,11 +228,45 @@ def process_targets(client, channel=None):
     return targets_to_update
 
 
+def get_latest_distribution_by_channel(client, channel):
+    """
+    Gets the latest distribution for a specific channel
+    The channel name is taken from the first word in the distribution name, right before the word EMMC.
+    """
+    try:
+        #Get all distributions
+        distributions = client.get("distributionsets?sort=createdAt:DESC&limit=100")
+        
+        if not distributions or "content" not in distributions or not distributions["content"]:
+            raise HawkbitError("No available distributions found")
+        
+        #Filter distributions that contain "EMMC" and start with the specified channel
+        channel_distributions = []
+        for dist in distributions["content"]:
+            dist_name = dist.get("name", "")
+            if "EMMC" in dist_name and dist_name.lower().startswith(channel.lower()):
+                channel_distributions.append(dist)
+        
+        if not channel_distributions:
+            print(f"Warning: No distributions found for channel '{channel}'. Check channel name.")
+            return None
+        
+        #We retrieve the most recent distribution, as currently the last three distributions 
+        #of each channel are retained.
+        latest_dist = channel_distributions[0]
+        print(f"Found latest distribution for channel '{channel}': {latest_dist['name']} (ID: {latest_dist['id']})")
+        return latest_dist
+        
+    except Exception as e:
+        print(f"Error getting distribution for channel {channel}: {str(e)}")
+        return None
+
+
 def reassign_distribution(client, targets, distribution_id):
     for target_id in targets:
         try:
             print(
-                f"Attempting to reassign distribution {distribution_id} al target {target_id}"
+                f"Attempting to reassign distribution {distribution_id} to target {target_id}"
             )
             response = client.assign_distribution(target_id, distribution_id)
             print(f"Response from the assignment: {json.dumps(response, indent=2)}")
@@ -257,8 +285,23 @@ def load_config():
     parser.add_argument("--username", help="Hawkbit user")
     parser.add_argument("--password", help="Hawkbit password")
     parser.add_argument("--channel", help="Update channel (e.g., 'nightly')")
+    parser.add_argument("--channels", help="Comma-separated list of update channels (e.g., 'nightly,stable,beta')")
 
     args = parser.parse_args()
+
+    channels = []
+    if args.channels:
+        channels = [ch.strip() for ch in args.channels.split(',')]
+    elif args.channel:
+        channels = [args.channel]
+    elif os.getenv("HAWKBIT_CHANNELS"):
+        channels = [ch.strip() for ch in os.getenv("HAWKBIT_CHANNELS").split(',')]
+    elif os.getenv("HAWKBIT_CHANNEL"):
+        if os.getenv("HAWKBIT_CHANNEL").strip(): 
+            channels = [os.getenv("HAWKBIT_CHANNEL")]
+    
+    if not channels:
+        channels = ['nightly', 'stable', 'beta', 'rel']
 
     # Priority: Command line args > Environment variables > Default values
     config = {
@@ -266,7 +309,7 @@ def load_config():
         "port": args.port or int(os.getenv("HAWKBIT_PORT", 8080)),
         "username": args.username or os.getenv("HAWKBIT_USERNAME") or "admin",
         "password": args.password or os.getenv("HAWKBIT_PASSWORD") or "admin",
-        "channel": args.channel or os.getenv("HAWKBIT_CHANNEL")
+        "channels": channels
     }
 
     return config
@@ -280,22 +323,34 @@ if __name__ == "__main__":
     )
 
     try:
-        latest_distribution = client.get_latest_distribution()
-        distribution_id = latest_distribution["id"]
-        print(
-            f"Latest distribution found: {latest_distribution['name']} (ID: {distribution_id})"
-        )
+        print(f"Processing the following channels: {', '.join(config['channels'])}")
+        
+        for channel in config['channels']:
+            print(f"\n===== Processing channel: {channel} =====")
+            
+            #Get the most recent distribution for this channel
+            distribution = get_latest_distribution_by_channel(client, channel)
+            
+            if not distribution:
+                print(f"Skipping channel '{channel}' - No suitable distribution found")
+                continue
+                
+            distribution_id = distribution["id"]
+            print(f"Using distribution for {channel}: {distribution['name']} (ID: {distribution_id})")
 
-        targets_to_update = process_targets(client, config["channel"])
+            # Process the targets for this channel
+            targets_to_update = process_targets(client, channel)
 
-        if targets_to_update:
-            print("\nTargets that need to be reassigned a distribution")
-            for target_id in targets_to_update:
-                print(target_id)
+            if targets_to_update:
+                print(f"\nTargets in channel {channel} that need to be reassigned a distribution:")
+                for target_id in targets_to_update:
+                    print(target_id)
 
-            reassign_distribution(client, targets_to_update, distribution_id)
-        else:
-            print("\nNo targets need to be reassigned a distribution")
+                reassign_distribution(client, targets_to_update, distribution_id)
+                print(f"Completed reassigning distribution to targets in channel {channel}")
+            else:
+                print(f"\nNo targets in channel {channel} need to be reassigned a distribution")
+                
     except HawkbitError as e:
         print(f"Error: {str(e)}")
         print("Error details:")
