@@ -29,4 +29,4 @@ sed -i "s/__UPDATE_CHANNEL__/${update_channel}/" /etc/hawkbit/config.conf
 sed -i "s/__SERIAL__/${serial}/" /etc/hawkbit/config.conf
 sed -i "s/__BOOTED__/${boot_partition}/" /etc/hawkbit/config.conf
 sed -i "s/__BUILD_DATE__/${build_date}/" /etc/hawkbit/config.conf
-sed -i "s/__BUILD_CHANNEL__/${build_date}/" /etc/hawkbit/config.conf
+sed -i "s/__BUILD_CHANNEL__/${build_channel}/" /etc/hawkbit/config.conf
