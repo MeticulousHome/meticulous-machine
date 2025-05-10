@@ -24,3 +24,4 @@
   serial                    = __SERIAL__
   boot_partition            = __BOOTED__
   build_date                = __BUILD_DATE__
+  build_channel             = __BUILD_CHANNEL__
