@@ -21,7 +21,7 @@ if [ ! -z "$(which met-config)" ]; then
 fi
 
 build_date=$(cat /opt/ROOTFS_BUILD_DATE || echo UNKNOWN)                                          #get booted image build date
-build_channel=$(cat /opt/image-build-channel | echo UNKNOWN)
+build_channel=$(cat /opt/image-build-channel || echo UNKNOWN)
 
 sed -i "s/__TARGET_NAME__/$(hostname)/" /etc/hawkbit/config.conf
 sed -i "s/__BOOT_MODE__/${boot_mode}/" /etc/hawkbit/config.conf
