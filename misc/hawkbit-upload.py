@@ -12,7 +12,8 @@ import json
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
-MAX_IMAGES_ON_SERVER = 3
+MAX_PRODUCTION_IMAGES_ON_SERVER = 3
+MAX_TESTING_IMAGES_ON_SERVER = 2
 
 
 class HawkbitError(Exception):
@@ -910,6 +911,9 @@ def ensure_filter(
             print(f"Error configuring auto-assignment for the new filter: {name}")
         return new_filter
 
+def get_max_number_of_historic_distributions(distribution_name: str) -> int:
+    production_image_names = ["nightly EMMC", "beta EMMC", "stable EMMC"]
+    return MAX_PRODUCTION_IMAGES_ON_SERVER if distribution_name in production_image_names else MAX_TESTING_IMAGES_ON_SERVER
 
 if __name__ == "__main__":
     import argparse
@@ -947,9 +951,11 @@ if __name__ == "__main__":
     print(f"sorting available {distribution_name} distributions")
     sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
     print("removing extra distributions")
+    #If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
+    historics_to_keep = get_max_number_of_historic_distributions(distribution_name)
     distribution_ids_to_purge = []
     for index, dist in enumerate(sorted_distributionsets):
-        if index >= MAX_IMAGES_ON_SERVER:
+        if index >= historics_to_keep:
             print(f"Marking distributionset {distribution_name}:{dist['version']} to be purged")
             distribution_ids_to_purge.append(dist['id'])
     
