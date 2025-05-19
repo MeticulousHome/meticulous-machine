@@ -829,8 +829,6 @@ class HawkbitMgmtClient:
             }
         ]
         
-        response = self.post("distributionsets", data)
-        self.id["newDistributionset"] = response[0]["id"] 
         
         if os_bundle_name is None:
             print("No bundle file provided to upload")
@@ -838,6 +836,9 @@ class HawkbitMgmtClient:
         
         # Upload the artifact to the os software module
         new_artifact_id = self.add_or_update_artifact(os_bundle_name, str(new_module_id))
+
+        response = self.post("distributionsets", data)
+        self.id["newDistributionset"] = response[0]["id"]
         
         return self.id["newDistributionset"], self.id["newSoftwaremodule"], str(new_artifact_id)
     
@@ -865,7 +866,7 @@ class HawkbitMgmtClient:
 
                 for artifact in existing_artifacts:
                     artifact_id = artifact.get("id")
-                    artifact_name = artifact.get("filename", "Unknown filename")
+                    artifact_name = os.path.basename(artifact.get("providedFilename", "Unknown filename"))
                     if artifact_id:
                         print(f"Deleting existing artifact: {artifact_name}")
                         self.delete_artifact(artifact_id, module['id'])
