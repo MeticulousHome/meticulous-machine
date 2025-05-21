@@ -32,7 +32,10 @@ fi
 
 #find the rauc file in any partition of the plugged in device
 mkdir $MOUNT_POINT
-for PARTITION_NAME in $(ls /dev/ | grep -E $USB_PATH[1-9]+); do
+
+declare -A devices
+devices=$(ls /dev/ | grep -E "$USB_PATH([1-9]+)?")
+for PARTITION_NAME in $devices; do
 
     FILE_DESCRIPTOR="/dev/$PARTITION_NAME"
     umount $FILE_DESCRIPTOR #if automount mounted it, later maybe make use of automount
