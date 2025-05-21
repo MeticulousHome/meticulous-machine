@@ -835,12 +835,17 @@ class HawkbitMgmtClient:
             return self.id["newDistributionset"], self.id["newSoftwaremodule"], None
         
         # Upload the artifact to the os software module
-        new_artifact_id = self.add_or_update_artifact(os_bundle_name, str(new_module_id))
+        try:
+            new_artifact_id = self.add_or_update_artifact(os_bundle_name, str(new_module_id))
+            response = self.post("distributionsets", data)
+            self.id["newDistributionset"] = response[0]["id"]
+            return self.id["newDistributionset"], self.id["newSoftwaremodule"], str(new_artifact_id)
+        except Exception as e:
+            #in case the upload of the arftifact fails, delete the software module
+            print(f"Error uploading the artifact {os.path.basename(os_bundle_name)} for module {software_module_name}, deleting module")
+            self.delete_softwaremodule(new_module_id)
+            return None, None, None
 
-        response = self.post("distributionsets", data)
-        self.id["newDistributionset"] = response[0]["id"]
-        
-        return self.id["newDistributionset"], self.id["newSoftwaremodule"], str(new_artifact_id)
     
     def purge_distributionsets(
         self,
@@ -949,11 +954,15 @@ if __name__ == "__main__":
     client.set_config("authentication.targettoken.enabled", True)
     print("Pushing new distribution set")
     (dist_id, module_id, artifact_id) = client.push_new_distribution_set_with_os(distribution_name, software_module_name, os_bundle_name=args.bundle)
+    if dist_id is None:
+        print(f"failed to push new OS distribution '{distribution_name}' cannot start rollout. Finished!")
+        exit(1)
+
     print(f"sorting available {distribution_name} distributions")
     sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
-    print("removing extra distributions")
     #If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
     historics_to_keep = get_max_number_of_historic_distributions(distribution_name)
+    print(f"removing extra distributions, keeping last {historics_to_keep}")
     distribution_ids_to_purge = []
     for index, dist in enumerate(sorted_distributionsets):
         if index >= historics_to_keep:
