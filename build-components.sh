@@ -230,7 +230,10 @@ function build_crash_reporter() {
     if [ -d $CRASH_REPORTER_SRC_DIR ]; then
         echo "Building Crash Report"
         pushd $CRASH_REPORTER_SRC_DIR >/dev/null
-        ./build.sh
+        #build the Docker image
+        docker build -t build-reporter .
+        #run the container to build the binary
+        sudo docker run --rm -v $(pwd):/systemd-crash-reporter build-reporter
         popd >/dev/null
     else
         echo "Crash Reporter is not checked out. Skipping"
