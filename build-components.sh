@@ -262,6 +262,7 @@ Available options:
     --docker                  Build Docker image for building debian packages (not intcluded in --all)
     --history                 Build History UI
     --psplash | --splash      Build psplash
+    --crash                   Build systemd crash reporter for sentry
     --help                    Displays this help and exits
 
 EOF
