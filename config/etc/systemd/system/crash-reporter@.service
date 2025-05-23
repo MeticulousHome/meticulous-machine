@@ -4,4 +4,4 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/opt/crash-reporter.sh
+ExecStart=/etc/crash-reporter/crash-reporter.sh
