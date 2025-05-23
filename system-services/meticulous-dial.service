@@ -2,7 +2,7 @@
 Description=Meticulous Dial App
 After=network.target
 After=weston.service
-OnFailure=crash-reporter.service
+OnFailure=crash-reporter@.service
 
 [Service]
 ExecStart=/usr/bin/meticulous-dial

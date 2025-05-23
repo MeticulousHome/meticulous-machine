@@ -1,0 +1,8 @@
+[Unit]
+Description=Meticulous Crash Reporter Service
+After=network.target
+
+[Service]
+Type=oneshot
+#ExecStart=/opt/meticulous-crash-reporter
+ExecStart=bash -c 'echo "$MONITOR_UNIT has failed - restarting"; /opt/meticulous-crash-reporter; systemctl restart "$MONITOR_UNIT"'
