@@ -1,6 +1,6 @@
 [Unit]
 Description=Bluetooth OBEX service
-OnFailure=crash-reporter.service
+OnFailure=crash-reporter@.service
 
 [Service]
 Type=dbus

@@ -2,7 +2,7 @@
 Description=Meticulous Backend
 After=network.target pulseaudio.service
 Before=nginx.service
-OnFailure=crash-reporter.service
+OnFailure=crash-reporter@.service
 
 [Service]
 Type=simple

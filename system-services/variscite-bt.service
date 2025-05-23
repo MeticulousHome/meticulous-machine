@@ -2,7 +2,7 @@
 Description=Variscite Bluetooth setup service
 After=variscite-wifi.service
 Before=bluetooth.target
-OnFailure=crash-reporter.service
+OnFailure=crash-reporter@.service
 
 
 [Service]

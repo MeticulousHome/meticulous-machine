@@ -6,7 +6,7 @@ StartLimitInterval=20000
 StartLimitBurst=5
 After=network-online.target rauc.service
 Wants=network-online.target
-OnFailure=crash-reporter.service
+OnFailure=crash-reporter@.service
 
 [Service]
 AmbientCapabilities=CAP_SYS_BOOT
