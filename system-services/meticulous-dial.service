@@ -6,7 +6,7 @@ OnFailure=crash-reporter@.service
 
 [Service]
 ExecStart=/usr/bin/meticulous-dial
-Restart=always
+Restart=on-success
 User=root
 MemoryHigh=800M
 MemoryMax=900M

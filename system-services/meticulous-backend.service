@@ -7,7 +7,7 @@ OnFailure=crash-reporter@.service
 [Service]
 Type=simple
 Environment=PYTHONUNBUFFERED=true
-Restart=always
+Restart=on-success
 RestartSec=10
 ExecStartPre=-/bin/bash -c 'mkdir -p /meticulous-user/syslog/nginx /meticulous-user/syslog/journal || true'
 ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-backend/back.py

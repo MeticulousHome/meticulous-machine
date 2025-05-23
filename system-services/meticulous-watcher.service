@@ -7,7 +7,7 @@ OnFailure=crash-reporter@.service
 [Service]
 Type=simple
 Environment=PYTHONUNBUFFERED=true
-Restart=always
+Restart=on-success
 RestartSec=10
 ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-watcher/watcher.py
 User=root
