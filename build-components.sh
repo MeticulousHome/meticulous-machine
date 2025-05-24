@@ -229,9 +229,12 @@ function build_docker() {
 function build_crash_reporter() {
     if [ -d $CRASH_REPORTER_SRC_DIR ]; then
         echo "Building Crash Report"
-        pushd $CRASH_REPORTER_SRC_DIR >/dev/null
-        ./build.sh
-        popd >/dev/null
+        #build the Docker image
+        docker build -t build-reporter "$CRASH_REPORTER_SRC_DIR"
+        # run the container to build the binary
+        # we must know the absolute path for the crash-reporter component directory to mount the volume
+        echo "cwd: $(pwd)"
+        sudo docker run --rm -v $(pwd)/$CRASH_REPORTER_SRC_DIR:/systemd-crash-reporter build-reporter
     else
         echo "Crash Reporter is not checked out. Skipping"
     fi
@@ -259,6 +262,7 @@ Available options:
     --docker                  Build Docker image for building debian packages (not intcluded in --all)
     --history                 Build History UI
     --psplash | --splash      Build psplash
+    --crash                   Build systemd crash reporter for sentry
     --help                    Displays this help and exits
 
 EOF

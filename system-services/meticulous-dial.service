@@ -2,11 +2,11 @@
 Description=Meticulous Dial App
 After=network.target
 After=weston.service
-OnFailure=crash-reporter.service
+OnFailure=crash-reporter@.service
 
 [Service]
 ExecStart=/usr/bin/meticulous-dial
-Restart=always
+Restart=on-success
 User=root
 MemoryHigh=800M
 MemoryMax=900M

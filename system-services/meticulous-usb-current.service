@@ -1,7 +1,7 @@
 [Unit]
 Description=Set USB Current at Startup
 After=multi-user.target
-OnFailure=crash-reporter.service
+OnFailure=crash-reporter@.service
 
 
 [Service]
