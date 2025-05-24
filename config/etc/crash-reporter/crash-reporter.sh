@@ -18,6 +18,6 @@ restart=(
 
 for SERVICE in "${restart[@]}"; do
 
-    [ "$SERVICE" = "$MONITOR_UNIT" ] && systemctl restart $MONITOR_UNIT && break
+    [ "$SERVICE" = "$MONITOR_UNIT" ] && systemctl restart "$MONITOR_UNIT" && break
 
 done
