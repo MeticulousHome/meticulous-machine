@@ -4,4 +4,4 @@
 ACTION=="add" \
 , KERNEL=="sd?"\
 , SUBSYSTEM=="block"\
-, RUN="/etc/usb_updater/media_handler.sh %k %n"
+, RUN="/usr/local/bin/usb_updater/media_handler.sh %k %n"
