@@ -33,6 +33,10 @@ function a_unpack_base() {
 
     echo "Installing config files"
     cp -Rv config/* ${ROOTFS_DIR}/etc/
+
+    echo "Installing scripts"
+    cp -Rc scripts/* ${ROOTFS_DIR}/usr/local/bin/
+
 }
 
 function copy_services() {
