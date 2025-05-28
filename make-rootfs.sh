@@ -35,7 +35,7 @@ function a_unpack_base() {
     cp -Rv config/* ${ROOTFS_DIR}/etc/
 
     echo "Installing scripts"
-    cp -Rc scripts/* ${ROOTFS_DIR}/usr/local/bin/
+    cp -Rv scripts/* ${ROOTFS_DIR}/usr/local/bin/
 
 }
 
