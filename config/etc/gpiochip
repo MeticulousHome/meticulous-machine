@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Function: get_gpiochip()
+#
+# Description:
+#   Retrieves the gpiochip associated with a given chip label.
+#
+# Parameters:
+#   - chip_label: The chip label used to identify the gpiochip.
+#
+# Returns:
+#   - The gpiochip associated with the provided chip label.
+#
+# Errors:
+#   - If no gpiochip is found for the chip label,
+#     the script exits with a non-zero status.
+#
+# Usage example:
+#   gpiochip=$(get_gpiochip "600000.gpio")
+get_gpiochip() {
+	chip_label=$1
+
+	gpiochip=$(gpiodetect | grep "\[$chip_label\]" | awk '{print $1}')
+
+	if [ -z "$gpiochip" ]; then
+		echo "Error: No gpiochip found for chip label $chip_label" && exit 1
+	fi
+
+	echo $gpiochip
+}

@@ -25,10 +25,15 @@ else
   ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony.dtb
 fi
 
+if [ -e /usr/lib/linux-image-$version/freescale/imx8mn-var-som-meticulous-v2.dtb ]; then
+  ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony-v2.dtb
+fi
+
 if [ -e /boot/Image.gz ]; then
     mv /boot/Image.gz /boot/Image.gz.old
 fi
 ln -vsf $image_path /boot/Image.gz
 
+ln -vsf ./$version/ /usr/lib/modules/LATEST
 
 exit 0
