@@ -189,6 +189,10 @@ function update_linux() {
     echo "Cloning / Updating linux Repositories"
     get_git_src ${LINUX_GIT} ${LINUX_BRANCH} \
         ${LINUX_SRC_DIR} ${LINUX_REV}
+
+    echo "Cloning / Updating mwifiex for linux Repository"
+    get_git_src ${MWIFIEX_GIT} ${MWIFIEX_BRANCH} \
+        ${MWIFIEX_SRC_DIR} ${MWIFIEX_REV}
 }
 
 function update_uboot() {

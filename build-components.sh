@@ -121,7 +121,7 @@ function build_kernel() {
     echo -e "\033[1;32mBuilding Linux Kernel\033[0m"
 
     mkdir -p ${LINUX_BUILD_DIR}
-    rm -f ${LINUX_BUILD_DIR}/*
+    rm -rf ${LINUX_BUILD_DIR}/*
     pushd $LINUX_SRC_DIR >/dev/null
     if [ ! $(uname -m) == "aarch64" ]; then
         export CROSS_COMPILE="aarch64-linux-gnu-"
@@ -132,15 +132,31 @@ function build_kernel() {
     export DEBEMAIL="Mimoja <mimoja@meticuloushome.com>"
     export DPKG_DEB_COMPRESSOR_TYPE=xz
     export DEB_BUILD_OPTIONS="parallel=`nproc`"
-    make mrproper
+    # make mrproper
     make imx8_var_meticulous_defconfig
     make -j`nproc` Image modules dtbs
     make -j`nproc` bindeb-pkg
     popd >/dev/null
 
-    mv ${COMPONENTS_DIR}/linux-*.deb ${LINUX_BUILD_DIR}/
-    mv ${COMPONENTS_DIR}/linux-*.buildinfo ${LINUX_BUILD_DIR}/
-    mv ${COMPONENTS_DIR}/linux-*.changes ${LINUX_BUILD_DIR}/
+    mv -v ${COMPONENTS_DIR}/linux-*.deb ${LINUX_BUILD_DIR}/
+    mv -v ${COMPONENTS_DIR}/linux-*.buildinfo ${LINUX_BUILD_DIR}/
+    mv -v ${COMPONENTS_DIR}/linux-*.changes ${LINUX_BUILD_DIR}/
+
+    echo -e "\033[1;32mBuilding out-of-tree mwifiex driver\033[0m"
+    export KERNELDIR="$(pwd)/${LINUX_SRC_DIR}"
+
+    pushd $MWIFIEX_SRC_DIR >/dev/null
+    if [ ! $(uname -m) == "aarch64" ]; then
+        export CROSS_COMPILE="aarch64-linux-gnu-"
+        export ARCH="arm64"
+        echo -e "\033[1;32mSetting \033[1;34mCROSS_COMPILE=\033[1;35m${CROSS_COMPILE}\033[0m and \033[1;34mARCH=\033[1;35m${ARCH}\033[0m"
+    fi
+    # patch the Makefile to use all cores
+    sed -i 's/$(MAKE) -C/$(MAKE) -j`nproc` -C/' Makefile
+
+    make build
+    popd >/dev/null
+    mv -v ${MWIFIEX_SRC_DIR}/bin_wlan ${LINUX_BUILD_DIR}/
 }
 
 function build_firmware() {

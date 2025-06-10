@@ -44,6 +44,11 @@ export   LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
 export   LINUX_BRANCH="linux-6.12.y"
 export   LINUX_REV="HEAD"
 
+readonly MWIFIEX_SRC_DIR="${COMPONENTS_DIR}/linux-mwifiex"
+readonly MWIFIEX_GIT="https://github.com/nxp-imx/mwifiex.git"
+export   MWIFIEX_BRANCH="lf-6.12.3_1.0.0"
+export   MWIFIEX_REV="0396cfb38ad73a3d587cd0f8c139b47801e70891"
+
 readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
 readonly UBOOT_GIT="git@github.com:MeticulousHome/uboot-variscite-fika.git"
 export   UBOOT_BRANCH="v2022.04-imx-debian-5.15"
@@ -136,8 +141,8 @@ readonly CRASH_REPORTER_GIT="https://github.com/MeticulousHome/systemd-crash-rep
 export   CRASH_REPORTER_BRANCH="main"
 export   CRASH_REPORTER_REV="HEAD"
 
-readonly SYSTEM_PACKAGES="parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs dnsmasq iptables-persistent gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good alembic systemd-timesyncd"
-readonly DEVELOPMENT_PACKAGES="git rsync bash-completion"
+readonly SYSTEM_PACKAGES="git parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs dnsmasq iptables-persistent gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good alembic systemd-timesyncd wireless-regdb"
+readonly DEVELOPMENT_PACKAGES="rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\
     binutils git libncurses-dev python3-m2crypto gawk wget git-core diffstat unzip\
