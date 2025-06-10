@@ -188,6 +188,9 @@ function b_copy_components() {
     echo "Disableing NetworkManager-wait-online.service"
     rm -v ${ROOTFS_DIR}/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
 
+    echo "Building locales"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "locale-gen"
+
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip cache purge"
