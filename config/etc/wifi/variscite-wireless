@@ -1,0 +1,146 @@
+#!/bin/sh -e
+#
+# Common functions for Variscite wireless modules
+#
+
+# run_scripts: Execute all scripts in a specified directory
+# 
+# Arguments:
+#   $1      - The directory containing the scripts to run.
+#   $2...   - Any additional arguments are passed directly to the scripts when executed.
+# 
+# Usage:
+#   run_scripts /path/to/script_directory arg1 arg2 ...
+# 
+# Example:
+#   run_scripts /etc/wifi/variscite-wifi.d start
+run_scripts() {
+	local script_dir="$1"
+	shift  # Shift arguments so that $1 is removed and $2 becomes $1, etc.
+	for script in "$script_dir"/*; do
+		if [ -f "$script" ]; then
+			if [ -x "$script" ]; then
+				echo "Executing: $script"
+				"$script" "$@"
+			fi
+		fi
+	done
+}
+
+# wifi_interface_exists: Check if a specified WIFI interface exists.
+# 
+# Arguments:
+#   $1      - Name of the WIFI interface (e.g., wlan0, wlan1).
+# 
+# Returns:
+#   0       - If the WIFI interface exists.
+#   1       - If the WIFI interface does not exist after checking for 20 seconds.
+# 
+# Usage:
+#   wifi_interface_exists wlan0
+
+wifi_interface_exists() {
+	local interface="$1"
+
+	for i in $(seq 1 20); do
+		if [ -d "/sys/class/net/$interface" ]; then
+			return 0
+		else
+			sleep 1
+		fi
+	done
+
+	return 1
+}
+
+# wifi_mmc_bind: Bind WIFI device to MMC controller.
+# 
+# Arguments:
+#   $1      - mmc_controller_path: Path to the MMC controller (e.g., /sys/bus/platform/drivers/sdhci-esdhc-imx).
+#   $2      - WIFI_MMC_HOST value.
+# 
+# Usage:
+#   wifi_mmc_bind /path/to/mmc/controller WIFI_MMC_HOST_value
+
+wifi_mmc_bind() {
+	local mmc_controller_path="$1"
+	local wifi_mmc_host="$2"
+
+	if [ -e "${mmc_controller_path}/bind" ]; then
+		echo "${wifi_mmc_host}" > "${mmc_controller_path}/bind"
+	fi
+}
+
+# wifi_mmc_unbind: Unbind WIFI device from MMC controller.
+# 
+# Arguments:
+#   $1      - mmc_controller_path: Path to the MMC controller (e.g., /sys/bus/platform/drivers/sdhci-esdhc-imx).
+#   $2      - WIFI_MMC_HOST value.
+# 
+# Usage:
+#   wifi_mmc_unbind /path/to/mmc/controller WIFI_MMC_HOST_value
+
+wifi_mmc_unbind() {
+	local mmc_controller_path="$1"
+	local wifi_mmc_host="$2"
+
+	if [ -e "${mmc_controller_path}/${wifi_mmc_host}" ]; then
+		echo "${wifi_mmc_host}" > "${mmc_controller_path}/unbind"
+	fi
+}
+
+# Get maximum of N numbers
+max()
+{
+  printf "%s\n" "$@" | sort -g -r | head -n1
+}
+
+# Check if WIFI+BT combo module is available
+wifi_sdio_exist()
+{
+    local wifi_sdio_id_file="$1"
+    local max_retries=5
+
+	# Check that WIFI HW was initialized succesfully
+    for i in $(seq 1 $max_retries); do
+        if [ -f "$wifi_sdio_id_file" ]; then
+            return 0
+        else
+            sleep 1
+        fi
+    done
+
+    return 1
+}
+
+# verify_sdio_id: Verifies if a given SDIO device ID matches any of the provided IDs.
+#
+# Arguments:
+#   $1      - wifi_sdio_id_file: Path to the file containing the SDIO device ID (e.g., /sys/class/net/wlan0/device/device).
+#   $2..n   - List of SDIO IDs to check against (e.g., 0x4339, 0xa9a6).
+#
+# Usage:
+#   verify_sdio_id /sys/class/net/wlan0/device/device 0x4339 0xa9a6
+verify_sdio_id() {
+    local wifi_sdio_id_file="$1"
+    shift
+
+    # Check if the specified file exists
+    if [ ! -f "$wifi_sdio_id_file" ]; then
+        echo "Error: File $wifi_sdio_id_file does not exist!"
+        return 1
+    fi
+
+    # Read the device ID from the provided file
+    local device_id
+    device_id=$(cat "$wifi_sdio_id_file")
+
+    # Loop over the provided IDs to check for a match
+    for id in "$@"; do
+        if [ "$device_id" = "$id" ]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
