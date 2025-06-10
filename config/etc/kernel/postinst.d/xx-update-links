@@ -26,7 +26,8 @@ else
 fi
 
 if [ -e /usr/lib/linux-image-$version/freescale/imx8mn-var-som-meticulous-v2.dtb ]; then
-  ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-symphony.dtb /boot/imx8mn-var-som-symphony-v2.dtb
+  ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-meticulous-v2.dtb /boot/imx8mn-var-som-symphony-v2.dtb
+  ln -svf /usr/lib/linux-image-$version/freescale/imx8mn-var-som-meticulous-v2.dtb /boot/imx8mn-var-som-meticulous-v2.dtb
 fi
 
 if [ -e /boot/Image.gz ]; then
