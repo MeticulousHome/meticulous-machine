@@ -52,8 +52,8 @@ export   UBOOT_REV="HEAD"
 readonly ATF_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-atf"
 readonly ATF_GIT="https://github.com/varigit/imx-atf.git"
 
-export ATF_BRANCH="imx_5.4.24_2.1.0_var01"
-export ATF_REV="7575633e03ff952a18c0a2c0aa543dee793fda5f"
+export ATF_BRANCH="lf_v2.8_var02"
+export ATF_REV="723c01ee4903cbce4b4d43e84ad41fbb6385e578"
 
 readonly IMX_MKIMAGE_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-mkimage"
 readonly IMX_MKIMAGE_GIT="https://github.com/nxp-imx/imx-mkimage.git"
