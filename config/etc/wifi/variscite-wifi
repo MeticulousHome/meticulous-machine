@@ -1,54 +1,19 @@
-#!/bin/bash
+#!/bin/sh -e
 
-. /etc/wifi/variscite-wifi.conf
-. /etc/wifi/variscite-wifi-common.sh
-
-# Return true if WIFI interface exists
-wifi_interface_exists()
-{
-	for i in $(seq 1 20); do
-		[ -d /sys/class/net/wlan0 ] && return 0
-		sleep 1
-	done
-
-	return 1
-}
+# Include common wireless functions
+. /etc/wifi/variscite-wireless
 
 # Start WIFI hardware
 wifi_start()
 {
-	# Exit if WIFI should not be started
-	wifi_should_not_be_started && exit 0
-
-	# Setup WIFI control GPIOs
-	wifi_pre_up
-
-	# Try starting WIFI hardware
-	for i in $(seq 1 3); do
-		# Up WIFI
-		wifi_up
-
-		# Exit if WIFI interface exists
-		wifi_interface_exists && exit 0
-
-		# Down WIFI
-		wifi_down
-
-		# Wait enough time for discharge
-		sleep 5
-	done
-
-	exit 1
+	run_scripts "/etc/wifi/variscite-wifi.d" "start"
 }
 
 # Stop WIFI hardware
 # Note that on DART-MX8M this also stops Ethernet
 wifi_stop()
 {
-	# Exit if WIFI should not be stopped
-	wifi_should_not_be_stopped && exit 0
-
-	wifi_down
+	run_scripts "/etc/wifi/variscite-wifi.d" "stop"
 }
 
 ###########################

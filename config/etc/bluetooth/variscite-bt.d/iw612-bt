@@ -1,0 +1,150 @@
+#!/bin/sh -e
+#
+# Activate Bluetooth on Variscite VAR-SOM-MX8M-NANO
+#
+
+# Include common functions
+. /etc/wifi/variscite-wireless
+. /etc/gpiochip
+
+# GPIO banks
+gpio2=$(get_gpiochip "30210000.gpio")
+
+# GPIO pin to enable BT module
+BT_EN_GPIO="${gpio2} 6"
+
+# btnxpuart fdt device compatible file
+BT_FDT="/sys/firmware/devicetree/base/soc@0/bus@30800000/spba-bus@30800000/serial@30890000/bluetooth_iw61x"
+
+# Use btnxpuart device node to determine if wifi module is iw61x
+fdt_has_btnxpuart() {
+	# Check if compatible file exists
+	if [ ! -e "$BT_FDT/compatible" ]; then
+		return 1
+	fi
+
+	# Check if compatible with nxp,88w8987-bt
+	if ! grep -q "nxp,88w8987-bt" "$BT_FDT/compatible"; then
+		return 1
+	fi
+
+	# Check if status file exists
+	if [ ! -e "$BT_FDT/status" ]; then
+		return 1
+	fi
+
+	# Check if status is okay
+	if ! grep -q "okay" "$BT_FDT/status"; then
+		return 1
+	fi
+
+	return 0
+}
+
+# Enable BT via GPIO(s)
+bt_enable()
+{
+	# Power up BT module
+	gpioset -t 0 --chip ${BT_EN_GPIO}=0
+	sleep 0.1
+	gpioset -t 0 --chip ${BT_EN_GPIO}=1
+	sleep 0.1
+}
+
+# Start BT hardware
+bt_start()
+{
+	# Exit if BT module is not iw612 according to the device tree
+	fdt_has_btnxpuart || exit 0
+
+	# Exit if BT interface is already running
+	if [ -e "/sys/class/bluetooth/hci0" ]; then
+		echo "$(basename $0): Bluetooth already started"
+		exit 0
+	fi
+
+	echo "$(basename $0): starting"
+
+	# Enable BT hardware
+	bt_enable
+
+	# Load the NXP bluetooth driver
+	modprobe btnxpuart
+
+	# Wait until the HCI interface comes up
+	if ! timeout 10 sh -c 'until hciconfig | grep -q "hci"; do sleep 0.1; done'; then
+		echo "Error: HCI interface did not come up"
+		exit 1
+	fi
+
+	# Wait until the Bluetooth MAC address is not 00:00:00:00:00:00
+	if ! timeout 10 sh -c 'until [ "$(hciconfig | grep "BD Address" | \
+	awk "{print \$3}")" != "00:00:00:00:00:00" ]; do sleep 0.1; done'; then
+		echo "Error: Bluetooth MAC address is 00:00:00:00:00:00"
+		exit 1
+	fi
+
+	sleep 1;
+
+	# Fork a dummy process to satisfy the variscite-bt systemd service type=forking
+	(while true; do sleep 60; done) &
+}
+
+# Stop BT hardware
+bt_stop()
+{
+	# Exit if BT module is not iw612 according to the device tree
+	fdt_has_btnxpuart || exit 0
+
+	# Exit if BT interface is not available
+	[ -e /sys/class/bluetooth/hci0 ] || exit 0
+
+	echo "$(basename $0): stopping"
+
+	# Bring up hci interface before unloading the BT module to allow the driver
+	# to restore the baud rate to 115200bps and conditionally issue reset command
+	hciconfig hci0 up
+
+	# Unload the driver
+	modprobe -r btnxpuart
+
+	# Assert bluetooth/802.15.4 reset GPIO and disable BT uart buffer
+	gpioset -t 0 --chip ${BT_EN_GPIO}=0
+}
+
+# Issue in-band reset using hci interface
+in_band_reset()
+{
+	# Exit if BT module is not iw612 according to the device tree
+	fdt_has_btnxpuart || exit 0
+
+	# Exit if BT interface is not available
+	[ -e /sys/class/bluetooth/hci0 ] || exit 0
+
+	echo "$(basename $0): in-band reset"
+
+	# Bring up hci interface before using hci commands
+	hciconfig hci0 up
+
+	# Issue the reset command
+	hcitool cmd 0x3f 0xfc 0
+}
+
+
+###########################
+#  Execution starts here  #
+###########################
+case $1 in
+
+start)
+	bt_start
+	;;
+stop)
+	bt_stop
+	;;
+in-band-reset)
+	in_band_reset
+	;;
+esac
+
+exit 0

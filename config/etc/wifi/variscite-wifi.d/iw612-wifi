@@ -1,0 +1,58 @@
+#!/bin/sh -e
+#
+# Activate WIFI on Variscite VAR-SOM-MX8M-NANO
+#
+
+# Function to disable a network interface
+disable_network_interface() {
+	local iface="$1"
+
+	# Check if the interface exists
+	if ip link show "$iface" >/dev/null 2>&1; then
+		ip link set dev "$iface" down
+	fi
+}
+
+# Start WIFI
+wifi_start()
+{
+	modprobe moal mod_para=nxp/var_wifi_mod_para.conf
+}
+
+# Stop WIFI
+wifi_stop()
+{
+	disable_network_interface wlan0
+	disable_network_interface uap0
+	disable_network_interface wfd0
+	modprobe -r moal;
+}
+
+# Issue in-band reset using sdio interface
+wifi_in_band_reset()
+{
+	if [ -f /proc/mwlan/adapter0/config ]; then
+		echo "fw_reload=1" > /proc/mwlan/adapter0/config
+	else
+		echo "Error: /proc/mwlan/adapter0/config does not exist."
+		exit 1
+	fi
+}
+
+###########################
+#  Execution starts here  #
+###########################
+case $1 in
+
+start)
+	wifi_start
+	;;
+stop)
+	wifi_stop
+	;;
+in-band-reset)
+	wifi_in_band_reset
+	;;
+esac
+
+exit 0
