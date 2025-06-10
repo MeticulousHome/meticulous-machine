@@ -169,6 +169,11 @@ function b_copy_components() {
     KERNEL=$(ls ${LINUX_BUILD_DIR} | grep "^linux-image-" | grep --invert-match dbg | tail -n 1)
     systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${LINUX_BUILD_DIR}:/opt/linux" apt -y install --reinstall /opt/linux/${KERNEL}
 
+    echo "Installing mwifiex driver"
+    mkdir -p ${ROOTFS_DIR}/lib/modules/LATEST/updates
+    cp ${LINUX_BUILD_DIR}/bin_wlan/*.ko ${ROOTFS_DIR}/lib/modules/LATEST
+    systemd-nspawn -D ${ROOTFS_DIR}  bash -lc 'pushd /lib/modules/LATEST && depmod -a $(basename $(pwd -P))'
+
     echo "Installing splash"
     export LATEST_SPLASH=$(ls -Art ${PSPLASH_BUILD_DIR}/psplash_*_arm64.deb | tail -n 1)
     if [ -z ${LATEST_SPLASH} ]; then
@@ -190,6 +195,9 @@ function b_copy_components() {
 
     echo "Building locales"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "locale-gen"
+
+    echo "Registering regulatory.db"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream"
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
