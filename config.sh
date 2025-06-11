@@ -51,7 +51,7 @@ export   MWIFIEX_REV="0396cfb38ad73a3d587cd0f8c139b47801e70891"
 
 readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
 readonly UBOOT_GIT="git@github.com:MeticulousHome/uboot-variscite-fika.git"
-export   UBOOT_BRANCH="v2022.04-imx-debian-5.15"
+export   UBOOT_BRANCH="lf_v2024.04_6.6.52-2.2.0_var01"
 export   UBOOT_REV="HEAD"
 
 readonly ATF_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-atf"
