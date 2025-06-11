@@ -132,7 +132,7 @@ function build_kernel() {
     export DEBEMAIL="Mimoja <mimoja@meticuloushome.com>"
     export DPKG_DEB_COMPRESSOR_TYPE=xz
     export DEB_BUILD_OPTIONS="parallel=`nproc`"
-    # make mrproper
+    make mrproper
     make imx8_var_meticulous_defconfig
     make -j`nproc` Image modules dtbs
     make -j`nproc` bindeb-pkg
