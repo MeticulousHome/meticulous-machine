@@ -2,18 +2,18 @@
 export LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
 export LINUX_BRANCH="linux-6.12.y"
 export HISTORY_UI_REV="452f6984333304c914554bf4470d42721a8e696c" # fix(config): conditionally set assetPrefix in Next.js config
-export LINUX_REV="1e9f700a266c49401aa310b8d93215b2dd8dd39d" # defconfig: reenable rndis ethernet config for that one specific windows - yay :C
-export UBOOT_REV="7fdc6b1de1358248e7743069ff335f4168228374" # Enable fastboot recovery on boot via recovery pin
-export ATF_REV="7575633e03ff952a18c0a2c0aa543dee793fda5f" # imx: Fix multiple definition of ipc_handle
+export LINUX_REV="6f608ff142f57adb913c85e69686b022515215d8" # dtbs/freescale: add support for imx8mn-var-som v2
+export UBOOT_REV="2c150b3d75bc249ae523c5995f2246a5a200fe16" # config:_Enable GPIO read command
+export ATF_REV="723c01ee4903cbce4b4d43e84ad41fbb6385e578" # [RND-1518] plat: imx8m: Add 1336mts frequency config on imx8m
 export IMX_MKIMAGE_REV="6745ccdcf15384891639b7ced3aa6ce938682365" # imx8m: Add script to generate SIT (secondary image table)
-export DEBIAN_REV="53515a45f66d4c63eb67181928f4cd58fffcb714" # fix apt update after backport creation
-export BACKEND_REV="3070b0566429d3f859c306366f6adcacfb62bd9b" # chore: run auto-formater
-export DIAL_REV="1b41751b63f44ab4d552cf87ae2ec2e9e5c4702a" # chore(release): v1.80.0 [skip ci]
+export DEBIAN_REV="acefd24ff095a827d20d3b440448b52664f2ceaa" # install gpiod3
+export BACKEND_REV="9ea63015091b25de6ddb591af553dc8c979c351f" # fix: reset handler missing shell=True
+export DIAL_REV="44e211f07eca239d76635590d457ce1432e31735" # chore(release): v1.81.0 [skip ci]
 export WEB_APP_REV="52a271aefd496b5decf149eb7931d872f77d1cba" # chore(deps): bump the npm_and_yarn group across 1 directory with 9 updates
 export WATCHER_REV="311cf70eb04273e474769256a0e2a62eb3ffe93b" # logs: fix datetime handling
-export FIRMWARE_REV="f88dbcf873507e9cd7573fe98534c0fd1ab60d23" # Fix: Migrate from pointers to unique_ptrs for controllers
+export FIRMWARE_REV="a0a000a98da901cfe7b7c7473a6bd7e5ef25bc0e" # add batch 0008 and 0009 to be part of the sophia's motor configuration
 export RAUC_REV="269e1721b3c5f6512f7dfb7fd19f9108515c2a98" # debian: Disable test building for now
 export HAWKBIT_REV="60f34c8cdd0dbad3b97373080e642478724bfc30" # fix: Take into account partial download size
 export PSPLASH_REV="5b0085b559f1aac09c0a88f85f203ab332bbe1c9" # Replace baseimage with DOT image
-export PLOTTER_UI_REV="1436cb5615e156b7b18173265913667120d93a72" # Sorted files by last edit
-export CRASH_REPORTER_REV="382289e40cf2443d5f6c1040e0f62f3a122ab783" # chore: remove commented code
+export PLOTTER_UI_REV="128b61de94273ab2277a7c873d24b7d75cc00c57" # fix re-reder plotters when a new plotter is created
+export CRASH_REPORTER_REV="cabdd41f79e186cd18d61d77db3a924e18c794d2" # remove commented code
