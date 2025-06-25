@@ -178,10 +178,9 @@ function create_image() {
 
     echo "Installing u-boot script"
     mkdir -p sdcard-uboot
-    mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "Meticulous Boot Script" -d rauc-config/u-boot.cmd rauc-config/u-boot.scr
     mount ${PARTITION}2 sdcard-uboot
-    cp -v rauc-config/u-boot.scr sdcard-uboot/u-boot.scr
-    cp -v rauc-config/u-boot.scr sdcard-uboot/boot.scr
+    cp -v ${BOOTLOADER_BUILD_DIR}/u-boot.scr sdcard-uboot/u-boot.scr
+    cp -v ${BOOTLOADER_BUILD_DIR}/u-boot.scr sdcard-uboot/boot.scr
 
     mkdir -p sdcard-user
     mount ${PARTITION}5 sdcard-user

@@ -109,6 +109,8 @@ function build_uboot() {
 
     mkdir -p ${BOOTLOADER_BUILD_DIR} || true
 	cp -v ${IMX_MKIMAGE_SRC_DIR}/iMX8M/flash.bin ${BOOTLOADER_BUILD_DIR}/imx-boot-sd.bin
+
+    mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "Meticulous Boot Script" -d rauc-config/u-boot.cmd ${BOOTLOADER_BUILD_DIR}/u-boot.scr
 }
 
 
