@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         component:
-          - { name: "Build u-boot", build-option: "bootloader", build-path: "components/bootloader/build/imx-boot-sd.bin" }
+          - { name: "Build u-boot", build-option: "bootloader", build-path: "components/bootloader/build" }
           - { name: "Build Linux", build-option: "linux", build-path: "components/linux-build" }
           - { name: "Build Debian", build-option: "debian", build-path: "components/debian-base/rootfs-base.tar.gz" }
           - { name: "Build psplash", build-option: "psplash", build-path: "components/psplash-build/", runner: "ubuntu-22.04" }
