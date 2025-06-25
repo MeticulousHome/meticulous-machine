@@ -305,11 +305,17 @@ jobs:
         name: 'sdcard.img'
         path: .
 
-    - name: Download emmc artifact
+    - name: Download bootloader artifact
       uses: actions/download-artifact@v4
       with:
-        name: 'emmc.img'
-        path: .
+        name: 'bootloader'
+        path: components/bootloader/build/
+  
+    - name: Download rootfs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'rootfs.tar.gz '
+        path: meticulous-rootfs.tar.gz
 
     - name: Install Ubuntu dependencies
       run: sudo apt update && sudo apt install -y pigz qemu-utils e2fsprogs mount cloud-guest-utils

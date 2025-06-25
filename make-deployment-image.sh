@@ -6,6 +6,8 @@ if (($EUID != 0)); then
     exit
 fi
 
+source config.sh
+
 
 # Function to display help text
 show_help() {
@@ -58,18 +60,24 @@ losetup -P ${LOOP_DEV} ${image_name}
 # Resize the user partition
 e2fsck -y -f ${LOOP_DEV}p5
 growpart ${LOOP_DEV}  5
-resize2fs ${LOOP_DEV}p5
+resize2fs ${LOOP_DEV}p5 
 
-mkdir user-partition
+mkdir -p user-partition
 mount ${LOOP_DEV}p5 user-partition
 
-cp -v emmc.img user-partition/emmc.img
+mkdir -p user-partition/provisioning/
+pigz -d meticulous-rootfs.tar.gz
+cp -v meticulous-rootfs.tar user-partition/provisioning/
+cp -v ${BOOTLOADER_BUILD_DIR}/u-boot.scr user-partition/provisioning/
+cp -v ${BOOTLOADER_BUILD_DIR}/imx-boot-sd.bin user-partition/provisioning/
 sync
 
 sleep 1
-bash -c "umount ${LOOP_DEV}p* -v || true"
+bash -c "umount -f ${LOOP_DEV}p* -v || true"
+sleep 1
 
 losetup --detach ${LOOP_DEV}
+sleep 1
 
 rm -r user-partition
 
