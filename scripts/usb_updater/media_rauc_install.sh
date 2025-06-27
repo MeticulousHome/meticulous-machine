@@ -64,6 +64,7 @@ for PARTITION_NAME in $devices; do
 done 
 
 if [ -n "$rauc_files" ]; then
+    systemctl stop rauc-hawkbit-updater
     while read -r line; do
         echo "$line"
         if echo "$line" | grep -q "fail"; then
@@ -88,10 +89,7 @@ if [ -n "$rauc_files" ]; then
     rm -r $MOUNT_POINT
 
     # restart the machine when the update finishes
-    if [ -z "$ERROR_INSTALLING" ]; then
-        sleep 3
-        reboot now
-    else
+    if [ -n "$ERROR_INSTALLING" ]; then
         echo "Error while installing, not rebooting"
         busctl --system emit /handlers/Updater com.Meticulous.Handler.Updater UpdateFailed s "$ERROR_INSTALLING"
         systemctl restart rauc-hawkbit-updater.service
