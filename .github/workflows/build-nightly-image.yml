@@ -145,7 +145,7 @@ jobs:
     - name: Upload rootfs artifact
       uses: actions/upload-artifact@v4
       with:
-        name: rootfs.tar.gz
+        name: meticulous-rootfs.tar.gz
         path: meticulous-rootfs.tar.gz
         if-no-files-found: error
 
@@ -314,8 +314,8 @@ jobs:
     - name: Download rootfs artifact
       uses: actions/download-artifact@v4
       with:
-        name: 'rootfs.tar.gz '
-        path: meticulous-rootfs.tar.gz
+        name: 'meticulous-rootfs.tar.gz '
+        path: ./
 
     - name: Install Ubuntu dependencies
       run: sudo apt update && sudo apt install -y pigz qemu-utils e2fsprogs mount cloud-guest-utils
