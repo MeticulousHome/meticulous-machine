@@ -200,7 +200,7 @@ jobs:
     - name: Download rootfs artifact
       uses: actions/download-artifact@v4
       with:
-        name: 'rootfs.tar.gz'
+        name: 'meticulous-rootfs.tar.gz'
         path: .
 
     - name: Download rauc artifact
