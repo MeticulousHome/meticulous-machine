@@ -100,6 +100,7 @@ function b_copy_components() {
                                                 python3-dbus-next \
                                                 python3-gi \
                                                 python3-setuptools \
+                                                python3-parted \
                                                 python3-systemd \
                                                 python3-venv \
                                                 python3-wheel"
