@@ -45,7 +45,7 @@ jobs:
           - { name: "Build psplash", build-option: "psplash", build-path: "components/psplash-build/", runner: "ubuntu-22.04" }
           - { name: "Build rauc", build-option: "rauc", build-path: "components/rauc/build", runner: "ubuntu-22.04" }
           - { name: "Build dial app", build-option: "dial", build-path: "components/meticulous-dial/out/make/deb/arm64/meticulous-ui.deb" }
-          - { name: "Build web app", build-option: "web", build-path: "components/meticulous-web-app/out/" }
+          - { name: "Build web app", build-option: "web", build-path: "components/meticulous-web-ui/out/" }
           - { name: "Build firmware", build-option: "firmware", build-path: "components/meticulous-firmware-build" }
           - { name: "Build plotter ui", build-option: "plotter", build-path: "components/meticulous-plotter-ui/build/" }
           - { name: "Build crash reporter", build-option: "crash-reporter", build-path: "components/crash-reporter/target" }
