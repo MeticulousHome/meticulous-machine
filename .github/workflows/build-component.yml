@@ -152,7 +152,7 @@ jobs:
             ;;
           "web")
             sudo mkdir -p components/meticulous-web-ui/out/repo-info/
-            sudo cp components/meticulous-web-ui/repository-info.txt components/meticulous-web-app/out/repo-info/
+            sudo cp components/meticulous-web-ui/repository-info.txt components/meticulous-web-ui/out/repo-info/
             ;;
           "firmware")
             sudo mkdir -p components/meticulous-firmware-build/repo-info/
