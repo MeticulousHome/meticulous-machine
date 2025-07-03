@@ -192,7 +192,7 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl disable dnsmasq"
 
     echo "Disableing NetworkManager-wait-online.service"
-    rm -v ${ROOTFS_DIR}/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
+    rm -vf ${ROOTFS_DIR}/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
 
     echo "Building locales"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "locale-gen"
