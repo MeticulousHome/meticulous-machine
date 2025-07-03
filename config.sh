@@ -88,8 +88,8 @@ readonly DASH_GIT="git@github.com:MeticulousHome/meticulous-frontend"
 export   DASH_BRANCH="mimoja_wip"
 export   DASH_REV="HEAD"
 
-readonly WEB_APP_SRC_DIR="${COMPONENTS_DIR}/meticulous-web-app"
-readonly WEB_APP_GIT="git@github.com:MeticulousHome/meticulous-web-app"
+readonly WEB_APP_SRC_DIR="${COMPONENTS_DIR}/meticulous-web-ui"
+readonly WEB_APP_GIT="git@github.com:MeticulousHome/meticulous-web-ui"
 export   WEB_APP_BRANCH="main"
 export   WEB_APP_REV="HEAD"
 
