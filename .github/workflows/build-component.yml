@@ -151,8 +151,8 @@ jobs:
             sudo cp components/meticulous-dial/repository-info.txt components/meticulous-dial/out/make/deb/arm64/repo-info/
             ;;
           "web")
-            sudo mkdir -p components/meticulous-web-app/out/repo-info/
-            sudo cp components/meticulous-web-app/repository-info.txt components/meticulous-web-app/out/repo-info/
+            sudo mkdir -p components/meticulous-web-ui/out/repo-info/
+            sudo cp components/meticulous-web-ui/repository-info.txt components/meticulous-web-app/out/repo-info/
             ;;
           "firmware")
             sudo mkdir -p components/meticulous-firmware-build/repo-info/
