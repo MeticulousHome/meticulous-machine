@@ -44,12 +44,6 @@ server {
 		try_files $uri $uri/ =404;
 	}
 
-	location /settings {
-		alias /opt/meticulous-settings-ui/;
-		autoindex on;
-		try_files $uri $uri/ =404;
-	}
-
     # Combined proxy pass for /socket.io and /api
     location ~ ^/(socket\.io|api) {
         proxy_pass http://localhost:8080;
