@@ -95,7 +95,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: 'web'
-        path:  components/meticulous-web-app/out/
+        path:  components/meticulous-web-ui/out/
 
     - name: Download firmware artifact
       uses: actions/download-artifact@v4
