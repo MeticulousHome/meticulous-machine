@@ -17,6 +17,7 @@ Environment="XDG_RUNTIME_DIR=/run/user/0"
 Environment="WAYLAND_DISPLAY=wayland-0"
 Environment="GDK_BACKEND=wayland"
 Environment="ELECTRON_ENABLE_LOGGING=true"
+Environment="ETNA_MESA_DEBUG=no_linear_pe,no_ts,nir"
 
 [Install]
 WantedBy=multi-user.target
