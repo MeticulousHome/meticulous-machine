@@ -13,7 +13,7 @@ if [ "${THIS_KERNEL}" = "`echo -e "${THIS_KERNEL}\n${MAINLINE}" | sort -V | head
   CHROMIUM_PARAMS="${CHROMIUM_PARAMS} --use-angle=opengles --use-vulkan"
 else
   echo "Running with HW rendering"
-  CHROMIUM_PARAMS="${CHROMIUM_PARAMS} --disable-gpu-sandbox"
+  CHROMIUM_PARAMS="${CHROMIUM_PARAMS}"
 fi
 
 # Actaully start the app
