@@ -1,0 +1,21 @@
+#!/bin/bash
+export LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
+export LINUX_BRANCH="linux-6.12.y"
+export HISTORY_UI_REV="452f6984333304c914554bf4470d42721a8e696c" # fix(config): conditionally set assetPrefix in Next.js config
+export LINUX_REV="6f608ff142f57adb913c85e69686b022515215d8" # dtbs/freescale: add support for imx8mn-var-som v2
+export UBOOT_REV="2c150b3d75bc249ae523c5995f2246a5a200fe16" # config:_Enable GPIO read command
+export ATF_REV="723c01ee4903cbce4b4d43e84ad41fbb6385e578" # [RND-1518] plat: imx8m: Add 1336mts frequency config on imx8m
+export IMX_MKIMAGE_REV="6745ccdcf15384891639b7ced3aa6ce938682365" # imx8m: Add script to generate SIT (secondary image table)
+export DEBIAN_REV="acefd24ff095a827d20d3b440448b52664f2ceaa" # install gpiod3
+export BACKEND_BRANCH="certification-sgs-2025"
+export BACKEND_REV="HEAD"
+export DIAL_BRANCH="certification-sgs-2025"
+export DIAL_REV="HEAD"
+export WEB_APP_REV="581d8b0b2fc1bdfcddaba80b32dd56b54bdec3c3" # status: properly handle NAN weights
+export WATCHER_REV="311cf70eb04273e474769256a0e2a62eb3ffe93b" # logs: fix datetime handling
+export FIRMWARE_REV="d519a853e78283b15684f6bb38203a357455359d" # chore: only build esp32-s3 environments on GH actions
+export RAUC_REV="269e1721b3c5f6512f7dfb7fd19f9108515c2a98" # debian: Disable test building for now
+export HAWKBIT_REV="60f34c8cdd0dbad3b97373080e642478724bfc30" # fix: Take into account partial download size
+export PSPLASH_REV="5b0085b559f1aac09c0a88f85f203ab332bbe1c9" # Replace baseimage with DOT image
+export PLOTTER_UI_REV="e84b6ee83e010baa511acb609d9444cedd7fe9f3" # chore: run autoformater
+export CRASH_REPORTER_REV="cabdd41f79e186cd18d61d77db3a924e18c794d2" # remove commented code
