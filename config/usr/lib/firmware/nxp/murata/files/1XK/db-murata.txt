@@ -1,0 +1,60 @@
+wmmrule ETSI:
+	vo_c: cw_min=3, cw_max=7, aifsn=2, cot=2
+	vi_c: cw_min=7, cw_max=15, aifsn=2, cot=4
+	be_c: cw_min=15, cw_max=1023, aifsn=3, cot=6
+	bk_c: cw_min=15, cw_max=1023, aifsn=7, cot=6
+	vo_ap: cw_min=3, cw_max=7, aifsn=1, cot=2
+	vi_ap: cw_min=7, cw_max=15, aifsn=1, cot=4
+	be_ap: cw_min=15, cw_max=63, aifsn=3, cot=6
+	bk_ap: cw_min=15, cw_max=1023, aifsn=7, cot=6
+
+
+country 00:
+	(2402 - 2472 @ 40), (20)
+	# Channel 12 - 13.
+	(2457 - 2482 @ 20), (20), NO-IR, AUTO-BW
+	# Channel 14. Only JP enables this and for 802.11b only
+	(2474 - 2494 @ 20), (20), NO-IR, NO-OFDM
+	# Channel 36 - 48
+	(5170 - 5250 @ 80), (20), NO-IR, AUTO-BW
+	# Channel 52 - 64
+	(5250 - 5330 @ 80), (20), NO-IR, DFS, AUTO-BW
+	# Channel 100 - 144
+	(5490 - 5730 @ 160), (20), NO-IR, DFS
+	# Channel 149 - 165
+	(5735 - 5835 @ 80), (20), NO-IR
+	# IEEE 802.11ad (60GHz), channels 1..3
+	(57240 - 63720 @ 2160), (0)
+
+
+country CA: DFS-FCC
+	(2402 - 2472 @ 20), (30)
+	(5170 - 5250 @ 40), (23), NO-OUTDOOR, AUTO-BW
+	(5250 - 5330 @ 40), (23), DFS, AUTO-BW
+	(5490 - 5590 @ 40), (23), DFS, AUTO-BW
+	(5650 - 5730 @ 40), (23), DFS, AUTO-BW
+	(5735 - 5835 @ 40), (30), AUTO-BW
+
+
+country DE: DFS-ETSI
+	(2400 - 2482 @ 20), (100 mW)
+	(5170 - 5250 @ 40), (200 mW), NO-OUTDOOR, AUTO-BW, wmmrule=ETSI
+	(5250 - 5330 @ 40), (200 mW), NO-OUTDOOR, DFS, AUTO-BW, wmmrule=ETSI
+	(5490 - 5710 @ 40), (200 mW), DFS,AUTO-BW, wmmrule=ETSI
+	(5735 - 5855 @ 40), (25 mW), AUTO-BW
+
+
+country JP: DFS-JP
+	(2402 - 2482 @ 20), (20)
+	(5170 - 5250 @ 40), (20), NO-OUTDOOR, AUTO-BW
+	(5250 - 5330 @ 40), (20), NO-OUTDOOR, DFS, AUTO-BW
+	(5490 - 5710 @ 40), (23), DFS, AUTO-BW
+
+
+country US: DFS-FCC
+	(2400 - 2472 @ 20), (30)
+	(5170 - 5250 @ 40), (23), AUTO-BW
+	(5250 - 5330 @ 40), (23), DFS, AUTO-BW
+	(5490 - 5730 @ 40), (23), DFS, AUTO-BW
+	(5735 - 5835 @ 40), (30), AUTO-BW
+
