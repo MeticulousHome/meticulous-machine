@@ -20,7 +20,7 @@ jobs:
   build-components:
     name: Build all image components
     secrets: inherit
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
+    uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@tauri
     with:
       image: ${{ inputs['image'] || 'nightly' }}
 

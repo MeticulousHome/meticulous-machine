@@ -29,7 +29,7 @@ jobs:
 
   build_components:
     name: Build ${{ matrix.component.name }}
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
+    uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@tauri
     with:
       build-option: ${{ matrix.component.build-option }}
       build-path: ${{ matrix.component.build-path }}
