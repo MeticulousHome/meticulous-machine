@@ -70,7 +70,7 @@ readonly BOOTLOADER_BUILD_DIR=${COMPONENTS_DIR}/"bootloader/build"
 
 readonly DEBIAN_SRC_DIR=${COMPONENTS_DIR}/"debian-base"
 export   DEBIAN_GIT="git@github.com:MeticulousHome/debian-fika"
-export   DEBIAN_BRANCH="bookworm-mainline"
+export   DEBIAN_BRANCH="trixie-mainline"
 export   DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
