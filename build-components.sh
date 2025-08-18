@@ -14,7 +14,7 @@ function build_debian() {
 function repack_deb() {
     deb_package=$1
     echo "Unpacking package ${deb_package}"
-    rm -f meticulous-ui.deb
+    rm -f meticulous-dial.deb
     ar x ${deb_package}
 
     # Uncompress zstd files an re-compress them using xz
@@ -26,7 +26,7 @@ function repack_deb() {
 
     # Re-create the Debian package
     echo "Repacking package"
-    ar -m -c -a sdsd meticulous-ui.deb debian-binary control.tar.xz data.tar.xz
+    ar -m -c -a sdsd meticulous-dial.deb debian-binary control.tar.xz data.tar.xz
     # Clean up
     rm debian-binary control.tar.xz data.tar.xz control.tar.zst data.tar.zst
 }
@@ -35,18 +35,19 @@ function build_dial() {
     echo "Building Dial app"
     pushd $DIAL_SRC_DIR >/dev/null
     export DPKG_DEB_COMPRESSOR_TYPE=xz
-    rm -f out/make/deb/arm64/*.deb
+    rm -rfv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/meticulous-dial_*_arm64.deb
     npm install
-    npm run make -- --arch=arm64 --platform=linux
+    npm run docker:arm64-cross 
+    npm run package:arm64-cross
 
-    pushd out/make/deb/arm64 >/dev/null
-    contents=$(ar t meticulous-ui*_arm64.deb)
+    pushd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb >/dev/null
+    contents=$(ar t meticulous-dial_*_arm64.deb)
     if [[ $contents == *"control.tar.zst"* ]] && [[ $contents == *"data.tar.zst"* ]]; then
         echo "Compression is zstd. Archive needs to be repacked"
-        repack_deb meticulous-ui*_arm64.deb
+        repack_deb meticulous-dial_*_arm64.deb
     else
         echo "Compression is xz or gzip. Archive can be used as is"
-        cp meticulous-ui*_arm64.deb meticulous-ui.deb
+        cp meticulous-dial_*_arm64.deb meticulous-dial.deb
     fi
     popd >/dev/null
     popd >/dev/null

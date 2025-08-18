@@ -19,7 +19,7 @@ function a_unpack_base() {
 
     mkdir -p ${ROOTFS_DIR}
     # Unpack the image that includes the packages for Variscite
-    echo "Unpacking the debian image that includes packages for Variscite"
+    echo "Unpacking the debian base image"
     rm -rf ${ROOTFS_DIR}/*
     pv ${DEBIAN_SRC_DIR}/rootfs-base.tar.gz | tar xz -C ${ROOTFS_DIR}
 
@@ -66,7 +66,7 @@ function b_copy_components() {
 
     # Install meticulous components
     # Install Dial app
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/out/make/deb/arm64/:/opt/meticulous-ui" bash -c "apt -y install --reinstall --no-install-recommends trash-cli /opt/meticulous-ui/meticulous-ui.deb"
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/:/opt/meticulous-dial" bash -c "apt -y install --reinstall --no-install-recommends trash-cli /opt/meticulous-dial/meticulous-dial.deb"
 
     # Install Backend
     echo "Installing Backend"
