@@ -54,6 +54,7 @@ jobs:
     env:
       needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter'}}
       needs-cross-compile: ${{ inputs['build-option'] == 'linux' }}
+      needs-qemu: ${{ inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -92,7 +93,7 @@ jobs:
         sudo apt -y install build-essential libssl-dev:arm64 libelf-dev debhelper bc bison flex libssl-dev libncurses5-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
     - name: Install qemu-img
-      if: ${{ fromJSON(env.needs-deps) }}
+      if: ${{ fromJSON(env.needs-qemu) }}
       run: |
         sudo apt install -y qemu-utils qemu-user-static
 

@@ -89,7 +89,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: 'dial'
-        path:  components/meticulous-dial/out/make/deb/arm64/
+        path:  components/meticulous-dial/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/
 
     - name: Download web artifact
       uses: actions/download-artifact@v4
