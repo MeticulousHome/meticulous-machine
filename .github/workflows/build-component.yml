@@ -149,8 +149,8 @@ jobs:
             sudo cp components/rauc/rauc/repository-info.txt components/rauc/build/repo-info/
             ;;
           "dial")
-            sudo mkdir -p components/meticulous-dial/out/make/deb/arm64/repo-info/
-            sudo cp components/meticulous-dial/repository-info.txt components/meticulous-dial/out/make/deb/arm64/repo-info/
+            sudo mkdir -p components/meticulous-dial/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/repo-info
+            sudo cp components/meticulous-dial/repository-info.txt components/meticulous-dial/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/repo-info/
             ;;
           "web")
             sudo mkdir -p components/meticulous-web-ui/out/repo-info/
@@ -179,7 +179,7 @@ jobs:
           ${{ inputs['build-path'] }}
           ${{
             inputs['build-option'] == 'bootloader' && 'components/bootloader/build/repo-info/**' ||
-            inputs['build-option'] == 'dial' && 'components/meticulous-dial/out/make/deb/arm64/repo-info/**' ||
+            inputs['build-option'] == 'dial' && 'components/meticulous-dial/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/repo-info/**' ||
             inputs['build-option'] == 'debian' && 'components/debian-base/repo-info/**' ||
             ''
           }}
