@@ -64,7 +64,7 @@ jobs:
         git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
     - name: Set up QEMU
-      if: ${{ fromJSON(env.needs-deps) }}
+      if: ${{ fromJSON(env.needs-qemu) }}
       uses: docker/setup-qemu-action@v3
 
     - name: Install Ubuntu dependencies
@@ -95,6 +95,7 @@ jobs:
     - name: Install qemu-img
       if: ${{ fromJSON(env.needs-qemu) }}
       run: |
+        sudo apt update
         sudo apt install -y qemu-utils qemu-user-static
 
     - name: 'Exporting pio'
