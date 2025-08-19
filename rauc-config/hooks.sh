@@ -21,6 +21,8 @@ case "$1" in
                         mkdir -p "$RAUC_SLOT_MOUNT_POINT/root/.ssh"
                         cp -rv /root/.ssh/authorized_keys "$RAUC_SLOT_MOUNT_POINT/root/.ssh/"
                 fi
+                fw_setenv BOOT_A_LEFT 3
+                fw_setenv BOOT_B_LEFT 3
                 ;;
         *)
                 exit 1
