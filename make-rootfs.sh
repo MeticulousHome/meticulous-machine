@@ -195,6 +195,9 @@ function b_copy_components() {
     rm -vf ${ROOTFS_DIR}/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service
 
     echo "Building locales"
+    sed -i ${ROOTFS_DIR}/etc/locale.gen -e "s/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g"
+    sed -i ${ROOTFS_DIR}/etc/locale.gen -e "s/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/g"
+    sed -i ${ROOTFS_DIR}/etc/locale.gen -e "s/# C.UTF-8 UTF-8/C.UTF-8 UTF-8/g"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "locale-gen"
 
     echo "Registering regulatory.db"
