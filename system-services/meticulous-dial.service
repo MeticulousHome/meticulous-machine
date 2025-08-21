@@ -8,8 +8,7 @@ OnFailure=crash-reporter@.service
 ExecStart=/usr/bin/meticulous-dial
 Restart=on-success
 User=root
-MemoryHigh=800M
-MemoryMax=900M
+MemoryMax=1000M
 Slice=meticulous.slice
 
 Environment="DISPLAY=:0"
