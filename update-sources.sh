@@ -171,7 +171,11 @@ function update_mobile() {
         ${MOBILE_SRC_DIR} ${MOBILE_REV}
     pushd $MOBILE_SRC_DIR
     yarn
-    bundle install
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "Detected macOS. Installing iOS dependencies."
+        bundle install
+        npx pod-install
+    fi
     popd
 }
 
