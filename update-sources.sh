@@ -166,7 +166,7 @@ function update_plotter() {
 }
 
 function update_mobile() {
-    echo "Cloning / Updating Firmware Repository"
+    echo "Cloning / Updating Mobile App Repository"
     get_git_src ${MOBILE_GIT} ${MOBILE_BRANCH} \
         ${MOBILE_SRC_DIR} ${MOBILE_REV}
     pushd $MOBILE_SRC_DIR
