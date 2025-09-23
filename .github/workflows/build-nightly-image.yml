@@ -128,11 +128,16 @@ jobs:
 
     - name: Write build channel to image-build-channel
       run: |
-        echo "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-channel > /dev/null
+        echo "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-channel
 
     - name: Generate repository information
       run: |
         ./generate_repo_info.sh
+
+    - name: Generate build number and writing it to to image-build-version
+      run: |
+        echo -n "Image build version: " >> $GITHUB_STEP_SUMMARY
+        ./generate_image_version.sh "${{github.run_number}}" "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-version >> $GITHUB_STEP_SUMMARY
 
     - name: Build rootfs
       run: |

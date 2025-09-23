@@ -153,6 +153,12 @@ function b_copy_components() {
         echo "Warning: image-build-channel not found. Skipping copy."
     fi
 
+    if [ -f ./image-build-version ]; then
+        cp ./image-build-version ${ROOTFS_DIR}/opt/
+    else
+        echo "Warning: image-build-version not found. Skipping copy."
+    fi
+
     if [ -f ./components/repo-info/summary.txt ]; then
         cp ./components/repo-info/summary.txt ${ROOTFS_DIR}/opt/
         echo "summary.txt successfully copied to ${ROOTFS_DIR}/opt/"
