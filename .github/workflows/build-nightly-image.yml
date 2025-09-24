@@ -20,7 +20,7 @@ jobs:
   build-components:
     name: Build all image components
     secrets: inherit
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
+    uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@set_up_pcb_tester_uptodate
     with:
       image: ${{ inputs['image'] || 'nightly' }}
 
@@ -84,12 +84,6 @@ jobs:
       with:
         name: 'rauc'
         path:  components/rauc/build
-
-    - name: Download dial artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'dial'
-        path:  components/meticulous-dial/out/make/deb/arm64/
 
     - name: Download web artifact
       uses: actions/download-artifact@v4
