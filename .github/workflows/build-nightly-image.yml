@@ -118,7 +118,7 @@ jobs:
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Checkout all the python sources
-      run: ./update-sources.sh --watcher --image ${{ inputs['image'] || 'nightly' }}
+      run: ./update-sources.sh --backend-tester --watcher --image ${{ inputs['image'] || 'nightly' }}
 
     - name: Write build channel to image-build-channel
       run: |

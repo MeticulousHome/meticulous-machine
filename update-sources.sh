@@ -358,6 +358,7 @@ while [[ $# -gt 0 ]]; do
         --splash) steps[update_psplash]=1 ;;
         --crash) steps[update_crash_reporter]=1 ;;
         --crash-reporter) steps[update_crash_reporter]=1 ;;
+        --backend-tester) steps[update_tester_backend]=1 ;;
         --help) show_help; exit 0 ;;
 
         # Enable all steps via special case
