@@ -125,7 +125,7 @@ function b_copy_components() {
 
     # Create a specific virtual environment for AutomatedMainBoardTesterBackend
     echo "Creating virtual environment for AutomatedMainBoardTesterBackend"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3.12 -m venv /opt/AutomatedMainBoardTesterBackend/venv"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3 -m venv /opt/AutomatedMainBoardTesterBackend/venv"
 
     # Install python requirements for AutomatedMainBoardTesterBackend in its specific venv
     echo "Installing AutomatedMainBoardTesterBackend dependencies"
