@@ -35,14 +35,12 @@ declare -A components=(
     ["debian"]="${DEBIAN_SRC_DIR}/repo-info/repository-info.txt"
     ["psplash"]="${PSPLASH_BUILD_DIR}/repo-info/repository-info.txt"
     ["rauc"]="${RAUC_BUILD_DIR}/repo-info/repository-info.txt"
-    ["dial"]="${DIAL_SRC_DIR}/out/make/deb/arm64/repo-info/repository-info.txt"
     ["web"]="${WEB_APP_SRC_DIR}/out/repo-info/repository-info.txt"
     ["firmware"]="${FIRMWARE_OUT_DIR}/repo-info/repository-info.txt"
     ["plotter"]="${PLOTTER_UI_SRC_DIR}/build/repo-info/repository-info.txt"
 )
 
 declare -A special_components=(
-    ["backend"]="${BACKEND_SRC_DIR}"
     ["watcher"]="${WATCHER_SRC_DIR}"
 )
 
