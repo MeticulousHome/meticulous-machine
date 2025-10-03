@@ -1019,16 +1019,16 @@ if __name__ == "__main__":
     # Creating a target filter
     filters = client.get_all_targetfilters().get("content") or []
 
-    channel_filter = ensure_filter(
-        client,
-        filters,
-        f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"',
-        f"Downloads from {args.channel} channel, boots from {args.bootmode}",
-        dist_id,
-        action_type="forced",
-    )
+    # channel_filter = ensure_filter(
+    #     client,
+    #     filters,
+    #     f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"',
+    #     f"Downloads from {args.channel} channel, boots from {args.bootmode}",
+    #     dist_id,
+    #     action_type="forced",
+    # )
 
-    print(f"Channel filter is {channel_filter}")
+    # print(f"Channel filter is {channel_filter}")
 
     # Create or replace the rollout
     raucb_filename = os.path.basename(args.bundle)
