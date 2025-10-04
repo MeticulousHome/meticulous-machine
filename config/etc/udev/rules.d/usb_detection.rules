@@ -1,0 +1,4 @@
+ACTION=="add" \
+, SUBSYSTEM=="usb"\
+, DRIVER=="usb"\
+, RUN="/usr/local/bin/tests/usb_detect.sh %s{idVendor} %s{product}"
