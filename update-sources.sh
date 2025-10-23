@@ -11,18 +11,23 @@ source config.sh
 # $4 - commit id
 function get_git_src() {
     if ! [ -d $3 ]; then
+        echo "${3} does not exist, creating folder and empty repo"
         # clone src code
-        git clone ${1} -b ${2} ${3} --recurse-submodules
+        mkdir -p ${3}
+        pushd ${3}
+        git -c init.defaultbranch=main init
+        popd
     fi
     pushd ${3}
 
     repo_remote="origin"
+    if [[ ! $(git config --get remote.${repo_remote}.url) ]]; then
+        echo "Repository ${3} has no origin"
+        git remote add origin ${1}
+    fi
     # get the original cloning repo
     origin=$(git config --get remote.origin.url)
-    if [ -z ${origin} ]; then
-        echo "Repository ${3} has no origin"
-        exit 1
-    fi
+    echo "repo origin is \"${origin}\""
     if [ ${origin} != ${1} ]; then
         echo "Repository ${3} is not the original repository"
         echo "Original repository: ${origin}"
@@ -37,8 +42,13 @@ function get_git_src() {
         repo_remote=${new_remote}
     fi
 
-    git fetch ${repo_remote} --recurse-submodules
-    git checkout "${repo_remote}/${2}" -B ${2} -f --recurse-submodules
+    target=${4}
+    if [ -z "${target}" ] || [ "${target}" == "HEAD" ]; then
+        target=${2}
+    fi
+
+    git fetch --depth 2 ${repo_remote} --recurse-submodules ${target}
+    git checkout FETCH_HEAD -B ${2} -f --recurse-submodules
     git reset --hard ${4}
 
     {
