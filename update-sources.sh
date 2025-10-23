@@ -50,6 +50,7 @@ function get_git_src() {
     git fetch --depth 2 ${repo_remote} --recurse-submodules ${target}
     git checkout FETCH_HEAD -B ${2} -f --recurse-submodules
     git reset --hard ${4}
+    git submodule update --init
 
     {
         echo "Repository: $(basename ${3})"
