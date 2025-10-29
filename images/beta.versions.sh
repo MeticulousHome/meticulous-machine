@@ -16,4 +16,4 @@ export RAUC_REV="269e1721b3c5f6512f7dfb7fd19f9108515c2a98" # debian: Disable tes
 export HAWKBIT_REV="60f34c8cdd0dbad3b97373080e642478724bfc30" # fix: Take into account partial download size
 export PSPLASH_REV="5b0085b559f1aac09c0a88f85f203ab332bbe1c9" # Replace baseimage with DOT image
 export PLOTTER_UI_REV="3885ee11275b8e2fdf44b0262430cf33a00f6ad6" # chore: run formatter
-export CRASH_REPORTER_REV="d3309f9a32803ec54392b92de386de81e330aebb" # chore: use fs::read_to_string instead of cat command to read VERSION and DATE files
+export CRASH_REPORTER_REV="9c377cac4a53ecbf8a4345fbaad56060be166ebf" # run cargo fmt
