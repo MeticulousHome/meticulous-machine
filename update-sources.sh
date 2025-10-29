@@ -166,6 +166,9 @@ function update_firmware() {
     echo "Cloning / Updating Firmware Repository"
     get_git_src ${FIRMWARE_GIT} ${FIRMWARE_BRANCH} \
         ${FIRMWARE_SRC_DIR} ${FIRMWARE_REV}
+    pushd ${FIRMWARE_SRC_DIR}
+    git fetch --unshallow
+    popd 
 }
 
 function update_plotter() {
