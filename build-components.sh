@@ -37,8 +37,8 @@ function build_dial() {
     export DPKG_DEB_COMPRESSOR_TYPE=xz
     rm -rfv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/meticulous-dial_*_arm64.deb
     npm install
-    npm run docker:arm64-cross 
-    npm run package:arm64-cross
+    npm run docker:arm64-qemu 
+    npm run package:arm64-qemu
 
     pushd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb >/dev/null
     contents=$(ar t meticulous-dial_*_arm64.deb)
