@@ -35,6 +35,10 @@ if [ -e /boot/Image.gz ]; then
 fi
 ln -vsf $image_path /boot/Image.gz
 
+# Dont risk that we create symlinks inside the symlink. We want to move it instead
+if [ -e /usr/lib/modules/LATEST ]; then
+    rm /usr/lib/modules/LATEST
+fi
 ln -vsf ./$version/ /usr/lib/modules/LATEST
 
 exit 0
