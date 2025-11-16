@@ -1,0 +1,5 @@
+Types: deb
+URIs: https://feeds.toradex.com/stable/imx8/snapshots/20250926T175545Z
+Suites: stable
+Components: main non-free
+Signed-By: /usr/share/keyrings/toradex-debian-repo.gpg
