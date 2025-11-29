@@ -22,21 +22,6 @@ function a_unpack_base() {
     echo "Unpacking the debian base image"
     rm -rf ${ROOTFS_DIR}/*
     pv ${DEBIAN_SRC_DIR}/rootfs-base.tar.gz | tar xz -C ${ROOTFS_DIR}
-
-    #Install user packages if any
-    echo "rootfs: install user defined packages (user-stage)"
-    echo "rootfs: SYSTEM_PACKAGES \"${SYSTEM_PACKAGES}\" "
-    echo "rootfs: DEVELOPMENT_PACKAGES \"${DEVELOPMENT_PACKAGES}\" "
-
-    systemd-nspawn -D ${ROOTFS_DIR} apt update
-    systemd-nspawn -D ${ROOTFS_DIR} -E DEBIAN_FRONTEND=noninteractive apt install -y -o Debug::pkgProblemResolver=yes ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
-
-    echo "Installing config files"
-    cp -Rv config/* ${ROOTFS_DIR}/etc/
-
-    echo "Installing scripts"
-    cp -Rv scripts/* ${ROOTFS_DIR}/usr/local/bin/
-
 }
 
 function copy_services() {
@@ -55,6 +40,21 @@ function copy_services() {
 function b_copy_components() {
 
     echo "Copying components into existing rootfs"
+
+    echo "Installing config files"
+    cp -Rv config/* ${ROOTFS_DIR}/etc/
+
+    #Install user packages if any
+    echo "rootfs: install user defined packages (user-stage)"
+    echo "rootfs: SYSTEM_PACKAGES \"${SYSTEM_PACKAGES}\" "
+    echo "rootfs: DEVELOPMENT_PACKAGES \"${DEVELOPMENT_PACKAGES}\" "
+
+    systemd-nspawn -D ${ROOTFS_DIR} apt update
+    systemd-nspawn -D ${ROOTFS_DIR} -E DEBIAN_FRONTEND=noninteractive apt dist-upgrade -y
+    systemd-nspawn -D ${ROOTFS_DIR} -E DEBIAN_FRONTEND=noninteractive apt install -y -o Debug::pkgProblemResolver=yes ${SYSTEM_PACKAGES} ${DEVELOPMENT_PACKAGES}
+
+    echo "Installing scripts"
+    cp -Rv scripts/* ${ROOTFS_DIR}/usr/local/bin/
 
     echo "Installing services"
     copy_services
