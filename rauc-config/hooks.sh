@@ -23,6 +23,7 @@ case "$1" in
                 fi
                 fw_setenv BOOT_A_LEFT 3
                 fw_setenv BOOT_B_LEFT 3
+                shutdown -r 03:00
                 ;;
         *)
                 exit 1
