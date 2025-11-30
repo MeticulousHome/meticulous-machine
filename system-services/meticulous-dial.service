@@ -11,11 +11,11 @@ User=root
 MemoryMax=1000M
 Slice=meticulous.slice
 
-Environment="DISPLAY=:0"
+#Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/0"
 Environment="WAYLAND_DISPLAY=wayland-0"
 Environment="GDK_BACKEND=wayland"
-Environment="GDK_GL=gles"
+#Environment="GDK_GL=gles"
 
 [Install]
 WantedBy=multi-user.target
