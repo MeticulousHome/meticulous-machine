@@ -4,6 +4,11 @@ get_somrev() {
         # Get the raw output
         raw_output=$(i2cget -f -y 0x0 0x52 0x1e)
 
+        if [ -z "$raw_output" ]; then
+            echo "READ_FAILURE"
+            return
+        fi
+
         # Convert the output to decimal
         decimal_output=$(( $raw_output ))
 
