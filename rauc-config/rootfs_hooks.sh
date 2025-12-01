@@ -7,6 +7,11 @@ case "$1" in
                 # only rootfs needs to be handled
                 test "$RAUC_SLOT_CLASS" = "rootfs" || exit 0
 
+                if [ -e /boot/env/uboot-redund.env ] && [ ! -e /boot/env/uboot.env ]; then
+                    echo "U-Boot env not found, only redundant exists, copying redundant to active"
+                    cp /boot/env/uboot-redund.env /boot/env/uboot.env
+                fi
+
                 echo "Copying config components into existing rootfs"
                 # Copy over the config
                 cp -rv /etc/hostname              "$RAUC_SLOT_MOUNT_POINT/etc/"
