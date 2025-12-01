@@ -11,6 +11,7 @@ OnFailure=crash-reporter@.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecPre=/usr/bin/ensure-uboot-env.sh
 ExecStart=/usr/bin/rauc status mark-good
 
 [Install]
