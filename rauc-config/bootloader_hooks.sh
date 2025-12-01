@@ -55,7 +55,31 @@ mkdir -p "$CONTENT_DIR"
 
 # Create bootloader image file
 cp "$BOOTLOADER_PATH" "$CONTENT_DIR/bootloader.img"
-cp rauc-config/bootloader_hooks.sh "$CONTENT_DIR/bootloader_hooks.sh"
+
+# Create hook script
+cat > "$CONTENT_DIR/hook.sh" << 'EOF'
+#!/bin/sh
+
+case "$1" in
+    slot-post-install)
+        #Ensure the hook is for the bootloader slot
+        if [ "$RAUC_SLOT_CLASS" = "bootloader" ]; then
+            echo "Removing environment files from /boot/env..."
+            rm -f /boot/env/*.env
+            echo "Environment files removed."
+        fi
+        ;;
+    *)
+        echo "Unknown hook: $1"
+        exit 1
+        ;;
+esac
+
+exit 0
+EOF
+
+# Make hook script executable
+chmod +x "$CONTENT_DIR/hook.sh"
 
 # Create manifest
 cat > "$CONTENT_DIR/manifest.raucm" << EOF
@@ -65,7 +89,7 @@ version=$VARIANT
 [bundle]
 format=verity
 [hooks]
-filename=bootloader_hooks.sh
+filename=hook.sh
 [image.bootloader]
 filename=bootloader.img
 hooks=post-install
