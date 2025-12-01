@@ -27,3 +27,8 @@
   build_channel             = __BUILD_CHANNEL__
   som                       = __SOM__
   memory                    = __MEMORY__
+  uboot_active_version      = __UBOOT_ACTIVE_REV__
+  uboot_active_slot         = __UBOOT_ACTIVE__
+  uboot_disk_version        = __UBOOT_DISK_REV__
+  uboot_boot0_version       = __UBOOT_BOOT0_REV__
+  uboot_boot1_version       = __UBOOT_BOOT1_REV__
