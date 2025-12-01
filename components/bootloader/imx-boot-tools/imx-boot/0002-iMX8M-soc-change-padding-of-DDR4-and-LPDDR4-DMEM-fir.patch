@@ -1,0 +1,44 @@
+From a98708ff646c0efd22963560f7cc33bd2c550029 Mon Sep 17 00:00:00 2001
+From: Nate Drude <nate.d@variscite.com>
+Date: Mon, 28 Feb 2022 10:42:42 -0600
+Subject: [PATCH] iMX8M: soc: change padding of DDR4 and LPDDR4 DMEM firmware
+
+See https://github.com/varigit/uboot-imx/commit/3b5aa3fc1ce23ffe8f790be60efaa495e99f033a
+
+Upstream-Status: Pending
+Signed-off-by: Nate Drude <nate.d@variscite.com>
+
+---
+ iMX8M/soc.mak | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
+index ecdd9bb..7f7aa8e 100644
+--- a/iMX8M/soc.mak
++++ b/iMX8M/soc.mak
+@@ -101,9 +101,9 @@ lpddr4_dmem_2d = lpddr4_pmu_train_2d_dmem$(LPDDR_FW_VERSION).bin
+ 
+ u-boot-spl-ddr.bin: u-boot-spl.bin $(lpddr4_imem_1d) $(lpddr4_dmem_1d) $(lpddr4_imem_2d) $(lpddr4_dmem_2d)
+ 	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 $(lpddr4_imem_1d) lpddr4_pmu_train_1d_imem_pad.bin
+-	@objcopy -I binary -O binary --pad-to 0x4000 --gap-fill=0x0 $(lpddr4_dmem_1d) lpddr4_pmu_train_1d_dmem_pad.bin
++	@objcopy -I binary -O binary --pad-to 0x1000 --gap-fill=0x0 $(lpddr4_dmem_1d) lpddr4_pmu_train_1d_dmem_pad.bin
+ 	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 $(lpddr4_imem_2d) lpddr4_pmu_train_2d_imem_pad.bin
+-	@objcopy -I binary -O binary --pad-to 0x4000 --gap-fill=0x0 $(lpddr4_dmem_2d) lpddr4_pmu_train_2d_dmem_pad.bin
++	@objcopy -I binary -O binary --pad-to 0x1000 --gap-fill=0x0 $(lpddr4_dmem_2d) lpddr4_pmu_train_2d_dmem_pad.bin
+ 	@cat lpddr4_pmu_train_1d_imem_pad.bin lpddr4_pmu_train_1d_dmem_pad.bin > lpddr4_pmu_train_1d_fw.bin
+ 	@cat lpddr4_pmu_train_2d_imem_pad.bin lpddr4_pmu_train_2d_dmem_pad.bin > lpddr4_pmu_train_2d_fw.bin
+ 	@dd if=u-boot-spl.bin of=u-boot-spl-pad.bin bs=4 conv=sync
+@@ -117,9 +117,9 @@ ddr4_dmem_2d = ddr4_dmem_2d$(DDR_FW_VERSION).bin
+ 
+ u-boot-spl-ddr4.bin: u-boot-spl.bin $(ddr4_imem_1d) $(ddr4_dmem_1d) $(ddr4_imem_2d) $(ddr4_dmem_2d)
+ 	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 $(ddr4_imem_1d) ddr4_imem_1d_pad.bin
+-	@objcopy -I binary -O binary --pad-to 0x4000 --gap-fill=0x0 $(ddr4_dmem_1d) ddr4_dmem_1d_pad.bin
++	@objcopy -I binary -O binary --pad-to 0x1000 --gap-fill=0x0 $(ddr4_dmem_1d) ddr4_dmem_1d_pad.bin
+ 	@objcopy -I binary -O binary --pad-to 0x8000 --gap-fill=0x0 $(ddr4_imem_2d) ddr4_imem_2d_pad.bin
+-	@objcopy -I binary -O binary --pad-to 0x4000 --gap-fill=0x0 $(ddr4_dmem_2d) ddr4_dmem_2d_pad.bin
++	@objcopy -I binary -O binary --pad-to 0x1000 --gap-fill=0x0 $(ddr4_dmem_2d) ddr4_dmem_2d_pad.bin
+ 	@cat ddr4_imem_1d_pad.bin ddr4_dmem_1d_pad.bin > ddr4_1d_fw.bin
+ 	@cat ddr4_imem_2d_pad.bin ddr4_dmem_2d_pad.bin > ddr4_2d_fw.bin
+ 	@dd if=u-boot-spl.bin of=u-boot-spl-pad.bin bs=4 conv=sync
+-- 
+2.25.1

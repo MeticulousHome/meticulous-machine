@@ -1,0 +1,35 @@
+From 495c472f64d11b562e9b1cd744f219b9e1a7a860 Mon Sep 17 00:00:00 2001
+From: Nate Drude <nate.d@variscite.com>
+Date: Mon, 28 Feb 2022 10:40:37 -0600
+Subject: [PATCH] iMX8M: soc: allow dtb override
+
+Enable override for Variscite SoMs to include multiple dtbs:
+imx8mm-var-dart
+imx8mm-var-som
+imx8mp-var-dart
+imx8mp-var-som
+
+Remove dtb_check.sh, it is not needed when dtbs are passed to soc.mak
+
+Upstream-Status: Pending
+Signed-off-by: Nate Drude <nate.d@variscite.com>
+
+---
+ iMX8M/soc.mak | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
+index 3486079..169d4a7 100644
+--- a/iMX8M/soc.mak
++++ b/iMX8M/soc.mak
+@@ -146,9 +146,7 @@ u-boot-atf-tee.bin: u-boot.bin bl31.bin $(TEE)
+ clean:
+ 	@rm -f $(MKIMG) u-boot-atf.bin u-boot-atf-tee.bin u-boot-spl-ddr.bin u-boot.itb u-boot.its u-boot-ddr3l.itb u-boot-ddr3l.its u-boot-spl-ddr3l.bin u-boot-ddr4.itb u-boot-ddr4.its u-boot-spl-ddr4.bin u-boot-ddr4-evk.itb u-boot-ivt.itb u-boot-ddr4-evk.its $(OUTIMG)
+ 
+-dtb = evk.dtb
+-$(dtb):
+-	./$(DTB_PREPROC) $(PLAT)-evk.dtb $(dtb) $(dtbs)
++dtb = $(dtbs)
+ 
+ u-boot.itb: $(dtb) $(supp_dtbs)
+ 	./$(PAD_IMAGE) $(TEE)

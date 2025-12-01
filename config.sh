@@ -57,13 +57,13 @@ export   UBOOT_REV="HEAD"
 readonly ATF_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-atf"
 readonly ATF_GIT="https://github.com/varigit/imx-atf.git"
 
-export ATF_BRANCH="lf_v2.8_var02"
-export ATF_REV="723c01ee4903cbce4b4d43e84ad41fbb6385e578"
+export ATF_BRANCH="lf_v2.10_6.6.52-2.2.0_var01"
+export ATF_REV="bed39c167c883b335d5fc1046ce16e10a611b4c4"
 
 readonly IMX_MKIMAGE_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-mkimage"
 readonly IMX_MKIMAGE_GIT="https://github.com/nxp-imx/imx-mkimage.git"
-export   IMX_MKIMAGE_BRANCH="imx_5.4.24_2.1.0"
-export   IMX_MKIMAGE_REV="6745ccdcf15384891639b7ced3aa6ce938682365"
+export   IMX_MKIMAGE_BRANCH="lf-6.12.34_2.1.0"
+export   IMX_MKIMAGE_REV="71b8c18af93a5eb972d80fbec290006066cff24f"
 
 readonly IMX_BOOT_TOOLS_SRC_DIR=${COMPONENTS_DIR}/"bootloader/imx-boot-tools"
 readonly BOOTLOADER_BUILD_DIR=${COMPONENTS_DIR}/"bootloader/build"
