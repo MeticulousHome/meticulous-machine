@@ -73,17 +73,19 @@ function build_uboot() {
         export ARCH="arm64"
         echo -e "\033[1;32mSetting \033[1;34mCROSS_COMPILE=\033[1;35m${CROSS_COMPILE}\033[0m and \033[1;34mARCH=\033[1;35m${ARCH}\033[0m"
     fi
+
     pushd $UBOOT_SRC_DIR >/dev/null
     make mrproper
     make imx8mn_var_som_meticulous_defconfig
     make -j`nproc`
-
+    echo "Finished building U-Boot"
     popd >/dev/null
-    pushd $ATF_SRC_DIR >/dev/null
 
+    pushd $ATF_SRC_DIR >/dev/null
+    echo "Building ATF"
 	sed -i 's|ERRORS := -Werror|ERRORS := -Werror -Wno-error=array-bounds|' Makefile
 	sed -i '/TF_LDFLAGS.*--gc-sections/a TF_LDFLAGS        +=      --no-warn-rwx-segment' Makefile
-
+    LDFLAGS="" make PLAT=imx8mn clean
     LDFLAGS="" make PLAT=imx8mn bl31
     popd >/dev/null
 
@@ -99,12 +101,14 @@ function build_uboot() {
     cp -v ${UBOOT_SRC_DIR}/tools/mkimage                            ${IMX_MKIMAGE_SRC_DIR}/iMX8M/mkimage_uboot
 
     # imx-mkimage needs to be patched for non-evk boards
-    cp -v ${IMX_BOOT_TOOLS_SRC_DIR}/imx-boot/imx-mkimage-imx8m-soc.mak-add-var-som-imx8m-nano-support.patch ${IMX_MKIMAGE_SRC_DIR}
+    cp -v ${IMX_BOOT_TOOLS_SRC_DIR}/imx-boot/*.patch ${IMX_MKIMAGE_SRC_DIR}
     pushd ${IMX_MKIMAGE_SRC_DIR}
 
     git checkout -f
-    git apply imx-mkimage-imx8m-soc.mak-add-var-som-imx8m-nano-support.patch
-	make SOC=iMX8MN dtbs=imx8mn-var-som-symphony.dtb flash_ddr4_evk
+
+    git apply 0001-iMX8M-soc-allow-dtb-override.patch
+    git apply 0002-iMX8M-soc-change-padding-of-DDR4-and-LPDDR4-DMEM-fir.patch
+	make SOC=iMX8MN flash_ddr4_evk dtbs=imx8mn-var-som-symphony.dtb
 
     popd >/dev/null
 
