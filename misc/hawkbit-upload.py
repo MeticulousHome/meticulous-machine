@@ -863,26 +863,30 @@ class HawkbitMgmtClient:
             
             # delete the artifacts of all of its modules
             assert distributionset_response.get("modules") is not None, 'attribute "modules" not found in distributionset GET response'
-            
-            modules = distributionset_response.get("modules", [])
-            for module in modules:
                 
-                existing_artifacts = self.get_all_artifacts(module['id'])
+            try:
+                modules = distributionset_response.get("modules", [])
+                for module in modules:
+                    
+                    existing_artifacts = self.get_all_artifacts(module['id'])
 
-                for artifact in existing_artifacts:
-                    artifact_id = artifact.get("id")
-                    artifact_name = os.path.basename(artifact.get("providedFilename", "Unknown filename"))
-                    if artifact_id:
-                        print(f"Deleting existing artifact: {artifact_name}")
-                        self.delete_artifact(artifact_id, module['id'])
-                    else:
-                        print(f"Warning: Found artifact without ID: {artifact_name}")
+                    for artifact in existing_artifacts:
+                        artifact_id = artifact.get("id")
+                        artifact_name = os.path.basename(artifact.get("providedFilename", "Unknown filename"))
+                        if artifact_id:
+                            print(f"Deleting existing artifact: {artifact_name}")
+                            self.delete_artifact(artifact_id, module['id'])
+                        else:
+                            print(f"Warning: Found artifact without ID: {artifact_name}")
+                    
+                    self.delete_softwaremodule(module['id'])
+                    print(f"Deleting existing software module : {module['name']}:{module['version']}")
                 
-                self.delete_softwaremodule(module['id'])
-                print(f"Deleting existing software module : {module['name']}:{module['version']}")
-            
-            self.delete_distributionset(dist_id)
-            print(f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}")
+                self.delete_distributionset(dist_id)
+                print(f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}")
+            except HawkbitError as e:
+                print(f"Error deleting distribution set '{distributionset_response['name']}:{distributionset_response['version']}', delete manually")
+                print(f"Cause: {e}")
         return True
     
     def sort_distributions_by_version(
@@ -969,9 +973,12 @@ if __name__ == "__main__":
             print(f"Marking distributionset {distribution_name}:{dist['version']} to be purged")
             distribution_ids_to_purge.append(dist['id'])
     
-    if client.purge_distributionsets(distribution_ids_to_purge):
-        print("Distribution sets successfuly purged")
-
+    try:
+        if client.purge_distributionsets(distribution_ids_to_purge):
+            print("Distribution sets successfuly purged")
+    except Exception as e:
+        print(f"error purging distribution sets: {e}")
+        print("please remove the distributions manually")
     # Fetch all existing rollouts
     print("Fetching existing rollouts...")
     existing_rollouts = client.getAllRollouts() or []
