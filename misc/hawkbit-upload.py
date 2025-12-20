@@ -883,7 +883,7 @@ class HawkbitMgmtClient:
             
             self.delete_distributionset(dist_id)
             print(f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}")
-            return True
+        return True
     
     def sort_distributions_by_version(
         self,
