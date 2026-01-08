@@ -993,9 +993,7 @@ if __name__ == "__main__":
         username=args.username,
         version=args.version,
     )
-    client.set_config("pollingTime", "00:00:30")
-    client.set_config("pollingOverdueTime", "00:03:00")
-    client.set_config("authentication.targettoken.enabled", True)
+
     print("Pushing new distribution set")
     (dist_id, module_id, artifact_id) = client.push_new_distribution_set_with_os(
         distribution_name, software_module_name, os_bundle_name=args.bundle
