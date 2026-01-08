@@ -928,12 +928,14 @@ class HawkbitMgmtClient:
 
 def ensure_filter(
     client,
-    filters,
     query: str,
     name: str,
     dist_id: str = "",
     action_type: str = "forced",
 ):
+    # Creating a target filter
+    filters = client.get_all_targetfilters().get("content") or []
+
     requested_filter = [f for f in filters if f["query"] == query]
     if len(requested_filter) > 0 and dist_id != "":
         filter_id = requested_filter[0]["id"]
@@ -1073,12 +1075,8 @@ if __name__ == "__main__":
     print("Deleting all existing actions for the channel before creating the rollout")
     client.deleteAllActionsForChannel(current_channel_query)
 
-    # Creating a target filter
-    filters = client.get_all_targetfilters().get("content") or []
-
     channel_filter = ensure_filter(
         client,
-        filters,
         f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"',
         f"Downloads from {args.channel} channel, boots from {args.bootmode}",
     )
