@@ -1035,7 +1035,7 @@ if __name__ == "__main__":
         print(json.dumps(rollout, indent=2))
 
     # Build the targetFilterQuery for the current channel
-    current_channel_query = f'attribute.update_channel == "{args.channel}"'
+    current_channel_query = f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"'
 
     # Debug prints added here
     print("\n=== Debug Information ===")
@@ -1077,11 +1077,12 @@ if __name__ == "__main__":
 
     channel_filter = ensure_filter(
         client,
-        f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"',
+        current_channel_query,
         f"Downloads from {args.channel} channel, boots from {args.bootmode}",
     )
 
     print(f"Channel filter is {channel_filter}")
+
     # Create or replace the rollout
     raucb_filename = os.path.basename(args.bundle)
     rollout_name = raucb_filename
