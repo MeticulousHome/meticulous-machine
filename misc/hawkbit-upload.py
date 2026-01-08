@@ -635,12 +635,12 @@ class HawkbitMgmtClient:
             },
         )
 
-    def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
+    def deleteAllActionsForChannel(self, target_filter_query):
 
-        channel = args.channel
-
-        targets = self.get_targets_by_filter(target_filter_query)
-        print(f"Targets on channel {channel}: {len(targets.get('content', []))}")
+        targets = self.get_targets_by_filter(target_filter_query) or {"content": []}
+        print(
+            f"Targets on channel {target_filter_query}: {len(targets.get('content', []))}"
+        )
         for target in targets.get("content", []):
             print(f"{target.get('controllerId')} - {target.get('updateStatus')}")
 
@@ -688,6 +688,8 @@ class HawkbitMgmtClient:
             print("Skipping rollout creation.")
             return None
 
+    def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
+
         existing_rollouts = self.getAllRollouts()
 
         for rollout in existing_rollouts:
@@ -698,7 +700,6 @@ class HawkbitMgmtClient:
                 print(
                     f"Skipping rollout deletion for different channel: {rollout['name']}"
                 )
-
         rollout_data = {
             "name": name,
             "distributionSetId": dist_id,
@@ -926,10 +927,15 @@ class HawkbitMgmtClient:
 
 
 def ensure_filter(
-    client, filters, query: str, name: str, dist_id: str, action_type: str = "forced"
+    client,
+    filters,
+    query: str,
+    name: str,
+    dist_id: str = "",
+    action_type: str = "forced",
 ):
     requested_filter = [f for f in filters if f["query"] == query]
-    if len(requested_filter) > 0:
+    if len(requested_filter) > 0 and dist_id != "":
         filter_id = requested_filter[0]["id"]
         result = client.update_targetfilter(filter_id, dist_id, action_type)
         if result:
@@ -939,11 +945,12 @@ def ensure_filter(
         return requested_filter[0]
     else:
         new_filter = client.add_targetfilter(query, name)
-        result = client.update_targetfilter(new_filter["id"], dist_id, action_type)
-        if result:
-            print(f"Auto-asignment configured for the new filter: {name}")
-        else:
-            print(f"Error configuring auto-assignment for the new filter: {name}")
+        if dist_id != "":
+            result = client.update_targetfilter(new_filter["id"], dist_id, action_type)
+            if result:
+                print(f"Auto-asignment configured for the new filter: {name}")
+            else:
+                print(f"Error configuring auto-assignment for the new filter: {name}")
         return new_filter
 
 
@@ -1063,6 +1070,9 @@ if __name__ == "__main__":
         client.deleteRollout(rollout_id)
         print(f"Rollout {rollout_id} deleted successfully")
 
+    print("Deleting all existing actions for the channel before creating the rollout")
+    client.deleteAllActionsForChannel(current_channel_query)
+
     # Creating a target filter
     filters = client.get_all_targetfilters().get("content") or []
 
@@ -1071,12 +1081,9 @@ if __name__ == "__main__":
         filters,
         f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"',
         f"Downloads from {args.channel} channel, boots from {args.bootmode}",
-        dist_id,
-        action_type="forced",
     )
 
     print(f"Channel filter is {channel_filter}")
-
     # Create or replace the rollout
     raucb_filename = os.path.basename(args.bundle)
     rollout_name = raucb_filename
