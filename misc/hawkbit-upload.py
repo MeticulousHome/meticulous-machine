@@ -366,6 +366,13 @@ class HawkbitMgmtClient:
 
         return None
 
+    def deleteAutoAssignDS(self, filter_id: str):
+        try:
+            self.delete(f"targetfilters/{filter_id}/autoAssignDS")
+            print(f"Auto Assignment for {filter_id} deleted successfully")
+        except HawkbitError as e:
+            print(f"Error deleting auto assignment for {filter_id}: {e}")
+
     def delete_softwaremodule(self, module_id: str = None):
         """
         Deletes the software module matching `module_id`.
@@ -636,7 +643,7 @@ class HawkbitMgmtClient:
         )
 
     def deleteAllActionsForChannel(self, target_filter_query):
-
+        channel = args.channel
         targets = self.get_targets_by_filter(target_filter_query) or {"content": []}
         print(
             f"Targets on channel {target_filter_query}: {len(targets.get('content', []))}"
@@ -685,21 +692,27 @@ class HawkbitMgmtClient:
 
         if not targets:
             print(f"No targets found matching the filter: {target_filter_query}")
-            print("Skipping rollout creation.")
-            return None
 
     def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
 
         existing_rollouts = self.getAllRollouts()
-
+        existing_rollout_id = None
         for rollout in existing_rollouts:
-            if rollout.get("targetFilterQuery") == target_filter_query:
-                print(f"Deleting existing rollout: {rollout['name']}")
-                self.deleteRollout(rollout["id"])
-            else:
+            print("Checking existing rollout:", rollout.get("name"))
+            if (
+                rollout.get("targetFilterQuery") == target_filter_query
+                and rollout.get("name") != name
+            ):
                 print(
-                    f"Skipping rollout deletion for different channel: {rollout['name']}"
+                    f"Deleting existing rollout with identical query but different name: {rollout['name']}"
                 )
+                self.deleteRollout(rollout["id"])
+            if rollout.get("name") == name:
+                print(
+                    f"Rollout with name '{name}' already exists. Using existing rollout."
+                )
+                existing_rollout_id = rollout["id"]
+
         rollout_data = {
             "name": name,
             "distributionSetId": dist_id,
@@ -708,12 +721,16 @@ class HawkbitMgmtClient:
             "weight": 0,
             "confirmationRequired": False,
             "amountGroups": 1,
+            "dynamic": True,
         }
         if autostart:
             rollout_data["startAt"] = str(int(time.time()))
-
-        print(f"Creating new rollout: {name}")
         try:
+            if existing_rollout_id is not None:
+                print(f"Updating existing rollout: {existing_rollout_id} - {name}")
+                return self.put(f"rollouts/{existing_rollout_id}", rollout_data).json()
+            else:
+                print(f"Creating new rollout: {name}")
             return self.post("rollouts", rollout_data)
         except HawkbitError as e:
             print(f"Error creating rollout: {str(e)}")
@@ -794,6 +811,7 @@ class HawkbitMgmtClient:
         self,
         name,
     ):
+        print(f"Creating new OS software module: {name}")
         # validate that both name and version does not exist
         existing_module = self.get_softwaremodule_by_name(name, version=self.version)
         if existing_module:
@@ -840,6 +858,7 @@ class HawkbitMgmtClient:
             return self.id["newDistributionset"], self.id["newSoftwaremodule"], None
 
         # Upload the artifact to the os software module
+        print(f"Uploading artifact {os.path.basename(os_bundle_name)}")
         try:
             new_artifact_id = self.add_or_update_artifact(
                 os_bundle_name, str(new_module_id)
@@ -877,6 +896,10 @@ class HawkbitMgmtClient:
 
             try:
                 modules = distributionset_response.get("modules", [])
+                self.delete_distributionset(dist_id)
+                print(
+                    f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}"
+                )
                 for module in modules:
 
                     existing_artifacts = self.get_all_artifacts(module["id"])
@@ -899,10 +922,6 @@ class HawkbitMgmtClient:
                         f"Deleting existing software module : {module['name']}:{module['version']}"
                     )
 
-                self.delete_distributionset(dist_id)
-                print(
-                    f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}"
-                )
             except HawkbitError as e:
                 print(
                     f"Error deleting distribution set '{distributionset_response['name']}:{distributionset_response['version']}', delete manually"
@@ -937,23 +956,34 @@ def ensure_filter(
     filters = client.get_all_targetfilters().get("content") or []
 
     requested_filter = [f for f in filters if f["query"] == query]
-    if len(requested_filter) > 0 and dist_id != "":
-        filter_id = requested_filter[0]["id"]
+    if len(requested_filter) > 0:
+        print(f"Target filter already exists: {name}")
+        filter = requested_filter[0]
+    else:
+        print(f"Creating target filter: {name}")
+        filter = client.add_targetfilter(query, name)
+        print(f"Created new target filter: {name}")
+        if dist_id != "":
+            return filter
+
+    filter_id = filter["id"]
+    if dist_id != "":
+        print(
+            f"Distribution ID provided, setting up auto-assignment for distribution {dist_id}"
+        )
         result = client.update_targetfilter(filter_id, dist_id, action_type)
         if result:
             print(f"Auto-asignment for the existing filter: {name}")
         else:
             print(f"Error updating auto-assignment for the filter: {name}")
-        return requested_filter[0]
     else:
-        new_filter = client.add_targetfilter(query, name)
-        if dist_id != "":
-            result = client.update_targetfilter(new_filter["id"], dist_id, action_type)
-            if result:
-                print(f"Auto-asignment configured for the new filter: {name}")
-            else:
-                print(f"Error configuring auto-assignment for the new filter: {name}")
-        return new_filter
+        print("Deleting potential auto-assignment before updating")
+        client.deleteAutoAssignDS(filter_id)
+
+    filters = client.get_all_targetfilters().get("content") or []
+
+    requested_filter = [f for f in filters if f["query"] == query]
+    return requested_filter[0]
 
 
 def get_max_number_of_historic_distributions(distribution_name: str) -> int:
@@ -1043,32 +1073,20 @@ if __name__ == "__main__":
         print(f"\nChecking rollout: {rollout['name']}")
         print(f"Filter query in rollout: {rollout.get('targetFilterQuery')}")
         print(
-            f"Does filter match?: {rollout.get('targetFilterQuery') == current_channel_query}"
+            f"Does filter match {args.channel}: {rollout.get('targetFilterQuery') == current_channel_query}"
         )
-        print(f"Rollout channel: {args.channel}")
     print("=== End Debug Information ===\n")
+
+    raucb_filename = os.path.basename(args.bundle)
+    rollout_name = raucb_filename
 
     # Filter rollouts by targetFilterQuery
     rollouts_to_delete = [
         rollout
         for rollout in existing_rollouts
         if rollout.get("targetFilterQuery") == current_channel_query
+        and rollout.get("name") != rollout_name
     ]
-
-    # Print the rollouts selected for deletion
-    if len(rollouts_to_delete) != 0:
-        print("Rollouts selected for deletion:")
-        for rollout in rollouts_to_delete:
-            print(json.dumps(rollout, indent=2))
-    else:
-        print(" - No rollouts to delete")
-
-    # Delete filtered rollouts
-    for rollout in rollouts_to_delete:
-        rollout_id = rollout["id"]
-        print(f"Deleting rollout: {rollout['name']} (ID: {rollout_id})")
-        client.deleteRollout(rollout_id)
-        print(f"Rollout {rollout_id} deleted successfully")
 
     print("Deleting all existing actions for the channel before creating the rollout")
     client.deleteAllActionsForChannel(current_channel_query)
@@ -1079,16 +1097,10 @@ if __name__ == "__main__":
         f"Downloads from {args.channel} channel, boots from {args.bootmode}",
     )
 
-    print(f"Channel filter is {channel_filter}")
-
     # Create or replace the rollout
-    raucb_filename = os.path.basename(args.bundle)
-    rollout_name = raucb_filename
-
     target_filter_query = current_channel_query
-
-    print(f"Creating or replacing rollout: {rollout_name}")
     print(f"Using filter query: {target_filter_query}")
+    print(f"Creating or replacing rollout: {rollout_name}")
 
     rollout = client.createOrUpdateRollout(
         name=rollout_name,
@@ -1100,6 +1112,13 @@ if __name__ == "__main__":
     if rollout:
         print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
     else:
-        print("No rollout was created.")
+        print("No rollout was created. Using filter query instead")
+        channel_filter = ensure_filter(
+            client,
+            current_channel_query,
+            f"Downloads from {args.channel} channel, boots from {args.bootmode}",
+            dist_id=dist_id,
+        )
 
+        print(f"Updated channel filter is {channel_filter}")
     print("finished!")
