@@ -46,6 +46,11 @@ server {
 
     # Combined proxy pass for /socket.io and /api
     location ~ ^/(socket\.io|api) {
+		# Headers CORS
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization' always;
+    
         proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -58,7 +63,7 @@ server {
         proxy_read_timeout 1800s;
     }
 
-	location ~* ^/health {
+    location ~* ^/health {
        rewrite ^/health/(.*) /$1 break;
        proxy_pass http://localhost:3000;
        proxy_set_header Host $host;
@@ -66,5 +71,5 @@ server {
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto $scheme;
        proxy_read_timeout 1800s;
-	}
+    }
 }
