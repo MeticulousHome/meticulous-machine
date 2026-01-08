@@ -640,8 +640,9 @@ class HawkbitMgmtClient:
         channel = args.channel
 
         targets = self.get_targets_by_filter(target_filter_query)
-        print("Targets structure:")
-        print(json.dumps(targets, indent=2))
+        print(f"Targets on channel {channel}: {len(targets.get('content', []))}")
+        for target in targets.get("content", []):
+            print(f"{target.get('controllerId')} - {target.get('updateStatus')}")
 
         if isinstance(targets, dict):
             targets = targets.get("content", [])
