@@ -651,30 +651,34 @@ class HawkbitMgmtClient:
 
         for target in targets:
             if isinstance(target, dict):
-                target_id = target.get('controllerId') or target.get('id')
-                target_name = target.get('name', 'Unknown')
+                target_id = target.get("controllerId") or target.get("id")
+                target_name = target.get("name", "Unknown")
             else:
                 print(f"Unexpected target type: {type(target)}")
                 continue
 
             if target_id:
                 print(f"Processing target: {target_name} (ID: {target_id})")
-            
+
                 # Retrieve the target's attributes to verify their channel
                 target_attributes = self.get_attributes(target_id)
-                target_channel = target_attributes.get('update_channel')
-            
+                target_channel = target_attributes.get("update_channel")
+
                 # Only cancel actions if the target belongs to the correct channel
                 if target_channel == channel:
                     active_actions = self.get_active_actions(target_id)
                     for action in active_actions:
                         try:
-                            print(f"Cancelling active action {action['id']} for target {target_name} (channel: {target_channel})")
-                            self.cancel_action(action['id'], target_id, force=True)
+                            print(
+                                f"Cancelling active action {action['id']} for target {target_name} (channel: {target_channel})"
+                            )
+                            self.cancel_action(action["id"], target_id, force=True)
                         except HawkbitError as e:
                             print(f"Error cancelling action {action['id']}: {str(e)}")
                 else:
-                    print(f"Skipping action cancellation for target {target_name} as it belongs to different channel: {target_channel}")
+                    print(
+                        f"Skipping action cancellation for target {target_name} as it belongs to different channel: {target_channel}"
+                    )
             else:
                 print(f"Could not determine target ID for: {target}")
 
@@ -686,11 +690,13 @@ class HawkbitMgmtClient:
         existing_rollouts = self.getAllRollouts()
 
         for rollout in existing_rollouts:
-            if rollout.get('targetFilterQuery') == target_filter_query:
+            if rollout.get("targetFilterQuery") == target_filter_query:
                 print(f"Deleting existing rollout: {rollout['name']}")
-                self.deleteRollout(rollout['id'])
+                self.deleteRollout(rollout["id"])
             else:
-                print(f"Skipping rollout deletion for different channel: {rollout['name']}")
+                print(
+                    f"Skipping rollout deletion for different channel: {rollout['name']}"
+                )
 
         rollout_data = {
             "name": name,
@@ -713,8 +719,10 @@ class HawkbitMgmtClient:
 
     def get_distributionsets_by_name(self, name: str):
         all_distributions_response = self.get("distributionsets")
-        all_distributions : list = all_distributions_response.get("content", [])
-        named_distributions = [ dist for dist in all_distributions if dist.get('name','Unknown') == name]
+        all_distributions: list = all_distributions_response.get("content", [])
+        named_distributions = [
+            dist for dist in all_distributions if dist.get("name", "Unknown") == name
+        ]
         if len(named_distributions) == 0:
             return None
         return named_distributions
@@ -728,19 +736,19 @@ class HawkbitMgmtClient:
                 mods.append(module)
         if version is not None:
             mods = [module for module in mods if module["version"] == version]
-        if(len(mods)) >= 1:
+        if (len(mods)) >= 1:
             print(f"Warning: Found multiple distributions with the name '{name}'")
             return mods[0]
         return None
 
     def add_or_update_softwaremodule(self, name, module_type="os"):
         existing_module = self.get_softwaremodule_by_name(name, module_type)
-    
+
         if existing_module:
             print(f"Software module '{name}' already exists. Using existing module.")
-            self.id["softwaremodule"] = existing_module['id']
-            return existing_module['id']
-    
+            self.id["softwaremodule"] = existing_module["id"]
+            return existing_module["id"]
+
         data = [
             {
                 "name": name,
@@ -752,7 +760,7 @@ class HawkbitMgmtClient:
         response = self.post("softwaremodules", data)
         self.id["softwaremodule"] = response[0]["id"]
         return self.id["softwaremodule"]
-    
+
     def get_all_artifacts(self, module_id):
         artifacts = self.get(f"softwaremodules/{module_id}/artifacts")
         # print("Artifact structure:")
@@ -779,7 +787,7 @@ class HawkbitMgmtClient:
         )
         self.id["artifact"] = response["id"]
         return self.id["artifact"]
-    
+
     def push_new_os_softwaremodule(
         self,
         name,
@@ -787,21 +795,17 @@ class HawkbitMgmtClient:
         # validate that both name and version does not exist
         existing_module = self.get_softwaremodule_by_name(name, version=self.version)
         if existing_module:
-            print(f"module {name} with version {self.version} already exists, using that")
-            return existing_module['id']
-        
-        data = [
-            {
-                "name": name,
-                "version": str(self.version),
-                "type": "os"
-            }
-        ]
-        
+            print(
+                f"module {name} with version {self.version} already exists, using that"
+            )
+            return existing_module["id"]
+
+        data = [{"name": name, "version": str(self.version), "type": "os"}]
+
         response = self.post("softwaremodules", data)
-        self.id["newSoftwaremodule"] = response[0]['id']
+        self.id["newSoftwaremodule"] = response[0]["id"]
         return self.id["newSoftwaremodule"]
-        
+
     def push_new_distribution_set_with_os(
         self,
         distribution_name: str,
@@ -809,16 +813,16 @@ class HawkbitMgmtClient:
         description: str = "",
         module_ids: list = [],
         dist_type: str = "os",
-        os_bundle_name: str = None
-    ): 
+        os_bundle_name: str = None,
+    ):
         # Create the corresponding software "OS" Module
         new_module_id = self.push_new_os_softwaremodule(softwaremodule_name)
-        
-        #define the corresponding data for the distribution set
+
+        # define the corresponding data for the distribution set
         modules_list = [new_module_id]
-        if isinstance(module_ids, list):            
+        if isinstance(module_ids, list):
             modules_list.extend(module_ids)
-        
+
         data = [
             {
                 "name": distribution_name,
@@ -828,78 +832,98 @@ class HawkbitMgmtClient:
                 "type": dist_type,
             }
         ]
-        
-        
+
         if os_bundle_name is None:
             print("No bundle file provided to upload")
             return self.id["newDistributionset"], self.id["newSoftwaremodule"], None
-        
+
         # Upload the artifact to the os software module
         try:
-            new_artifact_id = self.add_or_update_artifact(os_bundle_name, str(new_module_id))
+            new_artifact_id = self.add_or_update_artifact(
+                os_bundle_name, str(new_module_id)
+            )
             response = self.post("distributionsets", data)
             self.id["newDistributionset"] = response[0]["id"]
-            return self.id["newDistributionset"], self.id["newSoftwaremodule"], str(new_artifact_id)
+            return (
+                self.id["newDistributionset"],
+                self.id["newSoftwaremodule"],
+                str(new_artifact_id),
+            )
         except Exception as e:
-            #in case the upload of the arftifact fails, delete the software module
-            print(f"Error uploading the artifact {os.path.basename(os_bundle_name)} for module {software_module_name}, deleting module")
+            # in case the upload of the arftifact fails, delete the software module
+            print(
+                f"Error uploading the artifact {os.path.basename(os_bundle_name)} for module {software_module_name}, deleting module"
+            )
             self.delete_softwaremodule(new_module_id)
             return None, None, None
 
-    
-    def purge_distributionsets(
-        self,
-        distributionset_ids: list
-    ):
+    def purge_distributionsets(self, distributionset_ids: list):
         # validate the distribution_id
         for dist_id in distributionset_ids:
             distributionset_response = self.get_distributionset(dist_id)
             isError = distributionset_response.get("errorCode", None)
-            
+
             if isError:
                 error = distributionset_response.get("message", isError)
                 print(f"Error getting distributionset with id {dist_id}: {error}")
                 continue
-            
+
             # delete the artifacts of all of its modules
-            assert distributionset_response.get("modules") is not None, 'attribute "modules" not found in distributionset GET response'
-                
+            assert (
+                distributionset_response.get("modules") is not None
+            ), 'attribute "modules" not found in distributionset GET response'
+
             try:
                 modules = distributionset_response.get("modules", [])
                 for module in modules:
-                    
-                    existing_artifacts = self.get_all_artifacts(module['id'])
+
+                    existing_artifacts = self.get_all_artifacts(module["id"])
 
                     for artifact in existing_artifacts:
                         artifact_id = artifact.get("id")
-                        artifact_name = os.path.basename(artifact.get("providedFilename", "Unknown filename"))
+                        artifact_name = os.path.basename(
+                            artifact.get("providedFilename", "Unknown filename")
+                        )
                         if artifact_id:
                             print(f"Deleting existing artifact: {artifact_name}")
-                            self.delete_artifact(artifact_id, module['id'])
+                            self.delete_artifact(artifact_id, module["id"])
                         else:
-                            print(f"Warning: Found artifact without ID: {artifact_name}")
-                    
-                    self.delete_softwaremodule(module['id'])
-                    print(f"Deleting existing software module : {module['name']}:{module['version']}")
-                
+                            print(
+                                f"Warning: Found artifact without ID: {artifact_name}"
+                            )
+
+                    self.delete_softwaremodule(module["id"])
+                    print(
+                        f"Deleting existing software module : {module['name']}:{module['version']}"
+                    )
+
                 self.delete_distributionset(dist_id)
-                print(f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}")
+                print(
+                    f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}"
+                )
             except HawkbitError as e:
-                print(f"Error deleting distribution set '{distributionset_response['name']}:{distributionset_response['version']}', delete manually")
+                print(
+                    f"Error deleting distribution set '{distributionset_response['name']}:{distributionset_response['version']}', delete manually"
+                )
                 print(f"Cause: {e}")
         return True
-    
-    def sort_distributions_by_version(
-        self,
-        dist_name : str
-    ):
+
+    def sort_distributions_by_version(self, dist_name: str):
         from datetime import datetime
+
         distributions = self.get_distributionsets_by_name(dist_name)
         if distributions is None:
             return None
-        
-        return sorted(distributions, key=lambda dist: datetime.strptime(dist['version'],'%Y-%m-%dT%H_%M_%S+0000'), reverse=True)
-        
+
+        return sorted(
+            distributions,
+            key=lambda dist: datetime.strptime(
+                dist["version"], "%Y-%m-%dT%H_%M_%S+0000"
+            ),
+            reverse=True,
+        )
+
+
 def ensure_filter(
     client, filters, query: str, name: str, dist_id: str, action_type: str = "forced"
 ):
@@ -921,9 +945,15 @@ def ensure_filter(
             print(f"Error configuring auto-assignment for the new filter: {name}")
         return new_filter
 
+
 def get_max_number_of_historic_distributions(distribution_name: str) -> int:
     production_image_names = ["nightly EMMC", "beta EMMC", "stable EMMC"]
-    return MAX_PRODUCTION_IMAGES_ON_SERVER if distribution_name in production_image_names else MAX_TESTING_IMAGES_ON_SERVER
+    return (
+        MAX_PRODUCTION_IMAGES_ON_SERVER
+        if distribution_name in production_image_names
+        else MAX_TESTING_IMAGES_ON_SERVER
+    )
+
 
 if __name__ == "__main__":
     import argparse
@@ -943,7 +973,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    #Generate the full names fo the distribution ond softwaremodule
+    # Generate the full names fo the distribution ond softwaremodule
     distribution_name = f"{args.distribution}"
     software_module_name = f"{args.softwareModule}"
     client = HawkbitMgmtClient(
@@ -957,22 +987,28 @@ if __name__ == "__main__":
     client.set_config("pollingOverdueTime", "00:03:00")
     client.set_config("authentication.targettoken.enabled", True)
     print("Pushing new distribution set")
-    (dist_id, module_id, artifact_id) = client.push_new_distribution_set_with_os(distribution_name, software_module_name, os_bundle_name=args.bundle)
+    (dist_id, module_id, artifact_id) = client.push_new_distribution_set_with_os(
+        distribution_name, software_module_name, os_bundle_name=args.bundle
+    )
     if dist_id is None:
-        print(f"failed to push new OS distribution '{distribution_name}' cannot start rollout. Finished!")
+        print(
+            f"failed to push new OS distribution '{distribution_name}' cannot start rollout. Finished!"
+        )
         exit(1)
 
     print(f"sorting available {distribution_name} distributions")
     sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
-    #If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
+    # If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
     historics_to_keep = get_max_number_of_historic_distributions(distribution_name)
     print(f"removing extra distributions, keeping last {historics_to_keep}")
     distribution_ids_to_purge = []
     for index, dist in enumerate(sorted_distributionsets):
         if index >= historics_to_keep:
-            print(f"Marking distributionset {distribution_name}:{dist['version']} to be purged")
-            distribution_ids_to_purge.append(dist['id'])
-    
+            print(
+                f"Marking distributionset {distribution_name}:{dist['version']} to be purged"
+            )
+            distribution_ids_to_purge.append(dist["id"])
+
     try:
         if client.purge_distributionsets(distribution_ids_to_purge):
             print("Distribution sets successfuly purged")
@@ -982,7 +1018,7 @@ if __name__ == "__main__":
     # Fetch all existing rollouts
     print("Fetching existing rollouts...")
     existing_rollouts = client.getAllRollouts() or []
-    
+
     # Print all existing rollouts for inspection
     print("Existing rollouts:")
     for rollout in existing_rollouts:
@@ -990,7 +1026,7 @@ if __name__ == "__main__":
 
     # Build the targetFilterQuery for the current channel
     current_channel_query = f'attribute.update_channel == "{args.channel}"'
-    
+
     # Debug prints added here
     print("\n=== Debug Information ===")
     print(f"Current channel query: {current_channel_query}")
@@ -998,16 +1034,19 @@ if __name__ == "__main__":
     for rollout in existing_rollouts:
         print(f"\nChecking rollout: {rollout['name']}")
         print(f"Filter query in rollout: {rollout.get('targetFilterQuery')}")
-        print(f"Does filter match?: {rollout.get('targetFilterQuery') == current_channel_query}")
+        print(
+            f"Does filter match?: {rollout.get('targetFilterQuery') == current_channel_query}"
+        )
         print(f"Rollout channel: {args.channel}")
     print("=== End Debug Information ===\n")
-    
+
     # Filter rollouts by targetFilterQuery
     rollouts_to_delete = [
-        rollout for rollout in existing_rollouts
+        rollout
+        for rollout in existing_rollouts
         if rollout.get("targetFilterQuery") == current_channel_query
     ]
-    
+
     # Print the rollouts selected for deletion
     if len(rollouts_to_delete) != 0:
         print("Rollouts selected for deletion:")
