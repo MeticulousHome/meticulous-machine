@@ -903,30 +903,13 @@ class HawkbitMgmtClient:
                 modules = distributionset_response.get("modules", [])
                 self.delete_distributionset(dist_id)
                 print(
-                    f"Deleting existing distribution set : {distributionset_response['name']}:{distributionset_response['version']}"
+                    f"Deleted distribution set: {distributionset_response['name']}:{distributionset_response['version']}"
                 )
                 for module in modules:
-
-                    existing_artifacts = self.get_all_artifacts(module["id"])
-
-                    for artifact in existing_artifacts:
-                        artifact_id = artifact.get("id")
-                        artifact_name = os.path.basename(
-                            artifact.get("providedFilename", "Unknown filename")
-                        )
-                        if artifact_id:
-                            print(f"Deleting existing artifact: {artifact_name}")
-                            self.delete_artifact(artifact_id, module["id"])
-                        else:
-                            print(
-                                f"Warning: Found artifact without ID: {artifact_name}"
-                            )
-
-                    self.delete_softwaremodule(module["id"])
                     print(
-                        f"Deleting existing software module : {module['name']}:{module['version']}"
+                        f"Deleting existing software module {module['name']} version {module['version']}"
                     )
-
+                    self.delete_softwaremodule(module["id"])
             except HawkbitError as e:
                 print(
                     f"Error deleting distribution set '{distributionset_response['name']}:{distributionset_response['version']}', delete manually"
