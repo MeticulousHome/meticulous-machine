@@ -325,6 +325,15 @@ class HawkbitMgmtClient:
         filter_id = filter_id or self.id["targetfilter"]
         return self.get(f"targetfilters/{filter_id}")
 
+    def update_targetfilter(self, filter_id: str, name: str, query: str):
+        """
+        Updates an existing target filter with new name and query.
+        """
+        return client.put(
+            f"targetfilters/{filter_id}",
+            {"name": name, "query": query},
+        ).json()
+
     def get_all_targetfilters(self):
         """
         Returns all target filters.
@@ -333,7 +342,7 @@ class HawkbitMgmtClient:
         limit = 100
         return self.get(f"targetfilters?limit={limit}")
 
-    def update_targetfilter(
+    def assignDS_to_targetfilter(
         self, filter_id: str, dist_id: str, action_type: str = "forced"
     ):
         """
@@ -952,7 +961,13 @@ def ensure_filter(
     filters = client.get_all_targetfilters().get("content") or []
 
     requested_filter = [f for f in filters if f["query"] == query]
-    if len(requested_filter) > 0:
+    update_filters = [f for f in filters if f["name"] == name]
+    if len(update_filters) > 0 and len(requested_filter) == 0:
+        print(f"Filter name '{name}' already exists, updating the query")
+        filter_to_update = update_filters[0]
+        filter_id = filter_to_update["id"]
+        filter = client.update_targetfilter(filter_id, name, query)
+    elif len(requested_filter) > 0:
         print(f"Target filter already exists: {name}")
         filter = requested_filter[0]
     else:
@@ -967,10 +982,8 @@ def ensure_filter(
         print(
             f"Distribution ID provided, setting up auto-assignment for distribution {dist_id}"
         )
-        result = client.update_targetfilter(filter_id, dist_id, action_type)
-        if result:
-            print(f"Auto-asignment for the existing filter: {name}")
-        else:
+        result = client.assignDS_to_targetfilter(filter_id, dist_id, action_type)
+        if not result:
             print(f"Error updating auto-assignment for the filter: {name}")
     else:
         print("Deleting potential auto-assignment before updating")
@@ -1103,14 +1116,56 @@ if __name__ == "__main__":
 
     if rollout:
         print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
+        print("Waiting 10 seconds for Hawkbit to process the rollout...")
+        time.sleep(10)
     else:
-        print("No rollout was created. Using filter query instead")
-        channel_filter = ensure_filter(
-            client,
-            current_channel_query,
-            f"Downloads from {args.channel} channel, boots from {args.bootmode}",
-            dist_id=dist_id,
-        )
+        print("No rollout was created. Relying on filter query instead")
 
-        print(f"Updated channel filter is {channel_filter}")
-    print("finished!")
+    print("\nSetting up distribution auto-assignment for new machines")
+    distribution_channel_query = f'{current_channel_query} and assignedDS.name != "{distribution_name}" and assignedDS.version != "{args.version}" and installedDS.name != "{distribution_name}" and installedDS.version != "{args.version}"'
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"Downloads from {args.channel} channel, boots from {args.bootmode}, needs the latest version assigned",
+        dist_id=dist_id,
+    )
+
+    print("\nSetting up debug query for machines which might have gone wrong")
+    distribution_channel_query = (
+        f'{current_channel_query} and installedDS.version != "{args.version}"'
+    )
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"Downloads from {args.channel} channel, but has not installed the latest version",
+    )
+
+    print("\nSetting up failures query for machines which might have gone wrong")
+    distribution_channel_query = f'{current_channel_query} and updatestatus == "error"'
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"Failures in {args.channel}",
+    )
+
+    print("\nSetting up success query")
+    distribution_channel_query = (
+        f'{current_channel_query} and updatestatus == "in_sync"'
+    )
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"In Sync Machines in {args.channel}",
+    )
+
+    print("\nSetting up in progress query")
+    distribution_channel_query = (
+        f'{current_channel_query} and updatestatus == "pending"'
+    )
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"In Progress Machines in {args.channel}",
+    )
+
+    print("\nfinished!")
