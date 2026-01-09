@@ -1,0 +1,8 @@
+{
+    "files.watcherExclude": {
+        ".venv": true,
+        "components": true,
+        "rootfs": true,
+        "venv": true
+    }
+}
