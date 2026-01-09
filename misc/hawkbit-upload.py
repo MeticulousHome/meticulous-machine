@@ -104,7 +104,8 @@ class HawkbitMgmtClient:
             if percent - monitor.last_upload_size > 1:
                 monitor.last_upload_size = percent
                 print(
-                    f"{monitor.bytes_read} bytes out of {file_size} sent. ({percent:.0f}%)"
+                    f"{monitor.bytes_read} bytes out of {file_size} sent. ({percent:.0f}%)",
+                    flush=True,
                 )
 
         encoder = (
@@ -351,9 +352,6 @@ class HawkbitMgmtClient:
             response = self.post(endpoint, json_data=json_data)
 
             if response is not None:
-                print(
-                    f"Auto-assignment successfully configured for the filter {filter_id}"
-                )
                 return response
             else:
                 print(
@@ -361,7 +359,7 @@ class HawkbitMgmtClient:
                 )
         except HawkbitError as e:
             print(
-                f"Error configuring auto-assignment for the filrter {filter_id}: {str(e)}"
+                f"Error configuring auto-assignment for the filter {filter_id}: {str(e)}"
             )
 
         return None
@@ -369,7 +367,6 @@ class HawkbitMgmtClient:
     def deleteAutoAssignDS(self, filter_id: str):
         try:
             self.delete(f"targetfilters/{filter_id}/autoAssignDS")
-            print(f"Auto Assignment for {filter_id} deleted successfully")
         except HawkbitError as e:
             print(f"Error deleting auto assignment for {filter_id}: {e}")
 
@@ -698,7 +695,6 @@ class HawkbitMgmtClient:
         existing_rollouts = self.getAllRollouts()
         existing_rollout_id = None
         for rollout in existing_rollouts:
-            print("Checking existing rollout:", rollout.get("name"))
             if (
                 rollout.get("targetFilterQuery") == target_filter_query
                 and rollout.get("name") != name
@@ -1034,11 +1030,10 @@ if __name__ == "__main__":
         )
         exit(1)
 
-    print(f"sorting available {distribution_name} distributions")
     sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
     # If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
     historics_to_keep = get_max_number_of_historic_distributions(distribution_name)
-    print(f"removing extra distributions, keeping last {historics_to_keep}")
+    print(f"\nRemoving extra distributions, keeping last {historics_to_keep}")
     distribution_ids_to_purge = []
     for index, dist in enumerate(sorted_distributionsets):
         if index >= historics_to_keep:
@@ -1054,29 +1049,28 @@ if __name__ == "__main__":
         print(f"error purging distribution sets: {e}")
         print("please remove the distributions manually")
     # Fetch all existing rollouts
-    print("Fetching existing rollouts...")
+    print("\nFetching existing rollouts...")
     existing_rollouts = client.getAllRollouts() or []
 
-    # Print all existing rollouts for inspection
-    print("Existing rollouts:")
-    for rollout in existing_rollouts:
-        print(json.dumps(rollout, indent=2))
+    # # Print all existing rollouts for inspection
+    # print("Existing rollouts:")
+    # for rollout in existing_rollouts:
+    #     print(json.dumps(rollout, indent=2))
 
     # Build the targetFilterQuery for the current channel
     current_channel_query = f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"'
 
     # Debug prints added here
-    print("\n=== Debug Information ===")
     print(f"Current channel query: {current_channel_query}")
-    print("\nAnalyzing existing rollouts:")
+    print("Analyzing existing rollouts:")
     for rollout in existing_rollouts:
         print(f"\nChecking rollout: {rollout['name']}")
         print(f"Filter query in rollout: {rollout.get('targetFilterQuery')}")
         print(
             f"Does filter match {args.channel}: {rollout.get('targetFilterQuery') == current_channel_query}"
         )
-    print("=== End Debug Information ===\n")
 
+    print("\nDeleting all existing actions for the channel before creating the rollout")
     raucb_filename = os.path.basename(args.bundle)
     rollout_name = raucb_filename
 
@@ -1088,7 +1082,6 @@ if __name__ == "__main__":
         and rollout.get("name") != rollout_name
     ]
 
-    print("Deleting all existing actions for the channel before creating the rollout")
     client.deleteAllActionsForChannel(current_channel_query)
 
     channel_filter = ensure_filter(
@@ -1099,8 +1092,7 @@ if __name__ == "__main__":
 
     # Create or replace the rollout
     target_filter_query = current_channel_query
-    print(f"Using filter query: {target_filter_query}")
-    print(f"Creating or replacing rollout: {rollout_name}")
+    print(f"\nCreating or replacing rollout: {rollout_name} for {target_filter_query}")
 
     rollout = client.createOrUpdateRollout(
         name=rollout_name,
