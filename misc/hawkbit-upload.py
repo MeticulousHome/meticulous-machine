@@ -1105,7 +1105,7 @@ if __name__ == "__main__":
         print("No rollout was created. Relying on filter query instead")
 
     print("\nSetting up distribution auto-assignment for new machines")
-    distribution_channel_query = f'{current_channel_query} and assignedDS.name != "{distribution_name}" and assignedDS.version != "{args.version}" and installedDS.name != "{distribution_name}" and installedDS.version != "{args.version}"'
+    distribution_channel_query = f'{current_channel_query} and assignedDS.name != "{distribution_name}" and assignedDS.version != "{args.version}" and installedDS.version != "{args.version}"'
     channel_filter = ensure_filter(
         client,
         distribution_channel_query,
