@@ -1,0 +1,6 @@
+[Unit]
+Description=Restart backend and dial
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl restart meticulous-backend.service meticulous-dial.service
