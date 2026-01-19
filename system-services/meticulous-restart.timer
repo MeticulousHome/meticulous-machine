@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly call to meticulous-restart
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+# We do not want it to be executed if the system was off at 3am
+Persistent=false
+
+[Install]
+WantedBy=timers.target
