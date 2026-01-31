@@ -102,7 +102,7 @@ function install_ubuntu_dependencies() {
 
     sudo apt update
     sudo apt -y install libssl-dev:arm64
-    sudo apt -y install --no-install-recommends ${HOST_PACKAGES}
+    sudo apt -y install ${HOST_PACKAGES}
 
     if [ -z "$(which node)" ]; then
         curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash - &&
