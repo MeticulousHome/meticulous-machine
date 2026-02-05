@@ -99,18 +99,16 @@ jobs:
         path:  components/meticulous-plotter-ui/build/
 
 
-    - name: Install Ubuntu dependencies
-      run: ./update-sources.sh --install_ubuntu_dependencies
-
-    - name: Install qemu-img
+    - name: Install build dependencies
       run: |
-        sudo apt install -y qemu-utils qemu-user-static
+        sudo apt update
+        sudo apt install -y \
+          systemd-container pv pigz qemu-user-static binfmt-support \
+          kpartx lvm2 dosfstools parted e2fsprogs \
+          qemu-utils python3 python3-venv git
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
-
-    - name: 'Exporting pio'
-      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Checkout all the python sources
       run: ./update-sources.sh  --backend --watcher --image ${{ inputs['image'] || 'nightly' }}

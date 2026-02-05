@@ -20,6 +20,10 @@ on:
           description: "Overwrite the default runner"
           type: string
           default: "ubuntu-24.04"
+      packages:
+          description: "APT packages to install for this component"
+          type: string
+          default: ""
 
   workflow_call:  # Allows the workflow to be called from other workflows
     inputs:
@@ -39,6 +43,10 @@ on:
         description: "Overwrite the default runner"
         type: string
         default: "ubuntu-24.04"
+      packages:
+        description: "APT packages to install for this component"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -52,7 +60,7 @@ jobs:
     runs-on: ${{ inputs['runner'] || 'ubuntu-24.04' }}
     name: Build ${{ inputs['build-option'] }}
     env:
-      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter'}}
+      has-packages: ${{ inputs['packages'] != '' }}
       needs-cross-compile: ${{ inputs['build-option'] == 'linux' }}
       needs-qemu: ${{ inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' }}
     steps:
@@ -67,14 +75,14 @@ jobs:
       if: ${{ fromJSON(env.needs-qemu) }}
       uses: docker/setup-qemu-action@v3
 
-    - name: Install Ubuntu dependencies
-      if: ${{ fromJSON(env.needs-deps) && ! fromJSON(env.needs-cross-compile) }}
+    - name: Install component packages
+      if: ${{ fromJSON(env.has-packages) && ! fromJSON(env.needs-cross-compile) }}
       run: |
         sudo apt update
-        ./update-sources.sh --install_ubuntu_dependencies
+        sudo apt install -y ${{ inputs['packages'] }}
 
     - name: Install Cross-Compilation tools
-      if: ${{ fromJSON(env.needs-deps) && fromJSON(env.needs-cross-compile) }}
+      if: ${{ fromJSON(env.needs-cross-compile) }}
       run: |
         ubuntu_release=$(lsb_release -cs)
         sudo rm -rf /etc/apt/sources.list.d/ubuntu.sources
@@ -98,19 +106,23 @@ jobs:
         sudo apt update
         sudo apt install -y qemu-utils qemu-user-static
 
-    - name: 'Exporting pio'
-      if: ${{ fromJSON(env.needs-deps) }}
-      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
+    - name: Install PlatformIO
+      if: ${{ inputs['build-option'] == 'firmware' }}
+      run: |
+        wget -q -O get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+        python3 get-platformio.py
+        echo "$HOME/.platformio/penv/bin" >> $GITHUB_PATH
+        rm -f get-platformio.py
 
     - name: Setup ccache
-      if: ${{ fromJSON(env.needs-deps) }}
+      if: ${{ fromJSON(env.has-packages) || fromJSON(env.needs-cross-compile) }}
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         create-symlink: true
         max-size: 1G
 
     - name: Create additional ccache symlinks
-      if: ${{ fromJSON(env.needs-deps) }}
+      if: ${{ fromJSON(env.has-packages) || fromJSON(env.needs-cross-compile) }}
       run: |
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
