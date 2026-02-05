@@ -262,7 +262,7 @@ function build_crash_reporter() {
         # run the container to build the binary
         # we must know the absolute path for the crash-reporter component directory to mount the volume
         echo "cwd: $(pwd)"
-        docker run --rm -v $(pwd)/$CRASH_REPORTER_SRC_DIR:/systemd-crash-reporter build-reporter
+        $SUDO docker run --rm -v $(pwd)/$CRASH_REPORTER_SRC_DIR:/systemd-crash-reporter build-reporter
     else
         echo "Crash Reporter is not checked out. Skipping"
     fi
