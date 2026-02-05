@@ -41,7 +41,7 @@ jobs:
       matrix:
         component:
           - { name: "Build u-boot", build-option: "bootloader", build-path: "components/bootloader/build",
-              packages: "build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu u-boot-tools bison flex libssl-dev libgnutls28-dev bc" }
+              packages: "build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu u-boot-tools bison flex libssl-dev bc" }
           - { name: "Build Linux", build-option: "linux", build-path: "components/linux-build",
               packages: "" }
           - { name: "Build Debian", build-option: "debian", build-path: "components/debian-base/rootfs-base.tar.gz",
