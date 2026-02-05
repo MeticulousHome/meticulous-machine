@@ -35,17 +35,28 @@ jobs:
       build-path: ${{ matrix.component.build-path }}
       runner: ${{ matrix.component.runner }}
       image: ${{ inputs['image'] }}
+      packages: ${{ matrix.component.packages }}
     secrets: inherit
     strategy:
       matrix:
         component:
-          - { name: "Build u-boot", build-option: "bootloader", build-path: "components/bootloader/build" }
-          - { name: "Build Linux", build-option: "linux", build-path: "components/linux-build" }
-          - { name: "Build Debian", build-option: "debian", build-path: "components/debian-base/rootfs-base.tar.gz" }
-          - { name: "Build psplash", build-option: "psplash", build-path: "components/psplash-build/", runner: "ubuntu-22.04" }
-          - { name: "Build rauc", build-option: "rauc", build-path: "components/rauc/build", runner: "ubuntu-22.04" }
-          - { name: "Build dial app", build-option: "dial", build-path: "components/meticulous-dial/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/meticulous-dial.deb" }
-          - { name: "Build web app", build-option: "web", build-path: "components/meticulous-web-ui/out/" }
-          - { name: "Build firmware", build-option: "firmware", build-path: "components/meticulous-firmware-build" }
-          - { name: "Build plotter ui", build-option: "plotter", build-path: "components/meticulous-plotter-ui/build/" }
-          - { name: "Build crash reporter", build-option: "crash-reporter", build-path: "components/crash-reporter/target" }
+          - { name: "Build u-boot", build-option: "bootloader", build-path: "components/bootloader/build",
+              packages: "build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu u-boot-tools bison flex libssl-dev bc" }
+          - { name: "Build Linux", build-option: "linux", build-path: "components/linux-build",
+              packages: "" }
+          - { name: "Build Debian", build-option: "debian", build-path: "components/debian-base/rootfs-base.tar.gz",
+              packages: "debootstrap qemu-user-static binfmt-support pv systemd-container" }
+          - { name: "Build psplash", build-option: "psplash", build-path: "components/psplash-build/", runner: "ubuntu-22.04",
+              packages: "qemu-user-static binfmt-support" }
+          - { name: "Build rauc", build-option: "rauc", build-path: "components/rauc/build", runner: "ubuntu-22.04",
+              packages: "qemu-user-static binfmt-support" }
+          - { name: "Build dial app", build-option: "dial", build-path: "components/meticulous-dial/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/meticulous-dial.deb",
+              packages: "binutils zstd xz-utils pv" }
+          - { name: "Build web app", build-option: "web", build-path: "components/meticulous-web-ui/out/",
+              packages: "" }
+          - { name: "Build firmware", build-option: "firmware", build-path: "components/meticulous-firmware-build",
+              packages: "python3 python3-venv" }
+          - { name: "Build plotter ui", build-option: "plotter", build-path: "components/meticulous-plotter-ui/build/",
+              packages: "" }
+          - { name: "Build crash reporter", build-option: "crash-reporter", build-path: "components/crash-reporter/target",
+              packages: "" }
