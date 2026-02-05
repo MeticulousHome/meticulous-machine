@@ -3,16 +3,11 @@ set -eo pipefail
 
 source config.sh
 
-SUDO=""
-if (($EUID != 0)); then
-    SUDO="sudo"
-fi
-
 function build_debian() {
     echo "Building debian"
 
     pushd $DEBIAN_SRC_DIR >/dev/null
-    $SUDO ./create_rootfs.sh
+    sudo ./create_rootfs.sh
     popd >/dev/null
 }
 
@@ -262,7 +257,7 @@ function build_crash_reporter() {
         # run the container to build the binary
         # we must know the absolute path for the crash-reporter component directory to mount the volume
         echo "cwd: $(pwd)"
-        $SUDO docker run --rm -v $(pwd)/$CRASH_REPORTER_SRC_DIR:/systemd-crash-reporter build-reporter
+        sudo docker run --rm -v $(pwd)/$CRASH_REPORTER_SRC_DIR:/systemd-crash-reporter build-reporter
     else
         echo "Crash Reporter is not checked out. Skipping"
     fi
