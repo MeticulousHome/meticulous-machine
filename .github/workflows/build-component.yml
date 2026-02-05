@@ -115,12 +115,14 @@ jobs:
         rm -f get-platformio.py
 
     - name: Setup ccache
+      if: ${{ fromJSON(env.has-packages) || fromJSON(env.needs-cross-compile) }}
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         create-symlink: true
-        max-size: 2G
+        max-size: 1G
 
     - name: Create additional ccache symlinks
+      if: ${{ fromJSON(env.has-packages) || fromJSON(env.needs-cross-compile) }}
       run: |
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
