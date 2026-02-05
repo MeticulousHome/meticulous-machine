@@ -56,7 +56,7 @@ declare -A component_runner=(
 )
 
 declare -A component_packages=(
-    [bootloader]="build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu u-boot-tools bison flex libssl-dev bc"
+    [bootloader]="build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu u-boot-tools bison flex libssl-dev libgnutls28-dev bc"
     [linux]=""
     [debian]="debootstrap qemu-user-static binfmt-support pv systemd-container"
     [psplash]="qemu-user-static binfmt-support"
