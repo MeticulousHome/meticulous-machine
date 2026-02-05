@@ -68,13 +68,6 @@ declare -A component_packages=(
     [crash-reporter]=""
 )
 
-
-# components skipped by --all (systemd-nspawn doesn't work inside Docker)
-# can still be explicitly requested with e.g. --debian
-declare -A component_skip_default=(
-    [debian]="systemd-nspawn cannot run inside Docker containers"
-)
-
 declare -A src_dir=(
     [bootloader]="$UBOOT_SRC_DIR"
     [linux]="$LINUX_SRC_DIR"
@@ -300,11 +293,6 @@ if [ $has_builds -eq 1 ] || [ $build_all -eq 1 ]; then
 
     for component in "${all_components[@]}"; do
         if [ $build_all -eq 1 ] || [ "${selected[$component]:-0}" -eq 1 ]; then
-            # Skip components that can't run in act unless explicitly selected
-            if [ $build_all -eq 1 ] && [ -n "${component_skip_default[$component]:-}" ] && [ "${selected[$component]:-0}" -ne 1 ]; then
-                log_skip "build: $component (${component_skip_default[$component]})"
-                continue
-            fi
             run_build "$component"
         fi
     done
