@@ -59,6 +59,9 @@ function b_copy_components() {
     echo "Installing services"
     copy_services
 
+    echo "Enableing remote journald access"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl enable systemd-journal-remote"
+
     # Install Crash Reporter
     echo "Installing Crash reporter"
     cp -r ${CRASH_REPORTER_SRC_DIR}/target/aarch64-unknown-linux-gnu/release/crash-reporter ${ROOTFS_DIR}/opt/meticulous-crash-reporter
