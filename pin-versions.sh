@@ -65,8 +65,11 @@ update_all_repos() {
     update_repo_rev "$ATF_SRC_DIR" "ATF_GIT" "ATF_REV"
     update_repo_rev "$IMX_MKIMAGE_SRC_DIR" "IMX_MKIMAGE_GIT" "IMX_MKIMAGE_REV"
     update_repo_rev "$DEBIAN_SRC_DIR" "DEBIAN_GIT" "DEBIAN_REV"
-    update_repo_rev "$BACKEND_SRC_DIR" "BACKEND_GIT" "BACKEND_REV"
-    update_repo_rev "$DIAL_SRC_DIR" "DIAL_GIT" "DIAL_REV"
+    if [ "$IMAGE_NAME" != "factory" ]; then
+        #always track beta-factory for dial app and main-factory for backend repos when updating factory image revs
+        update_repo_rev "$BACKEND_SRC_DIR" "BACKEND_GIT" "BACKEND_REV"
+        update_repo_rev "$DIAL_SRC_DIR" "DIAL_GIT" "DIAL_REV"
+    fi
     update_repo_rev "$WEB_APP_SRC_DIR" "WEB_APP_GIT" "WEB_APP_REV"
     update_repo_rev "$WATCHER_SRC_DIR" "WATCHER_GIT" "WATCHER_REV"
     update_repo_rev "$FIRMWARE_SRC_DIR" "FIRMWARE_GIT" "FIRMWARE_REV"
