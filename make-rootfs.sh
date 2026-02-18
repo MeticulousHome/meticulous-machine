@@ -59,8 +59,9 @@ function b_copy_components() {
     echo "Installing services"
     copy_services
 
-    echo "Enabling remote journal upload to fluentd"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl enable systemd-journal-upload"
+    echo "Enable fluent-bit for log forwarding"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl enable fluent-bit"
+    mkdir -p ${ROOTFS_DIR}/var/lib/fluent-bit
 
     # Install Crash Reporter
     echo "Installing Crash reporter"
