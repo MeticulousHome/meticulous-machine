@@ -60,6 +60,7 @@ function b_copy_components() {
     copy_services
 
     echo "Enable fluent-bit for log forwarding"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "curl https://raw.githubusercontent.com/fluent/fluent-bit/master/install.sh | sh"
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl enable fluent-bit"
     mkdir -p ${ROOTFS_DIR}/var/lib/fluent-bit
 
