@@ -13,6 +13,7 @@ permissions:
   contents: write
   actions: read
   id-token: write
+  pages: write
 
 run-name: "Build ${{github.event.inputs.image || 'default (nightly)' }} image"
 
@@ -371,3 +372,8 @@ jobs:
           git commit -m "changelog: ${{ inputs['image'] || 'nightly' }} build #${{ github.run_number }}"
           git push
         fi
+
+  deploy-changelog:
+    name: Deploy changelog to GitHub Pages
+    needs: commit-changelog
+    uses: meticuloushome/meticulous-machine/.github/workflows/deploy-changelog.yml@main
