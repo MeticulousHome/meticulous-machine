@@ -97,8 +97,14 @@ else
 fi
 echo "U-Boot booted from ${uboot_active} with version ${uboot_active_ref}"
 
+identifier=$(hostname)
 
-sed -i "s/__TARGET_NAME__/$(hostname)/" /etc/hawkbit/config.conf
+# The backend will at some point add the serial, so we ensure forward compat here
+if [[ "$identifier" != *"$serial"* ]]; then
+  identifier="${identifier}-${serial}"
+fi
+
+sed -i "s/__TARGET_NAME__/${identifier}/" /etc/hawkbit/config.conf
 sed -i "s/__BOOT_MODE__/${boot_mode}/" /etc/hawkbit/config.conf
 sed -i "s/__UPDATE_CHANNEL__/${update_channel}/" /etc/hawkbit/config.conf
 sed -i "s/__SERIAL__/${serial}/" /etc/hawkbit/config.conf
