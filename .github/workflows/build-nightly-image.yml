@@ -10,7 +10,7 @@ on:
         default: nightly
 
 permissions:
-  contents: read
+  contents: write
   actions: read
   id-token: write
 
@@ -24,11 +24,40 @@ jobs:
     with:
       image: ${{ inputs['image'] || 'nightly' }}
 
+  generate-version-info:
+    name: Generate version info and changelog
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Git authentication
+        run: |
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout all component sources
+        run: |
+          ./update-sources.sh --all --image ${{ inputs['image'] || 'nightly' }} --firmware --plotter
+
+      - name: Generate build info and changelog
+        run: |
+          ./generate-build-info.sh ${{ inputs['image'] || 'nightly' }}
+
+      - name: Upload version-info artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-info
+          path: |
+            components/repo-info/
+            images/changes/
+          if-no-files-found: error
+
   build-root:
     name: Build RootFS
     runs-on: ubuntu-24.04
     needs: 
       - build-components
+      - generate-version-info
     steps:
 
     - name: Checkout repository
@@ -37,6 +66,12 @@ jobs:
     - name: Set up Git authentication
       run: |
         git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+
+    - name: Download version-info artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'version-info'
+        path: .
 
     - name: Download bootloader artifact
       uses: actions/download-artifact@v4
@@ -118,10 +153,6 @@ jobs:
     - name: Write build channel to image-build-channel
       run: |
         echo "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-channel
-
-    - name: Generate repository information
-      run: |
-        ./generate_repo_info.sh
 
     - name: Generate build number and writing it to to image-build-version
       run: |
@@ -307,3 +338,36 @@ jobs:
         name: deployment.img.gz
         path: deployment.img.gz
         if-no-files-found: error
+
+  commit-changelog:
+    name: Commit changelog
+    needs: [build-bundle, deploy-emmc-bundle, build-deployment-image]
+    if: always() && !cancelled() && needs.build-bundle.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Git authentication
+      run: |
+        git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+
+    - name: Download version-info artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'version-info'
+        path: .
+
+    - name: Commit and push changelog
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        git add images/changes/
+
+        if git diff --cached --quiet; then
+          echo "No changelog changes to commit."
+        else
+          git commit -m "changelog: ${{ inputs['image'] || 'nightly' }} build #${{ github.run_number }}"
+          git push
+        fi
