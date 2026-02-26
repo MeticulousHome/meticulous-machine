@@ -1,0 +1,69 @@
+channel: "stable"
+timestamp: "2026-02-26T14-23-44"
+versions:
+  linux: "f7e1dec23d557c9575fe99ab235509acf5626c3e"
+  uboot: "00ba0da24a8b4a5b5d5e9ec56ebf92c8d1b055d0"
+  atf: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+  imx-mkimage: "71b8c18af93a5eb972d80fbec290006066cff24f"
+  debian: "db279cf0c71d35b1a9930699bca0446414390549"
+  backend: "a843576a8fd49bdd157be58067870b026b00ab80"
+  dial: "6aadb620e5417bf7109bf57125cb8efe2d230b2e"
+  web-app: "f16041429cf38a7dbaf288503a42487e3dee8edf"
+  watcher: "311cf70eb04273e474769256a0e2a62eb3ffe93b"
+  rauc: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+  hawkbit: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+  psplash: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+  crash-reporter: "9c377cac4a53ecbf8a4345fbaad56060be166ebf"
+changes:
+  linux:
+    old_rev: null
+    new_rev: "f7e1dec23d557c9575fe99ab235509acf5626c3e"
+    commits: []
+  uboot:
+    old_rev: null
+    new_rev: "00ba0da24a8b4a5b5d5e9ec56ebf92c8d1b055d0"
+    commits: []
+  atf:
+    old_rev: null
+    new_rev: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+    commits: []
+  imx-mkimage:
+    old_rev: null
+    new_rev: "71b8c18af93a5eb972d80fbec290006066cff24f"
+    commits: []
+  debian:
+    old_rev: null
+    new_rev: "db279cf0c71d35b1a9930699bca0446414390549"
+    commits: []
+  backend:
+    old_rev: null
+    new_rev: "a843576a8fd49bdd157be58067870b026b00ab80"
+    commits: []
+  dial:
+    old_rev: null
+    new_rev: "6aadb620e5417bf7109bf57125cb8efe2d230b2e"
+    commits: []
+  web-app:
+    old_rev: null
+    new_rev: "f16041429cf38a7dbaf288503a42487e3dee8edf"
+    commits: []
+  watcher:
+    old_rev: null
+    new_rev: "311cf70eb04273e474769256a0e2a62eb3ffe93b"
+    commits: []
+  rauc:
+    old_rev: null
+    new_rev: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+    commits: []
+  hawkbit:
+    old_rev: null
+    new_rev: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+    commits: []
+  psplash:
+    old_rev: null
+    new_rev: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+    commits: []
+  crash-reporter:
+    old_rev: null
+    new_rev: "9c377cac4a53ecbf8a4345fbaad56060be166ebf"
+    commits: []
