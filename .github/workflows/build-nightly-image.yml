@@ -8,6 +8,10 @@ on:
       image:
         description: Which image to build
         default: nightly
+      skip_emmc_upload_to_hawkbit:
+        description: Skip uploading EMMC bundle to hawkBit (manual runs only)
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -259,6 +263,7 @@ jobs:
   deploy-emmc-bundle:
     name: Upload EMMC image to hawkbit
     needs: build-bundle
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_emmc_upload_to_hawkbit != true }}
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout code
