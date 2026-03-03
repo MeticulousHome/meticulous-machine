@@ -9,7 +9,7 @@ on:
         description: Which image to build
         default: nightly
       skip_emmc_upload_to_hawkbit:
-        description: Skip uploading EMMC bundle to hawkBit (manual runs only)
+        description: Skip uploading EMMC bundle to hawkBit
         type: boolean
         default: true
 
