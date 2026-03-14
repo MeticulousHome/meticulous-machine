@@ -1,0 +1,20 @@
+channel: "nightly"
+timestamp: "2026-03-14T00-08-43"
+versions:
+  linux: "9e14e4a6eb19f16722d7cb7e4c1afd635f8dad91"
+  uboot: "00ba0da24a8b4a5b5d5e9ec56ebf92c8d1b055d0"
+  atf: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+  imx-mkimage: "71b8c18af93a5eb972d80fbec290006066cff24f"
+  debian: "db279cf0c71d35b1a9930699bca0446414390549"
+  backend: "324aa676017d1d63a11aeef716535f4a97f42dad"
+  dial: "46794a991b3193c1655f53f97d79e7a407d8c04b"
+  web-app: "b9bc6563c0216ef2f2dc6d422664c45aef381155"
+  watcher: "e150083e4ed097690265804d7d1c341fd6a6941c"
+  firmware: "c1c694923bbab26f17647209450a3696a861ed30"
+  rauc: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+  hawkbit: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+  psplash: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+  plotter-ui: "cec4db6d56aa81b94ab01ddbd03ed515cc1ade9b"
+  crash-reporter: "9c377cac4a53ecbf8a4345fbaad56060be166ebf"
+changes:
+  {}  # no component changes detected
