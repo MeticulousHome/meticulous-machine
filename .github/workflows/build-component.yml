@@ -52,7 +52,7 @@ jobs:
     runs-on: ${{ inputs['runner'] || 'ubuntu-24.04' }}
     name: Build ${{ inputs['build-option'] }}
     env:
-      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter'}}
+      needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' && inputs['build-option'] != 'backend' && inputs['build-option'] != 'watcher'}}
       needs-cross-compile: ${{ inputs['build-option'] == 'linux' }}
       needs-qemu: ${{ inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' }}
     steps:

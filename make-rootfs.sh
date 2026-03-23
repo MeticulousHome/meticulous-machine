@@ -75,7 +75,12 @@ function b_copy_components() {
 
     # Install Backend
     echo "Installing Backend"
-    cp -r ${BACKEND_SRC_DIR} ${ROOTFS_DIR}/opt
+    export LATEST_BACKEND=$(ls -Art ${BACKEND_BUILD_DIR}/meticulous-backend_*_arm64.deb | tail -n 1)
+    if [ -z ${LATEST_BACKEND} ]; then
+        echo "No backend deb found"
+        exit 1
+    fi
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${BACKEND_BUILD_DIR}:/opt/meticulous-backend-build" bash -c "apt -y install --reinstall /opt/meticulous-backend-build/$(basename ${LATEST_BACKEND})"
 
     if [ -d ${DASH_SRC_DIR}/build ]; then
         # Install Dash
@@ -95,33 +100,12 @@ function b_copy_components() {
 
     # Install Watcher
     echo "Installing Watcher"
-    cp -r ${WATCHER_SRC_DIR} ${ROOTFS_DIR}/opt
-
-    echo "Creating python venv"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt install -y \
-                                                python3 \
-                                                python3-bleak \
-                                                python3-cairo \
-                                                python3-dbus-next \
-                                                python3-gi \
-                                                python3-setuptools \
-                                                python3-parted \
-                                                python3-systemd \
-                                                python3-venv \
-                                                python3-wheel"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "python3 -m venv --system-site-packages /opt/meticulous-venv"
-
-    # Updating pip, wheel and setuptools to latest versions
-    echo "Installing python updates for pip, wheel and setuptools"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install --upgrade pip"
-
-    # Install python requirements for meticulous
-    echo "Installing Backend dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install -r /opt/meticulous-backend/requirements.txt"
-
-    # Install python requirements for meticulous
-    echo "Installing Watcher dependencies"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip install -r /opt/meticulous-watcher/requirements.txt"
+    export LATEST_WATCHER=$(ls -Art ${WATCHER_BUILD_DIR}/meticulous-watcher_*_arm64.deb | tail -n 1)
+    if [ -z ${LATEST_WATCHER} ]; then
+        echo "No watcher deb found"
+        exit 1
+    fi
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${WATCHER_BUILD_DIR}:/opt/meticulous-watcher-build" bash -c "apt -y install --reinstall /opt/meticulous-watcher-build/$(basename ${LATEST_WATCHER})"
 
     # Install firmware if it exists on disk
     if [ -d $FIRMWARE_OUT_DIR ]; then
@@ -216,7 +200,6 @@ function b_copy_components() {
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -lc "/opt/meticulous-venv/bin/pip cache purge"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "apt autoclean -y"
 }
 
