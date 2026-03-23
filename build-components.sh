@@ -249,6 +249,32 @@ function build_docker() {
     docker build --platform linux/amd64 -t ${DOCKER_DEB_BUILER_IMAGE}:latest-amd64 -f deb-builder.Dockerfile .
 }
 
+function build_backend() {
+    if [ -d $BACKEND_SRC_DIR ]; then
+        echo "Building Backend .deb package"
+        mkdir -p ${BACKEND_BUILD_DIR}
+        local abs_build_dir=$(cd "${BACKEND_BUILD_DIR}" && pwd)
+        pushd $BACKEND_SRC_DIR >/dev/null
+        bash build-deb.sh arm64 "${abs_build_dir}"
+        popd >/dev/null
+    else
+        echo "Backend is not checked out. Skipping"
+    fi
+}
+
+function build_watcher() {
+    if [ -d $WATCHER_SRC_DIR ]; then
+        echo "Building Watcher .deb package"
+        mkdir -p ${WATCHER_BUILD_DIR}
+        local abs_build_dir=$(cd "${WATCHER_BUILD_DIR}" && pwd)
+        pushd $WATCHER_SRC_DIR >/dev/null
+        bash build-deb.sh arm64 "${abs_build_dir}"
+        popd >/dev/null
+    else
+        echo "Watcher is not checked out. Skipping"
+    fi
+}
+
 function build_crash_reporter() {
     if [ -d $CRASH_REPORTER_SRC_DIR ]; then
         echo "Building Crash Report"
@@ -276,6 +302,8 @@ Specific components can be build by passing their names as options.
 Available options:
     --all                     Build all components
     --debian                  Build Debian
+    --backend                 Build Backend .deb package
+    --watcher                 Build Watcher .deb package
     --dial                    Build Dial application
     --web  | --webapp         Build WebApp application
     --firmware                Build ESP32 Firmware
@@ -297,6 +325,8 @@ all_selected=0
 declare -A steps
 steps=(
     [build_debian]=0
+    [build_backend]=0
+    [build_watcher]=0
     [build_dial]=0
     [build_web]=0
     [build_firmware]=0
@@ -312,6 +342,8 @@ steps=(
 for arg in "$@"; do
     case $arg in
     --debian) steps[build_debian]=1 ;;
+    --backend) steps[build_backend]=1 ;;
+    --watcher) steps[build_watcher]=1 ;;
     --dial) steps[build_dial]=1 ;;
     --web) steps[build_web]=1 ;;
     --webapp) steps[build_web]=1 ;;

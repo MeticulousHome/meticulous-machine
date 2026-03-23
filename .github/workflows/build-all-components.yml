@@ -49,3 +49,5 @@ jobs:
           - { name: "Build firmware", build-option: "firmware", build-path: "components/meticulous-firmware-build" }
           - { name: "Build plotter ui", build-option: "plotter", build-path: "components/meticulous-plotter-ui/build/" }
           - { name: "Build crash reporter", build-option: "crash-reporter", build-path: "components/crash-reporter/target" }
+          - { name: "Build backend", build-option: "backend", build-path: "components/meticulous-backend-build/" }
+          - { name: "Build watcher", build-option: "watcher", build-path: "components/meticulous-watcher-build/" }

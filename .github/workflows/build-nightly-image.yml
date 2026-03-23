@@ -138,6 +138,17 @@ jobs:
         name: 'plotter'
         path:  components/meticulous-plotter-ui/build/
 
+    - name: Download backend artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'backend'
+        path:  components/meticulous-backend-build/
+
+    - name: Download watcher artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: 'watcher'
+        path:  components/meticulous-watcher-build/
 
     - name: Install Ubuntu dependencies
       run: ./update-sources.sh --install_ubuntu_dependencies
@@ -151,9 +162,6 @@ jobs:
 
     - name: 'Exporting pio'
       run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
-
-    - name: Checkout all the python sources
-      run: ./update-sources.sh  --backend --watcher --image ${{ inputs['image'] || 'nightly' }}
 
     - name: Write build channel to image-build-channel
       run: |
