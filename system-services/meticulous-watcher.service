@@ -9,7 +9,7 @@ Type=simple
 Environment=PYTHONUNBUFFERED=true
 Restart=on-success
 RestartSec=10
-ExecStart=/opt/meticulous-venv/bin/python3 /opt/meticulous-watcher/watcher.py
+ExecStart=/usr/bin/meticulous-watcher
 User=root
 Slice=meticulous.slice
 

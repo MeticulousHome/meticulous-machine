@@ -74,6 +74,7 @@ export   DEBIAN_BRANCH="bookworm-mainline"
 export   DEBIAN_REV="HEAD"
 
 readonly BACKEND_SRC_DIR="${COMPONENTS_DIR}/meticulous-backend"
+readonly BACKEND_BUILD_DIR="${COMPONENTS_DIR}/meticulous-backend-build"
 export   BACKEND_GIT="git@github.com:MeticulousHome/meticulous-backend.git"
 export   BACKEND_BRANCH="main"
 export   BACKEND_REV="HEAD"
@@ -94,7 +95,8 @@ export   WEB_APP_BRANCH="main"
 export   WEB_APP_REV="HEAD"
 
 readonly WATCHER_SRC_DIR="${COMPONENTS_DIR}/meticulous-watcher"
-readonly WATCHER_GIT="git@github.com:MeticulousHome/meticulous-watcher"
+readonly WATCHER_BUILD_DIR="${COMPONENTS_DIR}/meticulous-watcher-build"
+export   WATCHER_GIT="git@github.com:MeticulousHome/meticulous-watcher"
 export   WATCHER_BRANCH="main"
 export   WATCHER_REV="HEAD"
 
