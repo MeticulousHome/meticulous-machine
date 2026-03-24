@@ -9,7 +9,6 @@ import os
 import attr
 import requests as r
 import json
-import urllib.parse
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
@@ -636,64 +635,6 @@ class HawkbitMgmtClient:
         rollouts = self.get("rollouts")
         return rollouts.get("content", [])
 
-    def assign_ds_to_channel_targets(self, dist_id, filter_query):
-        """
-        Fetches all targets matching filter_query with pagination and assigns
-        distribution set dist_id to each of them directly.
-
-        https://eclipse.dev/hawkbit/rest-api/distributionsets-api-guide.html#_post_restv1distributionsetsdistributionsetidassignedtargets
-        """
-        encoded_query = urllib.parse.quote(filter_query)
-        limit = 100
-        offset = 0
-        total = None
-        all_controller_ids = []
-
-        print(f"\nFetching targets matching filter: {filter_query}")
-        while True:
-            page = self.get(
-                f"targets?q={encoded_query}&limit={limit}&offset={offset}"
-            )
-            if total is None:
-                total = page.get("total", 0)
-                print(f"Total targets to assign: {total}")
-
-            content = page.get("content", [])
-            if not content:
-                break
-
-            for target in content:
-                controller_id = target.get("controllerId")
-                if controller_id:
-                    all_controller_ids.append(controller_id)
-
-            offset += len(content)
-            if offset >= total:
-                break
-
-        if not all_controller_ids:
-            print("No targets found matching the filter. Nothing to assign.")
-            return
-
-        print(f"Assigning distribution set {dist_id} to {len(all_controller_ids)} target(s)...")
-
-        BATCH_SIZE = 100
-        for batch_start in range(0, len(all_controller_ids), BATCH_SIZE):
-            batch = all_controller_ids[batch_start:batch_start + BATCH_SIZE]
-            payload = [{"id": cid} for cid in batch]
-            try:
-                response = self.post(
-                    f"distributionsets/{dist_id}/assignedTargets", payload
-                )
-                assigned = len(response.get("assignedActions", []))
-                already = response.get("alreadyAssigned", 0)
-                print(
-                    f"  Batch {batch_start // BATCH_SIZE + 1}: "
-                    f"{assigned} newly assigned, {already} already assigned"
-                )
-            except HawkbitError as e:
-                print(f"  Error assigning batch starting at index {batch_start}: {e}")
-
     def get_targets_by_filter(self, filter_query):
         return self.get(f"targets?q={filter_query}")
 
@@ -1103,14 +1044,111 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"error purging distribution sets: {e}")
         print("please remove the distributions manually")
+    # Fetch all existing rollouts
+    print("\nFetching existing rollouts...")
+    existing_rollouts = client.getAllRollouts() or []
+
+    # # Print all existing rollouts for inspection
+    # print("Existing rollouts:")
+    # for rollout in existing_rollouts:
+    #     print(json.dumps(rollout, indent=2))
+
     # Build the targetFilterQuery for the current channel
     current_channel_query = f'attribute.update_channel == "{args.channel}" and attribute.boot_mode == "{args.bootmode}"'
-    print(f"Current channel query: {current_channel_query}")
 
-    print("\nDeleting all existing actions for the channel before assigning distribution")
+    # Debug prints added here
+    print(f"Current channel query: {current_channel_query}")
+    print("Analyzing existing rollouts:")
+    for rollout in existing_rollouts:
+        print(f"\nChecking rollout: {rollout['name']}")
+        print(f"Filter query in rollout: {rollout.get('targetFilterQuery')}")
+        print(
+            f"Does filter match {args.channel}: {rollout.get('targetFilterQuery') == current_channel_query}"
+        )
+
+    print("\nDeleting all existing actions for the channel before creating the rollout")
+    raucb_filename = os.path.basename(args.bundle)
+    rollout_name = raucb_filename
+
+    # Filter rollouts by targetFilterQuery
+    rollouts_to_delete = [
+        rollout
+        for rollout in existing_rollouts
+        if rollout.get("targetFilterQuery") == current_channel_query
+        and rollout.get("name") != rollout_name
+    ]
+
     client.deleteAllActionsForChannel(current_channel_query)
 
-    print(f"\nAssigning distribution set {dist_id} directly to all matching targets")
-    client.assign_ds_to_channel_targets(dist_id, current_channel_query)
+    channel_filter = ensure_filter(
+        client,
+        current_channel_query,
+        f"Downloads from {args.channel} channel, boots from {args.bootmode}",
+    )
+
+    # Create or replace the rollout
+    target_filter_query = current_channel_query
+    print(f"\nCreating or replacing rollout: {rollout_name} for {target_filter_query}")
+
+    rollout = client.createOrUpdateRollout(
+        name=rollout_name,
+        dist_id=dist_id,
+        target_filter_query=target_filter_query,
+        autostart=True,
+    )
+
+    if rollout:
+        print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
+        print("Waiting 10 seconds for Hawkbit to process the rollout...")
+        time.sleep(10)
+    else:
+        print("No rollout was created. Relying on filter query instead")
+
+    print("\nSetting up distribution auto-assignment for new machines")
+    distribution_channel_query = f'{current_channel_query} and assignedDS.name != "{distribution_name}" and assignedDS.version != "{args.version}" and installedDS.version != "{args.version}"'
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"Downloads from {args.channel} channel, boots from {args.bootmode}, needs the latest version assigned",
+        dist_id=dist_id,
+    )
+
+    print("\nSetting up debug query for machines which might have gone wrong")
+    distribution_channel_query = (
+        f'{current_channel_query} and installedDS.version != "{args.version}"'
+    )
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"Downloads from {args.channel} channel, but has not installed the latest version",
+    )
+
+    print("\nSetting up failures query for machines which might have gone wrong")
+    distribution_channel_query = f'{current_channel_query} and updatestatus == "error"'
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"Failures in {args.channel}",
+    )
+
+    print("\nSetting up success query")
+    distribution_channel_query = (
+        f'{current_channel_query} and updatestatus == "in_sync"'
+    )
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"In Sync Machines in {args.channel}",
+    )
+
+    print("\nSetting up in progress query")
+    distribution_channel_query = (
+        f'{current_channel_query} and updatestatus == "pending"'
+    )
+    channel_filter = ensure_filter(
+        client,
+        distribution_channel_query,
+        f"In Progress Machines in {args.channel}",
+    )
 
     print("\nfinished!")
