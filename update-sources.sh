@@ -184,7 +184,7 @@ function update_mobile() {
     get_git_src ${MOBILE_GIT} ${MOBILE_BRANCH} \
         ${MOBILE_SRC_DIR} ${MOBILE_REV}
     pushd $MOBILE_SRC_DIR
-    yarn
+    npm ci
     if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "Detected macOS. Installing iOS dependencies."
         bundle install
