@@ -79,7 +79,7 @@ It furthermore contains the downstrad custom NXP kernel for now.
 
 The Dial and the Dashboard App are nodeJS base applications which are build using npm.
 
-The Backend and the Watcher are shipped as raw python for now and don't need to be pre-build.
+The Backend and the Watcher are shipped as raw python and don't need to be pre-built. They use [uv](https://docs.astral.sh/uv/) for dependency management (see `components/meticulous-backend/readme.md`).
 
 ### Building the Root Filesystem
 
@@ -124,9 +124,8 @@ Unpacks the prebuild Debian image into the rootfs directory
 
 1) Python Installation and Configuration
 
-    - Installs Python 3.12 in the rootfs
-    - Reinstalls pip for Python 3.12 to ensure it points to the correct location
-    - Installs Python dependencies for Backend and Watcher using pip
+    - Installs Python 3.11 and [uv](https://docs.astral.sh/uv/) in the rootfs
+    - Installs Python dependencies for Backend and Watcher using uv
 
 1) Packing the rootfs into meticulous-rootfs.tar.gz
 
