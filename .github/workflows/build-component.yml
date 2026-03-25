@@ -71,60 +71,6 @@ jobs:
       run: |
         git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
-    - name: Set up QEMU
-      if: ${{ fromJSON(env.needs-qemu) }}
-      uses: docker/setup-qemu-action@v3
-
-    - name: Install Ubuntu dependencies
-      if: ${{ fromJSON(env.needs-deps) && ! fromJSON(env.needs-cross-compile) }}
-      run: |
-        sudo apt update
-        ./update-sources.sh --install_ubuntu_dependencies
-
-    - name: Install Cross-Compilation tools
-      if: ${{ fromJSON(env.needs-deps) && fromJSON(env.needs-cross-compile) }}
-      run: |
-        ubuntu_release=$(lsb_release -cs)
-        sudo rm -rf /etc/apt/sources.list.d/ubuntu.sources
-
-        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/  ${ubuntu_release} main restricted universe multiverse" | sudo tee /etc/apt/sources.list
-        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/  ${ubuntu_release}-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-        echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ ${ubuntu_release}-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-
-        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release} main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/ubuntu_arm64.list
-        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
-        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
-
-        sudo dpkg --add-architecture 'arm64'
-
-        sudo apt update
-        sudo apt -y install build-essential libssl-dev:arm64 libelf-dev debhelper bc bison flex libssl-dev libncurses5-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
-
-    - name: Install qemu-img
-      if: ${{ fromJSON(env.needs-qemu) }}
-      run: |
-        sudo apt update
-        sudo apt install -y qemu-utils qemu-user-static
-
-    - name: 'Exporting pio'
-      if: ${{ fromJSON(env.needs-deps) }}
-      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
-
-    - name: Setup ccache
-      if: ${{ fromJSON(env.needs-deps) }}
-      uses: hendrikmuhs/ccache-action@v1.2
-      with:
-        create-symlink: true
-        max-size: 1G
-
-    - name: Create additional ccache symlinks
-      if: ${{ fromJSON(env.needs-deps) }}
-      run: |
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
-
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }} --image ${{ inputs['image'] }}
 
@@ -179,8 +125,73 @@ jobs:
         path: ${{ inputs['build-path'] }}
         key: ${{ steps.component-hash.outputs.cache-key }}
 
+    - name: Determine if build is needed
+      id: build-check
+      run: |
+        if [[ "${{ steps.build-cache.outputs.cache-hit }}" == "true" && "${{ inputs['no-cache'] }}" != "true" ]]; then
+          echo "needed=false" >> $GITHUB_OUTPUT
+          echo "Build cache hit - skipping build"
+        else
+          echo "needed=true" >> $GITHUB_OUTPUT
+          echo "Cache miss or no-cache requested - will build"
+        fi
+
+    - name: Set up QEMU
+      if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-qemu) }}
+      uses: docker/setup-qemu-action@v3
+
+    - name: Install Ubuntu dependencies
+      if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) && !fromJSON(env.needs-cross-compile) }}
+      run: |
+        sudo apt update
+        ./update-sources.sh --install_ubuntu_dependencies
+
+    - name: Install Cross-Compilation tools
+      if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) && fromJSON(env.needs-cross-compile) }}
+      run: |
+        ubuntu_release=$(lsb_release -cs)
+        sudo rm -rf /etc/apt/sources.list.d/ubuntu.sources
+
+        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/  ${ubuntu_release} main restricted universe multiverse" | sudo tee /etc/apt/sources.list
+        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/  ${ubuntu_release}-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+        echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ ${ubuntu_release}-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release} main restricted universe multiverse" | sudo tee /etc/apt/sources.list.d/ubuntu_arm64.list
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
+        echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${ubuntu_release}-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list.d/ubuntu_arm64.list
+
+        sudo dpkg --add-architecture 'arm64'
+
+        sudo apt update
+        sudo apt -y install build-essential libssl-dev:arm64 libelf-dev debhelper bc bison flex libssl-dev libncurses5-dev gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+    - name: Install qemu-img
+      if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-qemu) }}
+      run: |
+        sudo apt update
+        sudo apt install -y qemu-utils qemu-user-static
+
+    - name: 'Exporting pio'
+      if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
+      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
+
+    - name: Setup ccache
+      if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        create-symlink: true
+        max-size: 1G
+
+    - name: Create additional ccache symlinks
+      if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
+      run: |
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
+        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
+
     - name: Cache Cargo build artifacts
-      if: ${{ inputs['build-option'] == 'dial' && steps.build-cache.outputs.cache-hit != 'true' }}
+      if: ${{ inputs['build-option'] == 'dial' && fromJSON(steps.build-check.outputs.needed) }}
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: "components/meticulous-dial/src-tauri -> target"
@@ -188,7 +199,7 @@ jobs:
         cache-on-failure: true
 
     - name: Build components
-      if: ${{ fromJSON(inputs['no-cache'] || 'false') || steps.build-cache.outputs.cache-hit != 'true' }}
+      if: ${{ fromJSON(steps.build-check.outputs.needed) }}
       run: |
         export PATH=/usr/lib/ccache:/usr/local/bin:$PATH
         ./build-components.sh --${{ inputs['build-option'] }}
