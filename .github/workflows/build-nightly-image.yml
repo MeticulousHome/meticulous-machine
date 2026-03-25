@@ -12,6 +12,10 @@ on:
         description: Skip uploading EMMC bundle to hawkBit
         type: boolean
         default: true
+      no-cache:
+        description: Force rebuild all components, ignoring cache
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -28,6 +32,7 @@ jobs:
     uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
     with:
       image: ${{ inputs['image'] || 'nightly' }}
+      no-cache: ${{ inputs['no-cache'] || false }}
 
   generate-version-info:
     name: Generate version info and changelog

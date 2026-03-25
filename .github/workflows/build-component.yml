@@ -20,6 +20,10 @@ on:
           description: "Overwrite the default runner"
           type: string
           default: "ubuntu-24.04"
+      no-cache:
+        description: 'Force rebuild, ignoring cache'
+        type: boolean
+        default: false
 
   workflow_call:  # Allows the workflow to be called from other workflows
     inputs:
@@ -39,6 +43,10 @@ on:
         description: "Overwrite the default runner"
         type: string
         default: "ubuntu-24.04"
+      no-cache:
+        description: 'Force rebuild, ignoring cache'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -120,7 +128,59 @@ jobs:
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }} --image ${{ inputs['image'] }}
 
+    - name: Resolve component commit hash for caching
+      id: component-hash
+      run: |
+        case "${{ inputs['build-option'] }}" in
+          linux)
+            HASH="$(git -C components/linux rev-parse HEAD)-$(git -C components/linux-mwifiex rev-parse HEAD)"
+            ;;
+          debian)
+            HASH="$(git -C components/debian-base rev-parse HEAD)"
+            ;;
+          bootloader)
+            HASH="$(git -C components/bootloader/uboot rev-parse HEAD)-$(git -C components/bootloader/imx-atf rev-parse HEAD)-$(git -C components/bootloader/imx-mkimage rev-parse HEAD)"
+            ;;
+          psplash)
+            HASH="$(git -C components/psplash rev-parse HEAD)"
+            ;;
+          rauc)
+            HASH="$(git -C components/rauc/rauc rev-parse HEAD)-$(git -C components/rauc/rauc-hawkbit-updater rev-parse HEAD)"
+            ;;
+          dial)
+            HASH="$(git -C components/meticulous-dial rev-parse HEAD)"
+            ;;
+          web)
+            HASH="$(git -C components/meticulous-web-ui rev-parse HEAD)"
+            ;;
+          firmware)
+            HASH="$(git -C components/meticulous-firmware rev-parse HEAD)"
+            ;;
+          plotter)
+            HASH="$(git -C components/meticulous-plotter-ui rev-parse HEAD)"
+            ;;
+          crash-reporter)
+            HASH="$(git -C components/crash-reporter rev-parse HEAD)"
+            ;;
+          backend)
+            HASH="$(git -C components/meticulous-backend rev-parse HEAD)"
+            ;;
+          watcher)
+            HASH="$(git -C components/meticulous-watcher rev-parse HEAD)"
+            ;;
+        esac
+        echo "cache-key=${{ inputs['build-option'] }}-build-${HASH}" >> $GITHUB_OUTPUT
+
+    - name: Restore build cache
+      id: build-cache
+      if: ${{ !fromJSON(inputs['no-cache'] || 'false') }}
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs['build-path'] }}
+        key: ${{ steps.component-hash.outputs.cache-key }}
+
     - name: Build components
+      if: ${{ fromJSON(inputs['no-cache'] || 'false') || steps.build-cache.outputs.cache-hit != 'true' }}
       run: |
         export PATH=/usr/lib/ccache:/usr/local/bin:$PATH
         ./build-components.sh --${{ inputs['build-option'] }}

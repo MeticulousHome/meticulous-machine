@@ -7,6 +7,10 @@ on:
         description: 'Image config to use'
         type: string
         default: 'nightly'
+      no-cache:
+        description: 'Force rebuild all components, ignoring cache'
+        type: boolean
+        default: false
 
   workflow_call:
     inputs:
@@ -15,6 +19,10 @@ on:
         required: true
         type: string
         default: 'nightly'
+      no-cache:
+        description: 'Force rebuild all components, ignoring cache'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,6 +43,7 @@ jobs:
       build-path: ${{ matrix.component.build-path }}
       runner: ${{ matrix.component.runner }}
       image: ${{ inputs['image'] }}
+      no-cache: ${{ inputs['no-cache'] || false }}
     secrets: inherit
     strategy:
       matrix:
