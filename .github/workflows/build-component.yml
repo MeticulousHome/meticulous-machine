@@ -179,6 +179,14 @@ jobs:
         path: ${{ inputs['build-path'] }}
         key: ${{ steps.component-hash.outputs.cache-key }}
 
+    - name: Cache Cargo build artifacts
+      if: ${{ inputs['build-option'] == 'dial' && steps.build-cache.outputs.cache-hit != 'true' }}
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "components/meticulous-dial/src-tauri -> target"
+        key: "aarch64-cross"
+        cache-on-failure: true
+
     - name: Build components
       if: ${{ fromJSON(inputs['no-cache'] || 'false') || steps.build-cache.outputs.cache-hit != 'true' }}
       run: |
