@@ -27,6 +27,7 @@ def parse_changelog_yaml(filepath):
     """
     result = {
         "channel": "",
+        "build-version": None,
         "timestamp": "",
         "versions": {},
         "changes": {},
@@ -49,6 +50,10 @@ def parse_changelog_yaml(filepath):
             if not line.startswith(" ") and not line.startswith("\t"):
                 if line.startswith("channel:"):
                     result["channel"] = _extract_value(line)
+                    current_section = None
+                    current_component = None
+                if line.startswith("build-version:"):
+                    result["build-version"] = _extract_value(line)
                     current_section = None
                     current_component = None
                 elif line.startswith("timestamp:"):
@@ -248,7 +253,7 @@ def generate_html(changes_dir, output_path):
     align-items: center;
     margin-bottom: 0.75rem;
   }
-  .build-timestamp {
+  .build-info-header {
     font-size: 0.9rem;
     color: var(--text-muted);
     font-family: monospace;
@@ -339,13 +344,15 @@ def generate_html(changes_dir, output_path):
                     html_parts.append('<div class="build-entry">')
                     html_parts.append('<div class="build-header">')
                     ts = entry.get("timestamp", "unknown")
+                    build_version = entry.get("build-version", "not recorded")
                     display_ts = ts.replace("T", " ").replace("-", ":", 2) if "T" in ts else ts
                     # Only replace the time-separator dashes, not the date ones
                     # Format: 2026-02-26T00-00-00 -> 2026-02-26 00:00:00
                     if "T" in ts:
                         date_part, _, time_part = ts.partition("T")
                         display_ts = f"{date_part} {time_part.replace('-', ':')}"
-                    html_parts.append(f'<span class="build-timestamp">{_html_escape(display_ts)}</span>')
+                    build_header = f"{display_ts} - version: {build_version if build_version else 'not recorded'}"
+                    html_parts.append(f'<span class="build-info-header">{_html_escape(build_header)}</span>')
                     html_parts.append("</div>")
 
                     changes = entry.get("changes", {})

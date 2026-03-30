@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-# generate-build-info.sh <image_name>
+# generate-build-info.sh <image_name> [GH_BUILD_NUMBER]
 #
 # Generates:
 #   1. components/repo-info/summary.txt   (consumed by make-rootfs.sh)
@@ -9,12 +9,19 @@ set -eo pipefail
 #   3. images/changes/<channel>/<timestamp>.changelog.yaml
 #      Contains a full version snapshot AND a diff against the previous build.
 
+#      GH_BUILD_NUMBER is optional parameter passed when run in a github action
+
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <image_name>"
+    echo "Usage: $0 <image_name> [GH_BUILD_NUMBER]"
     exit 1
 fi
 
 IMAGE_NAME="$1"
+BUILD_NUMBER="NOT PROVIDED"
+
+if [ -n "$2" ]; then
+    BUILD_NUMBER="$2"
+fi
 
 source config.sh
 
@@ -153,6 +160,7 @@ yaml_escape() {
 {
     echo "channel: \"${IMAGE_NAME}\""
     echo "timestamp: \"${TIMESTAMP}\""
+    echo "build-version: \"${BUILD_NUMBER}\""
 
     # Write full version snapshot
     echo "versions:"

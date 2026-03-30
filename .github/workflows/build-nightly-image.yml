@@ -38,6 +38,11 @@ jobs:
     name: Generate version info and changelog
     runs-on: ubuntu-24.04
     steps:
+
+      - name: Generate build number
+        run: |
+          echo "BUILD_VERSION_NUMBER=$(./generate_image_version.sh "${{github.run_number}}" "${{ inputs.image || 'nightly' }}")" >> $GITHUB_ENV
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -51,7 +56,7 @@ jobs:
 
       - name: Generate build info and changelog
         run: |
-          ./generate-build-info.sh ${{ inputs['image'] || 'nightly' }}
+          ./generate-build-info.sh ${{ inputs['image'] || 'nightly' }} $BUILD_VERSION_NUMBER          
 
       - name: Upload version-info artifact
         uses: actions/upload-artifact@v4
@@ -175,7 +180,7 @@ jobs:
     - name: Generate build number and writing it to to image-build-version
       run: |
         echo -n "Image build version: " >> $GITHUB_STEP_SUMMARY
-        ./generate_image_version.sh "${{github.run_number}}" "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-version >> $GITHUB_STEP_SUMMARY
+        echo "$BUILD_VERSION_NUMBER" | sudo tee ./image-build-version >> $GITHUB_STEP_SUMMARY
 
     - name: Build rootfs
       run: |
