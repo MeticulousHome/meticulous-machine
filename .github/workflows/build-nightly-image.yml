@@ -37,14 +37,19 @@ jobs:
   generate-version-info:
     name: Generate version info and changelog
     runs-on: ubuntu-24.04
+    outputs:
+      build_version_number: ${{ steps.generate-build-number.outputs.build_version_number }}
     steps:
-
-      - name: Generate build number
-        run: |
-          echo "BUILD_VERSION_NUMBER=$(./generate_image_version.sh "${{github.run_number}}" "${{ inputs.image || 'nightly' }}")" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Generate build number
+        id: generate-build-number
+        run: |
+          BUILD_VERSION_NUMBER="$(./generate_image_version.sh "${{ github.run_number }}" "${{ inputs.image || 'nightly' }}")"
+          echo "BUILD_VERSION_NUMBER=${BUILD_VERSION_NUMBER}" >> "$GITHUB_ENV"
+          echo "build_version_number=${BUILD_VERSION_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Git authentication
         run: |
@@ -73,6 +78,8 @@ jobs:
     needs: 
       - build-components
       - generate-version-info
+    env:
+      BUILD_VERSION_NUMBER: ${{ needs.generate-version-info.outputs.build_version_number }}
     steps:
 
     - name: Checkout repository
