@@ -25,7 +25,7 @@ jobs:
   build-components:
     name: Build all image components
     secrets: inherit
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
+    uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@pre_backend_build
     with:
       image: ${{ inputs['image'] || 'nightly' }}
 
@@ -381,4 +381,4 @@ jobs:
   deploy-changelog:
     name: Deploy changelog to GitHub Pages
     needs: commit-changelog
-    uses: meticuloushome/meticulous-machine/.github/workflows/deploy-changelog.yml@main
+    uses: meticuloushome/meticulous-machine/.github/workflows/deploy-changelog.yml@pre_backend_build
