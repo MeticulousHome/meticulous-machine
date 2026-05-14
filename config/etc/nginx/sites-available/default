@@ -56,6 +56,12 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 1800s;
+
+        # Allow JSON compression for proxied API responses
+        gzip on;
+        gzip_proxied any;
+        gzip_types application/json;
+        gzip_min_length 1000;  # skip tiny responses
     }
 
 	location ~* ^/health {
