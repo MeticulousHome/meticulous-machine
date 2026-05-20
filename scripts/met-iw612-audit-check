@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -u
+
+expected_regdb_md5="c844997e941507a0ea2b3a8b7b9a5734"
+expected_regdb_p7s_md5="c38cc1684e365761947489394171bf8e"
+mod_para="/lib/firmware/nxp/var_wifi_mod_para.conf"
+
+section() {
+    printf '\n== %s ==\n' "$1"
+}
+
+run() {
+    printf '$ %s\n' "$*"
+    "$@" 2>&1 || true
+}
+
+section "system"
+run hostname
+run date -R
+run uname -a
+
+section "kernel cfg80211"
+if [ -r /proc/config.gz ]; then
+    zcat /proc/config.gz | grep -E 'CONFIG_CFG80211=|CFG80211_REQUIRE_SIGNED_REGDB|CFG80211_USE_KERNEL_REGDB_KEYS|CFG80211_EXTRA_REGDB_KEYDIR|CFG80211_CERTIFICATION_ONUS' || true
+else
+    echo "/proc/config.gz is not readable"
+fi
+
+section "firmware config"
+if [ -r "${mod_para}" ]; then
+    grep -E 'fw_name|init_hostcmd_cfg|txpwrlimit_cfg' "${mod_para}" || true
+else
+    echo "${mod_para} is missing"
+fi
+
+section "required files"
+for file in \
+    /lib/firmware/nxp/sduart_nw61x_v1.bin.se \
+    /lib/firmware/nxp/rutxpower_CA.bin \
+    /lib/firmware/nxp/txpower_CA.bin \
+    /lib/firmware/nxp/ed_mac.conf \
+    /lib/firmware/regulatory.db \
+    /lib/firmware/regulatory.db.p7s; do
+    if [ -e "${file}" ]; then
+        ls -l "${file}"
+    else
+        echo "MISSING ${file}"
+    fi
+done
+
+section "regulatory db"
+readlink -f /lib/firmware/regulatory.db /lib/firmware/regulatory.db.p7s 2>/dev/null || true
+if command -v md5sum >/dev/null 2>&1; then
+    md5sum /lib/firmware/regulatory.db /lib/firmware/regulatory.db.p7s 2>/dev/null || true
+fi
+actual_regdb_md5="$(md5sum /lib/firmware/regulatory.db 2>/dev/null | awk '{print $1}')"
+actual_regdb_p7s_md5="$(md5sum /lib/firmware/regulatory.db.p7s 2>/dev/null | awk '{print $1}')"
+if [ "${actual_regdb_md5}" = "${expected_regdb_md5}" ] && [ "${actual_regdb_p7s_md5}" = "${expected_regdb_p7s_md5}" ]; then
+    echo "Murata 2DL regulatory DB hashes match expected values"
+else
+    echo "Murata 2DL regulatory DB hashes do not match expected values"
+fi
+
+section "interfaces"
+run lsmod
+run ip link show wlan0
+if command -v hciconfig >/dev/null 2>&1; then
+    run hciconfig
+else
+    echo "hciconfig is not installed"
+fi
+
+section "iw regulatory state"
+if command -v iw >/dev/null 2>&1; then
+    if [ "${1:-}" = "--apply-ca" ]; then
+        run iw reg set CA
+        sleep 1
+    fi
+    run iw reg get
+else
+    echo "iw is not installed"
+fi
+
+section "recent regulatory logs"
+dmesg | grep -iE 'cfg80211|regulatory|regdb|signature|invalid|malformed|X.509|Request firmware|sduart|txpwrlimit|rutxpower|FW country|wlan: version|btnxpuart' | tail -160 || true

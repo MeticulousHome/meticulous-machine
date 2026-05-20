@@ -129,6 +129,7 @@ function build_kernel() {
 
     mkdir -p ${LINUX_BUILD_DIR}
     rm -rf ${LINUX_BUILD_DIR}/*
+    local murata_regdb_cert="$(pwd)/config/usr/lib/firmware/nxp/murata/files/2DL/murata.hex"
     pushd $LINUX_SRC_DIR >/dev/null
     if [ ! $(uname -m) == "aarch64" ]; then
         export CROSS_COMPILE="aarch64-linux-gnu-"
@@ -140,6 +141,10 @@ function build_kernel() {
     export DPKG_DEB_COMPRESSOR_TYPE=xz
     export DEB_BUILD_OPTIONS="parallel=`nproc`"
     make mrproper
+    if [ -f "${murata_regdb_cert}" ]; then
+        echo "Installing Murata 2DL regulatory certificate into kernel source"
+        cp -v "${murata_regdb_cert}" net/wireless/certs/murata.hex
+    fi
     make imx8_var_meticulous_defconfig
     make -j`nproc` Image modules dtbs
     make -j`nproc` bindeb-pkg
@@ -162,6 +167,12 @@ function build_kernel() {
     sed -i 's/$(MAKE) -C/$(MAKE) -j`nproc` -C/' Makefile
 
     make build
+    if [ -d mapp/mlanutl ]; then
+        echo -e "\033[1;32mBuilding mlanutl\033[0m"
+        mkdir -p bin_wlan
+        make -C mapp/mlanutl clean
+        make -C mapp/mlanutl build INSTALLDIR="$(pwd)/bin_wlan" CC="${CROSS_COMPILE}gcc"
+    fi
     popd >/dev/null
     mv -v ${MWIFIEX_SRC_DIR}/bin_wlan ${LINUX_BUILD_DIR}/
 }
