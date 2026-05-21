@@ -156,6 +156,7 @@ function build_kernel() {
 
     echo -e "\033[1;32mBuilding out-of-tree mwifiex driver\033[0m"
     export KERNELDIR="$(pwd)/${LINUX_SRC_DIR}"
+    mlanutl_external_src="$(pwd)/${MLANUTL_SRC_DIR}/mapp/mlanutl"
 
     pushd $MWIFIEX_SRC_DIR >/dev/null
     if [ ! $(uname -m) == "aarch64" ]; then
@@ -170,8 +171,8 @@ function build_kernel() {
     mlanutl_src=""
     if [ -d mapp/mlanutl ]; then
         mlanutl_src="$(pwd)/mapp/mlanutl"
-    elif [ -d "${MLANUTL_SRC_DIR}/mapp/mlanutl" ]; then
-        mlanutl_src="${MLANUTL_SRC_DIR}/mapp/mlanutl"
+    elif [ -d "${mlanutl_external_src}" ]; then
+        mlanutl_src="${mlanutl_external_src}"
     fi
     if [ -n "${mlanutl_src}" ]; then
         echo -e "\033[1;32mBuilding mlanutl from ${mlanutl_src}\033[0m"

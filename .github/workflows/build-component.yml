@@ -79,7 +79,7 @@ jobs:
       run: |
         case "${{ inputs['build-option'] }}" in
           linux)
-            HASH="$(git -C components/linux rev-parse HEAD)-$(git -C components/linux-mwifiex rev-parse HEAD)"
+            HASH="$(git -C components/linux rev-parse HEAD)-$(git -C components/linux-mwifiex rev-parse HEAD)-$(git -C components/linux-mwifiex-iw612 rev-parse HEAD)"
             ;;
           debian)
             HASH="$(git -C components/debian-base rev-parse HEAD)"
