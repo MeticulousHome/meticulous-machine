@@ -156,6 +156,7 @@ function build_kernel() {
 
     echo -e "\033[1;32mBuilding out-of-tree mwifiex driver\033[0m"
     export KERNELDIR="$(pwd)/${LINUX_SRC_DIR}"
+    mlanutl_external_top="$(pwd)/${MLANUTL_SRC_DIR}"
     mlanutl_external_src="$(pwd)/${MLANUTL_SRC_DIR}/mapp/mlanutl"
 
     pushd $MWIFIEX_SRC_DIR >/dev/null
@@ -169,16 +170,20 @@ function build_kernel() {
 
     make build
     mlanutl_src=""
+    mlanutl_top=""
     if [ -d mapp/mlanutl ]; then
         mlanutl_src="$(pwd)/mapp/mlanutl"
+        mlanutl_top="$(pwd)"
     elif [ -d "${mlanutl_external_src}" ]; then
         mlanutl_src="${mlanutl_external_src}"
+        mlanutl_top="${mlanutl_external_top}"
     fi
     if [ -n "${mlanutl_src}" ]; then
         echo -e "\033[1;32mBuilding mlanutl from ${mlanutl_src}\033[0m"
         mkdir -p bin_wlan
         make -C "${mlanutl_src}" clean
-        make -C "${mlanutl_src}" build INSTALLDIR="$(pwd)/bin_wlan" CC="${CROSS_COMPILE:-}gcc"
+        make -C "${mlanutl_top}" mapp/mlanutl CC="${CROSS_COMPILE:-}gcc" KERNELDIR="${KERNELDIR}"
+        cp -v "${mlanutl_top}/mlanutl" "$(pwd)/bin_wlan/"
     else
         echo "mlanutl source was not found" >&2
         exit 1
