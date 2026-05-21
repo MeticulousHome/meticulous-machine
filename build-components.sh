@@ -167,11 +167,20 @@ function build_kernel() {
     sed -i 's/$(MAKE) -C/$(MAKE) -j`nproc` -C/' Makefile
 
     make build
+    mlanutl_src=""
     if [ -d mapp/mlanutl ]; then
-        echo -e "\033[1;32mBuilding mlanutl\033[0m"
+        mlanutl_src="$(pwd)/mapp/mlanutl"
+    elif [ -d "${MLANUTL_SRC_DIR}/mapp/mlanutl" ]; then
+        mlanutl_src="${MLANUTL_SRC_DIR}/mapp/mlanutl"
+    fi
+    if [ -n "${mlanutl_src}" ]; then
+        echo -e "\033[1;32mBuilding mlanutl from ${mlanutl_src}\033[0m"
         mkdir -p bin_wlan
-        make -C mapp/mlanutl clean
-        make -C mapp/mlanutl build INSTALLDIR="$(pwd)/bin_wlan" CC="${CROSS_COMPILE}gcc"
+        make -C "${mlanutl_src}" clean
+        make -C "${mlanutl_src}" build INSTALLDIR="$(pwd)/bin_wlan" CC="${CROSS_COMPILE:-}gcc"
+    else
+        echo "mlanutl source was not found" >&2
+        exit 1
     fi
     popd >/dev/null
     mv -v ${MWIFIEX_SRC_DIR}/bin_wlan ${LINUX_BUILD_DIR}/

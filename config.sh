@@ -49,6 +49,11 @@ readonly MWIFIEX_GIT="https://github.com/nxp-imx/mwifiex.git"
 export   MWIFIEX_BRANCH="lf-6.12.3_1.0.0"
 export   MWIFIEX_REV="0396cfb38ad73a3d587cd0f8c139b47801e70891"
 
+readonly MLANUTL_SRC_DIR="${COMPONENTS_DIR}/linux-mwifiex-iw612"
+readonly MLANUTL_GIT="https://github.com/nxp-imx/mwifiex-iw612.git"
+export   MLANUTL_BRANCH="lf-5.15.71_2.2.0"
+export   MLANUTL_REV="4cc2c8831f27c8eceece6b66fc2de8b73360f520"
+
 readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
 readonly UBOOT_GIT="git@github.com:MeticulousHome/uboot-variscite-fika.git"
 export   UBOOT_BRANCH="lf_v2024.04_6.6.52-2.2.0_var01"
