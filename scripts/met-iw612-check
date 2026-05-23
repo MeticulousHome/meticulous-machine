@@ -4,6 +4,47 @@ set -u
 expected_regdb_md5="c844997e941507a0ea2b3a8b7b9a5734"
 expected_regdb_p7s_md5="c38cc1684e365761947489394171bf8e"
 mod_para="/lib/firmware/nxp/var_wifi_mod_para.conf"
+apply_region=""
+reload_driver=0
+
+usage() {
+    cat <<EOF
+Usage:
+  met-iw612-check
+  met-iw612-check --apply-region <CA|US|JP|EU|DE|FR|...> [--reload-driver]
+  met-iw612-check --apply-ca [--reload-driver]
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --apply-ca)
+            apply_region="CA"
+            ;;
+        --apply-region|--region)
+            shift
+            if [ "$#" -eq 0 ]; then
+                echo "Missing region value" >&2
+                usage >&2
+                exit 2
+            fi
+            apply_region="$1"
+            ;;
+        --reload-driver)
+            reload_driver=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
 
 section() {
     printf '\n== %s ==\n' "$1"
@@ -33,14 +74,49 @@ else
     echo "${mod_para} is missing"
 fi
 
-section "required files"
+section "IW612 region state"
+if command -v met-iw612-set-region >/dev/null 2>&1; then
+    if [ -n "${apply_region}" ]; then
+        if [ "${reload_driver}" -eq 1 ]; then
+            run met-iw612-set-region "${apply_region}" --reload-driver
+        else
+            run met-iw612-set-region "${apply_region}"
+        fi
+        sleep 1
+    else
+        run met-iw612-set-region --show
+    fi
+else
+    echo "met-iw612-set-region is not installed"
+fi
+
+section "core files"
 for file in \
     /lib/firmware/nxp/sduart_nw61x_v1.bin.se \
-    /lib/firmware/nxp/rutxpower_CA.bin \
-    /lib/firmware/nxp/txpower_CA.bin \
     /lib/firmware/nxp/ed_mac.conf \
     /lib/firmware/regulatory.db \
     /lib/firmware/regulatory.db.p7s; do
+    if [ -e "${file}" ]; then
+        ls -l "${file}"
+    else
+        echo "MISSING ${file}"
+    fi
+done
+
+section "regional power files"
+for profile in CA US EU JP; do
+    for file in \
+        "/lib/firmware/nxp/rutxpower_${profile}.bin" \
+        "/lib/firmware/nxp/txpower_${profile}.bin"; do
+        if [ -e "${file}" ]; then
+            ls -l "${file}"
+        else
+            echo "MISSING ${file}"
+        fi
+    done
+done
+for profile in US_CA EU JP; do
+    file="/lib/firmware/nxp/bt_power_config_${profile}.sh"
     if [ -e "${file}" ]; then
         ls -l "${file}"
     else
@@ -72,10 +148,6 @@ fi
 
 section "iw regulatory state"
 if command -v iw >/dev/null 2>&1; then
-    if [ "${1:-}" = "--apply-ca" ]; then
-        run iw reg set CA
-        sleep 1
-    fi
     run iw reg get
 else
     echo "iw is not installed"

@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "${1:-}" = "--reload-driver" ]; then
-    /etc/wifi/variscite-wifi stop || true
-    sleep 1
-    /etc/wifi/variscite-wifi start
-    sleep 2
-fi
-
-iw reg set CA
-sleep 1
-iw reg get
+exec met-iw612-set-region CA "$@"
