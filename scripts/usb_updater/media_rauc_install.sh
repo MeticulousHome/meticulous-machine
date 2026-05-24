@@ -4,7 +4,7 @@ MOUNT_POINT="/mnt/possible_updater"
 UPDATING_FLAG_FILE="/tmp/updating"
 USB_PATH=""
 rauc_files=""
-ERROR_INSTALLING="unknown"
+ERROR_INSTALLING=""
 PARTITION_NAME=""
 
 #wait for the name of the device that has the update bundle
@@ -47,10 +47,18 @@ for PARTITION_NAME in $devices; do
         echo "device $FILE_DESCRIPTOR could not be mounted: $error_mounting"
         continue
     fi
-    rauc_files="$(find "$MOUNT_POINT" -maxdepth 1 -type f -name "*.raucb")"
-    if [ -n "$rauc_files" ]; then
+    mapfile -d '' -t rauc_candidates < <(find "$MOUNT_POINT" -maxdepth 1 -type f -name "*.raucb" ! -name "._*" -print0 | sort -z)
+    if [ "${#rauc_candidates[@]}" == "1" ]; then
+        rauc_files="${rauc_candidates[0]}"
 
         echo "starting recovery update service"
+        touch $UPDATING_FLAG_FILE
+        systemctl stop rauc-hawkbit-updater.service
+        busctl --system emit /handlers/MassStorage com.Meticulous.Handler.MassStorage RecoveryUpdate
+        break
+    elif [ "${#rauc_candidates[@]}" -gt "1" ]; then
+        ERROR_INSTALLING="multiple RAUC bundles found on /dev/$PARTITION_NAME; keep exactly one .raucb file in the USB partition root"
+        echo "$ERROR_INSTALLING"
         touch $UPDATING_FLAG_FILE
         systemctl stop rauc-hawkbit-updater.service
         busctl --system emit /handlers/MassStorage com.Meticulous.Handler.MassStorage RecoveryUpdate
@@ -65,20 +73,21 @@ done
 
 if [ -n "$rauc_files" ]; then
     systemctl stop rauc-hawkbit-updater
-    while read -r line; do
-        echo "$line"
-        if echo "$line" | grep -q "fail"; then
-            ERROR_INSTALLING="$line"
-            break
+    rauc_output="$(rauc install "$rauc_files" 2>&1)"
+    rauc_result="$?"
+    echo "$rauc_output"
+    if [ "$rauc_result" == "0" ]; then
+        echo "rauc install completed successfully"
+        ERROR_INSTALLING=""
+    else
+        ERROR_INSTALLING="$(echo "$rauc_output" | tail -n 1)"
+        if [ -z "$ERROR_INSTALLING" ]; then
+            ERROR_INSTALLING="rauc install failed with exit code $rauc_result"
         fi
-        if echo "$line" | grep -q "Installing done"; then
-            echo "rauc install completed successfully"
-            ERROR_INSTALLING=""
-            break
-        fi
+    fi
+fi
 
-    done < <(rauc install "$rauc_files")
-
+if [ -n "$rauc_files" ] || [ -n "$ERROR_INSTALLING" ]; then
     if [ -z "$ERROR_INSTALLING" ]; then
         echo "restarting machine in 5 seconds"
     fi
