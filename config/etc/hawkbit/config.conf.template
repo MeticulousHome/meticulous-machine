@@ -26,6 +26,8 @@
   build_date                = __BUILD_DATE__
   build_channel             = __BUILD_CHANNEL__
   som                       = __SOM__
+  installed_version         = __INSTALLED_VERSION__
+  backup_version            = __BACKUP_VERSION__
   memory                    = __MEMORY__
   uboot_active_version      = __UBOOT_ACTIVE_REV__
   uboot_active_slot         = __UBOOT_ACTIVE__
