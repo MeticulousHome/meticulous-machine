@@ -72,6 +72,42 @@ echo "Boot mode is ${boot_mode}"
 export update_channel=$(cat /etc/hawkbit/channel)
 echo "Update Channel is ${update_channel}"
 
+get_inactive_device(){
+  eval "$(rauc status --output-format=shell)"
+  for i in $RAUC_SLOTS; do
+    eval "state=\$RAUC_SLOT_STATE_$i class=\$RAUC_SLOT_CLASS_$i device=\$RAUC_SLOT_DEVICE_$i"
+    [ "$state" = inactive ] && [ "$class" = rootfs ] && echo "$device"
+  done
+}
+
+get_backup_sw_version(){
+  inactive_device="$(get_inactive_device)"
+  if [ -z "$inactive_device" ]; then echo "unknown"; return; fi
+  dir=$(mktemp -d)
+  if ! mount -o loop "$inactive_device" "$dir"; then
+    rm -rf "$dir"
+    echo "unknown"
+    return
+  fi
+  if [ ! -f "$dir/opt/image-build-version" ]; then
+    umount "$dir" && rm -rf "$dir"
+    echo "unknown"
+    return
+  fi
+  backup_version="$(cat "$dir/opt/image-build-version" || echo "unknown")"
+  umount "$dir" && rm -rf "$dir"
+  echo "$backup_version"
+}
+
+get_installed_sw_version(){
+  if [ ! -f "/opt/image-build-version" ]; then
+    echo "unknown"
+    return
+  fi
+  installed_version="$(cat /opt/image-build-version)"
+  echo "$installed_version"
+}
+
 cp  /etc/hawkbit/config.conf.template /etc/hawkbit/config.conf
 
 serial="UNSET"
@@ -82,6 +118,9 @@ fi
 
 build_date=$(cat /opt/ROOTFS_BUILD_DATE || echo UNKNOWN)                                          #get booted image build date
 build_channel=$(cat /opt/image-build-channel || echo UNKNOWN)
+
+installed_version=$(get_installed_sw_version)
+backup_version=$(get_backup_sw_version)
 
 memory=$(cat /proc/meminfo | grep MemTotal | grep "[0-9]* [a-zA-Z]B" -o)
 som=$(get_somrev)
@@ -113,6 +152,8 @@ sed -i "s/__BUILD_DATE__/${build_date}/" /etc/hawkbit/config.conf
 sed -i "s/__BUILD_CHANNEL__/${build_channel}/" /etc/hawkbit/config.conf
 sed -i "s/__SOM__/${som}/" /etc/hawkbit/config.conf
 sed -i "s/__MEMORY__/${memory}/" /etc/hawkbit/config.conf
+sed -i "s/__INSTALLED_VERSION__/${installed_version}/" /etc/hawkbit/config.conf
+sed -i "s/__BACKUP_VERSION__/${backup_version}/" /etc/hawkbit/config.conf
 
 sed -i "s/__UBOOT_DISK_REV__/${uboot_disk_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" /etc/hawkbit/config.conf
