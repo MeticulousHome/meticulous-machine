@@ -168,6 +168,11 @@ function b_copy_components() {
     echo "Installing mwifiex driver"
     mkdir -p ${ROOTFS_DIR}/lib/modules/LATEST/updates
     cp ${LINUX_BUILD_DIR}/bin_wlan/*.ko ${ROOTFS_DIR}/lib/modules/LATEST
+    if [ -f ${LINUX_BUILD_DIR}/bin_wlan/mlanutl ]; then
+        mkdir -p ${ROOTFS_DIR}/usr/local/bin
+        cp -v ${LINUX_BUILD_DIR}/bin_wlan/mlanutl ${ROOTFS_DIR}/usr/local/bin/
+        chmod 0755 ${ROOTFS_DIR}/usr/local/bin/mlanutl
+    fi
     systemd-nspawn -D ${ROOTFS_DIR}  bash -lc 'pushd /lib/modules/LATEST && depmod -a $(basename $(pwd -P))'
 
     echo "Installing splash"
@@ -196,7 +201,8 @@ function b_copy_components() {
     systemd-nspawn -D ${ROOTFS_DIR} bash -c "locale-gen"
 
     echo "Registering regulatory.db"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "update-alternatives --install /lib/firmware/regulatory.db regulatory.db /lib/firmware/regulatory.db-murata-2dl 40 --slave /lib/firmware/regulatory.db.p7s regulatory.db.p7s /lib/firmware/regulatory.db.p7s-murata-2dl"
+    systemd-nspawn -D ${ROOTFS_DIR} bash -c "update-alternatives --set regulatory.db /lib/firmware/regulatory.db-murata-2dl"
 
     echo "Cleaning"
     systemd-nspawn -D ${ROOTFS_DIR} bash -lc "rm -rf /root/.cache"
