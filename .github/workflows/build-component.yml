@@ -24,6 +24,10 @@ on:
         description: 'Force rebuild, ignoring cache'
         type: boolean
         default: false
+      machine-ref:
+        description: "Branch to use for this repository's config and scripts"
+        type: string
+        default: ''
 
   workflow_call:  # Allows the workflow to be called from other workflows
     inputs:
@@ -47,13 +51,17 @@ on:
         description: 'Force rebuild, ignoring cache'
         type: boolean
         default: false
+      machine-ref:
+        description: "Branch to use for this repository's config and scripts"
+        type: string
+        default: ''
 
 permissions:
   contents: read
   actions: read
   id-token: write
 
-run-name: "Build ${{ github.event.inputs.build-option }} from '${{github.event.inputs.image || 'unset' }}' on ${{ github.event.inputs.runner || 'ubuntu-24.04' }}"
+run-name: "Build ${{ inputs['build-option'] || github.event.inputs.build-option }} from '${{ inputs['image'] || github.event.inputs.image || 'unset' }}' on ${{ inputs['runner'] || github.event.inputs.runner || 'ubuntu-24.04' }}"
 
 jobs:
   build-component:
@@ -66,6 +74,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs['machine-ref'] || github.ref_name }}
 
     - name: Set up Git authentication
       run: |

@@ -11,6 +11,10 @@ on:
         description: 'Force rebuild all components, ignoring cache'
         type: boolean
         default: false
+      machine-ref:
+        description: "Branch to use for this repository's config and scripts"
+        type: string
+        default: ''
 
   workflow_call:
     inputs:
@@ -18,11 +22,14 @@ on:
         description: 'Image config to use'
         required: true
         type: string
-        default: 'nightly'
       no-cache:
         description: 'Force rebuild all components, ignoring cache'
         type: boolean
         default: false
+      machine-ref:
+        description: "Branch to use for this repository's config and scripts"
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -37,12 +44,13 @@ jobs:
 
   build_components:
     name: Build ${{ matrix.component.name }}
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-component.yml@main
+    uses: ./.github/workflows/build-component.yml
     with:
       build-option: ${{ matrix.component.build-option }}
       build-path: ${{ matrix.component.build-path }}
       runner: ${{ matrix.component.runner }}
       image: ${{ inputs['image'] }}
+      machine-ref: ${{ inputs['machine-ref'] }}
       no-cache: ${{ inputs['no-cache'] || false }}
     secrets: inherit
     strategy:
