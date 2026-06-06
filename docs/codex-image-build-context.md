@@ -40,9 +40,18 @@ This repo builds Meticulous machine images with GitHub Actions. The image build 
 - The main launcher downloads `version-info`, commits only `images/changes/<image>/` to `main`, then calls `.github/workflows/deploy-changelog.yml@main`.
 - `.github/workflows/deploy-changelog.yml` explicitly checks out `main` before generating GitHub Pages.
 
+## Component Branch Promotion
+
+- Controlled component repos are URLs matching `github.com[:/]MeticulousHome/`.
+- Controlled component defaults in `config.sh` use `nightly` branches at `HEAD`; external repos keep their upstream branches and pinned revisions.
+- `pin_version.yml` promotes component branches only for `nightly -> beta` and `beta -> stable`.
+- Direct `nightly -> stable` promotion is forbidden.
+- Branch promotion uses `pin-versions.sh --promote <source> <destination>` after `update-sources.sh --image <source>` checks out the source component refs.
+- During channel promotion, controlled component repo destination branches are pushed with `--force-with-lease`, and `images/<destination>.versions.sh` records `*_BRANCH=<destination>` plus exact promoted `*_REV=<sha>` pins.
+- Custom destination images are file-only pins. They write exact SHAs to `images/<custom>.versions.sh` and do not push or record custom component branches.
+
 ## Important Constraints
 
 - GitHub Actions reusable workflow refs are static in `jobs.<job_id>.uses`, so the launcher has one job per config branch instead of `@${{ inputs.config_branch }}`.
 - Remote `nightly`, `beta`, and `stable` branches must exist and include `.github/workflows/build-image-channel.yml`, `.github/workflows/build-all-components.yml`, and `.github/workflows/build-component.yml`; otherwise the main launcher cannot call those branch workflows.
-- Keep `pin_version.yml` separate for now. It still updates version pin files and was intentionally not redesigned with this workflow change.
 - If new machine config channels are added, update the launcher resolver, channel preflight, and static reusable workflow jobs together.
