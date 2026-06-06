@@ -1,4 +1,4 @@
-name: Update one image to another
+name: Promote or pin image versions
 
 on:
 #   schedule:
@@ -9,25 +9,25 @@ on:
 #     # 5. Entry: Weekday when the process will be started [0-6] [0 is Sunday]
 #     # from: https://stackoverflow.com/a/16717986
 #     - cron: "0 0 * * 0"
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
     inputs:
-        image:
-            description: The version set to update
-            default: beta
-        target_image:
-            description: The version to update to
-            default: nightly
+      image:
+        description: Destination image/channel to update
+        default: beta
+      target_image:
+        description: Source image/channel to promote or pin from
+        default: nightly
 
 permissions:
   contents: write
   actions: read
   id-token: write
 
-run-name: "Pin ${{github.event.inputs.image || 'beta' }} version set to ${{github.event.inputs.target_image || 'nightly' }}"
+run-name: "Promote ${{ github.event.inputs.target_image || 'nightly' }} to ${{ github.event.inputs.image || 'beta' }}"
 
 jobs:
-  pin-beta-candidate:
-    name: Pin Beta Candidate
+  promote-or-pin-image:
+    name: Promote or pin image
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -37,27 +37,41 @@ jobs:
         run: |
           git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
-      - name: Checkout the nightly sources
+      - name: Validate promotion request
         run: |
-            ./update-sources.sh --all --image ${{ inputs['target_image'] || 'nightly' }} --firmware --plotter
-        
-      - name: Pin the versions
+          destination="${{ inputs.image || 'beta' }}"
+          source="${{ inputs.target_image || 'nightly' }}"
+
+          if [[ "$source" == "nightly" && "$destination" == "stable" ]]; then
+            echo "::error::Direct promotion from nightly to stable is forbidden. Promote nightly to beta, then beta to stable."
+            exit 1
+          fi
+
+          if [[ "$destination" =~ ^(nightly|beta|stable)$ ]]; then
+            if [[ ! "$source:$destination" =~ ^(nightly:beta|beta:stable)$ ]]; then
+              echo "::error::Channel promotions are limited to nightly->beta and beta->stable. Got ${source}->${destination}."
+              exit 1
+            fi
+          fi
+
+      - name: Checkout source image component refs
         run: |
-            ./pin-versions.sh ${{ inputs['image'] || 'beta' }}
-  
+          ./update-sources.sh --all --image "${{ inputs.target_image || 'nightly' }}" --firmware --plotter
+
+      - name: Promote branches or pin custom image
+        run: |
+          ./pin-versions.sh --promote "${{ inputs.target_image || 'nightly' }}" "${{ inputs.image || 'beta' }}"
 
       - name: Commit and push changes
         run: |
-          git config user.name "mimoja"
-          git config user.email "mimoja@meticuloushome.com"
-          
-          # Stage the new version file
-          git add images/
-          
-          # Commit only if there are changes
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add "images/${{ inputs.image || 'beta' }}.versions.sh"
+
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "image: Pin ${{ inputs['image'] || 'beta-candidate' }} to ${{ inputs['target_image'] || 'nightly' }}"
+            git commit -m "image: Promote ${{ inputs.target_image || 'nightly' }} to ${{ inputs.image || 'beta' }}"
             git push
           fi
