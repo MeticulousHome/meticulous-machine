@@ -11,10 +11,10 @@ on:
         description: Branch to use for this repository's config, services, scripts, and workflows
         required: true
         type: string
-      skip_emmc_upload_to_hawkbit:
-        description: Skip uploading EMMC bundle to hawkBit
+      upload_emmc_to_hawkbit:
+        description: Upload EMMC bundle to hawkBit
         type: boolean
-        default: true
+        default: false
       no-cache:
         description: Force rebuild all components, ignoring cache
         type: boolean
@@ -333,7 +333,7 @@ jobs:
   deploy-emmc-bundle:
     name: Upload EMMC image to hawkbit
     needs: build-bundle
-    if: ${{ !inputs.skip_emmc_upload_to_hawkbit }}
+    if: ${{ inputs.upload_emmc_to_hawkbit }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code

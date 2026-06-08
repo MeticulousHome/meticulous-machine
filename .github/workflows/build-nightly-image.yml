@@ -18,10 +18,10 @@ on:
           - nightly
           - beta
           - stable
-      skip_emmc_upload_to_hawkbit:
-        description: Skip uploading EMMC bundle to hawkBit
+      upload_emmc_to_hawkbit:
+        description: Upload EMMC bundle to hawkBit
         type: boolean
-        default: true
+        default: false
       no-cache:
         description: Force rebuild all components, ignoring cache
         type: boolean
@@ -43,7 +43,7 @@ jobs:
       image: ${{ steps.resolve.outputs.image }}
       machine_ref: ${{ steps.resolve.outputs.machine_ref }}
       no_cache: ${{ steps.resolve.outputs.no_cache }}
-      skip_emmc_upload_to_hawkbit: ${{ steps.resolve.outputs.skip_emmc_upload_to_hawkbit }}
+      upload_emmc_to_hawkbit: ${{ steps.resolve.outputs.upload_emmc_to_hawkbit }}
     steps:
       - name: Resolve build inputs
         id: resolve
@@ -79,16 +79,16 @@ jobs:
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             no_cache="${{ inputs.no-cache }}"
-            skip_emmc_upload_to_hawkbit="${{ inputs.skip_emmc_upload_to_hawkbit }}"
+            upload_emmc_to_hawkbit="${{ inputs.upload_emmc_to_hawkbit }}"
           else
             no_cache="false"
-            skip_emmc_upload_to_hawkbit="false"
+            upload_emmc_to_hawkbit="true"
           fi
 
           echo "image=${image}" >> "$GITHUB_OUTPUT"
           echo "machine_ref=${machine_ref}" >> "$GITHUB_OUTPUT"
           echo "no_cache=${no_cache}" >> "$GITHUB_OUTPUT"
-          echo "skip_emmc_upload_to_hawkbit=${skip_emmc_upload_to_hawkbit}" >> "$GITHUB_OUTPUT"
+          echo "upload_emmc_to_hawkbit=${upload_emmc_to_hawkbit}" >> "$GITHUB_OUTPUT"
 
           echo "Image: ${image}" >> "$GITHUB_STEP_SUMMARY"
           echo "Machine config branch: ${machine_ref}" >> "$GITHUB_STEP_SUMMARY"
@@ -101,7 +101,7 @@ jobs:
     with:
       image: ${{ needs.resolve-config.outputs.image }}
       machine-ref: nightly
-      skip_emmc_upload_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.skip_emmc_upload_to_hawkbit) }}
+      upload_emmc_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.upload_emmc_to_hawkbit) }}
       no-cache: ${{ fromJSON(needs.resolve-config.outputs.no_cache) }}
     secrets: inherit
 
@@ -113,7 +113,7 @@ jobs:
     with:
       image: ${{ needs.resolve-config.outputs.image }}
       machine-ref: beta
-      skip_emmc_upload_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.skip_emmc_upload_to_hawkbit) }}
+      upload_emmc_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.upload_emmc_to_hawkbit) }}
       no-cache: ${{ fromJSON(needs.resolve-config.outputs.no_cache) }}
     secrets: inherit
 
@@ -125,7 +125,7 @@ jobs:
     with:
       image: ${{ needs.resolve-config.outputs.image }}
       machine-ref: stable
-      skip_emmc_upload_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.skip_emmc_upload_to_hawkbit) }}
+      upload_emmc_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.upload_emmc_to_hawkbit) }}
       no-cache: ${{ fromJSON(needs.resolve-config.outputs.no_cache) }}
     secrets: inherit
 
@@ -140,6 +140,7 @@ jobs:
       ${{
         always() &&
         !cancelled() &&
+        fromJSON(needs.resolve-config.outputs.upload_emmc_to_hawkbit) &&
         (
           needs.build-via-nightly.result == 'success' ||
           needs.build-via-beta.result == 'success' ||
@@ -179,5 +180,8 @@ jobs:
 
   deploy-changelog:
     name: Deploy changelog to GitHub Pages
-    needs: commit-changelog
+    needs:
+      - resolve-config
+      - commit-changelog
+    if: ${{ fromJSON(needs.resolve-config.outputs.upload_emmc_to_hawkbit) && needs.commit-changelog.result == 'success' }}
     uses: meticuloushome/meticulous-machine/.github/workflows/deploy-changelog.yml@main
