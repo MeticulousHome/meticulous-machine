@@ -39,6 +39,13 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - The branch workflow downloads `version-info`, commits only `images/changes/<image>/` to `main`, then calls `.github/workflows/deploy-changelog.yml@main`.
 - `.github/workflows/deploy-changelog.yml` explicitly checks out `main` before generating GitHub Pages.
 
+## Build Tags
+
+- After the full image build succeeds, `.github/workflows/build-nightly-image.yml` checks out component sources again and runs `tag-controlled-repos.sh --tag "<image>/<BUILD_VERSION_NUMBER>"`.
+- Controlled component repos are URLs matching `github.com[:/]MeticulousHome/`; external repos are skipped.
+- Build tags are lightweight tags pushed to each controlled component repo remote.
+- Existing remote tags are safe only if they already point to the same commit; if a remote tag points elsewhere, tagging fails.
+- Build tags are never force-updated.
 
 ## Component Branch Promotion
 
@@ -54,3 +61,4 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 
 - Remote build branches must include `.github/workflows/build-nightly-image.yml`, `.github/workflows/build-image-channel.yml`, `.github/workflows/build-all-components.yml`, and `.github/workflows/build-component.yml`.
 - If a custom image branch is added, add or update `images/<custom>.versions.sh` on that branch.
+- `GH_REPO_WORKFLOW` must be able to push tags to controlled component repos for build tagging to succeed.

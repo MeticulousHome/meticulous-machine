@@ -33,6 +33,30 @@ jobs:
       no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache || false }}
     secrets: inherit
 
+  tag-controlled-repos:
+    name: Tag controlled component repos
+    needs: build-image
+    runs-on: ubuntu-24.04
+    env:
+      IMAGE: ${{ github.ref_name }}
+      BUILD_VERSION_NUMBER: ${{ needs.build-image.outputs.build_version_number }}
+      BUILD_TAG: ${{ github.ref_name }}/${{ needs.build-image.outputs.build_version_number }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Git authentication
+        run: |
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "https://github.com/"
+
+      - name: Checkout all component sources
+        run: ./update-sources.sh --all --image "$IMAGE" --firmware --plotter
+
+      - name: Push build tags
+        run: ./tag-controlled-repos.sh --tag "$BUILD_TAG"
 
   commit-changelog:
     name: Commit changelog to main
