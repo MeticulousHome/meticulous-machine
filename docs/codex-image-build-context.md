@@ -1,25 +1,24 @@
 # Future Codex Sessions: Image Build Workflows
 
-This repo builds Meticulous machine images with GitHub Actions. The image build uses two separate selectors:
+This repo builds Meticulous machine images with GitHub Actions. Image builds now use the workflow branch as the selected image/config channel:
 
-- `image`: selects component pins from `images/<image>.versions.sh`; `nightly` is special and uses defaults from `config.sh`.
-- `machine-ref`: internal reusable-workflow input that selects this repo branch for machine config, scripts, services, RAUC config, and workflow implementation.
+- `github.ref_name`: selected branch and image name for `.github/workflows/build-nightly-image.yml`.
+- `image`: internal reusable-workflow input; passed as `github.ref_name`.
+- `machine-ref`: internal reusable-workflow input that selects this repo branch for machine config, scripts, services, RAUC config, and workflow implementation; passed as `github.ref_name`.
 
 ## Branch Model
 
-- `main` is the workflow launcher and central changelog branch.
-- `nightly`, `beta`, and `stable` are branch-backed machine config channels.
-- Custom images such as `factory`, `rel`, and certification images do not get their own branches in this model. They build from an explicitly selected config branch.
-- The main launcher input is `config_branch`:
-  - `auto` maps `nightly`, `beta`, and `stable` images to their matching branches.
-  - custom images must choose `nightly`, `beta`, or `stable` explicitly.
-- Scheduled builds run as `image=nightly`, `config_branch=auto`, `no-cache=false`, and `skip_emmc_upload_to_hawkbit=false`.
-- Manual builds can set `image`, `config_branch`, `no-cache`, and `skip_emmc_upload_to_hawkbit`.
+- `nightly`, `beta`, and `stable` are branch-backed machine config channels and image names.
+- `main` remains the central changelog and GitHub Pages branch, but it is no longer the manual image launcher.
+- Manual image builds are dispatched from the branch to build. The branch name must be the image name.
+- Custom images such as `factory`, `rel`, and certification images require their own branch with the same name as the image and a matching `images/<image>.versions.sh`.
+- Scheduled builds assume the repository default branch is `nightly`, because GitHub Actions schedules run from the default branch.
+- Manual builds can set only `no-cache` and `skip_emmc_upload_to_hawkbit`.
 
 ## Workflow Roles
 
-- `.github/workflows/build-nightly-image.yml` is the user-facing launcher on `main`.
-- `.github/workflows/build-nightly-image.yml` resolves inputs, then calls exactly one static branch workflow: `build-image-channel.yml@nightly`, `@beta`, or `@stable`.
+- `.github/workflows/build-nightly-image.yml` is the user-facing image build workflow on each build branch.
+- `.github/workflows/build-nightly-image.yml` passes `github.ref_name` directly to `.github/workflows/build-image-channel.yml` through a local reusable workflow call.
 - `.github/workflows/build-image-channel.yml` contains the real image build and accepts `image`, `machine-ref`, `no-cache`, and `skip_emmc_upload_to_hawkbit`.
 - `.github/workflows/build-all-components.yml` calls `.github/workflows/build-component.yml` by local reusable workflow path so the channel branch supplies the component workflow implementation.
 - All checkouts of this repository inside the image build path must use `machine-ref`. Private repo checkouts, such as `rauc-secrets`, are separate and should not use `machine-ref`.
@@ -28,17 +27,18 @@ This repo builds Meticulous machine images with GitHub Actions. The image build 
 ## Image Validation
 
 - Image names must match `[A-Za-z0-9._-]+`.
+- Machine refs must match `[A-Za-z0-9._-]+`; branch names with slashes are intentionally rejected by the image build path.
 - `nightly` does not require `images/nightly.versions.sh`; it uses `config.sh`.
 - Any non-nightly image must have `images/<image>.versions.sh` on the selected `machine-ref` branch.
-- A custom image with `config_branch=auto` fails early in the launcher before any reusable workflow is called.
 
 ## Changelog Behavior
 
 - Changelog files are committed only to `main`, under `images/changes/<image>/`.
 - The channel workflow fetches `images/changes` from `origin/main` before running `generate-build-info.sh`; otherwise channel branches would compare against stale changelog history.
 - The channel workflow uploads a `version-info` artifact containing `components/repo-info/` and `images/changes/`.
-- The main launcher downloads `version-info`, commits only `images/changes/<image>/` to `main`, then calls `.github/workflows/deploy-changelog.yml@main`.
+- The branch workflow downloads `version-info`, commits only `images/changes/<image>/` to `main`, then calls `.github/workflows/deploy-changelog.yml@main`.
 - `.github/workflows/deploy-changelog.yml` explicitly checks out `main` before generating GitHub Pages.
+
 
 ## Component Branch Promotion
 
@@ -52,6 +52,5 @@ This repo builds Meticulous machine images with GitHub Actions. The image build 
 
 ## Important Constraints
 
-- GitHub Actions reusable workflow refs are static in `jobs.<job_id>.uses`, so the launcher has one job per config branch instead of `@${{ inputs.config_branch }}`.
-- Remote `nightly`, `beta`, and `stable` branches must exist and include `.github/workflows/build-image-channel.yml`, `.github/workflows/build-all-components.yml`, and `.github/workflows/build-component.yml`; otherwise the main launcher cannot call those branch workflows.
-- If new machine config channels are added, update the launcher resolver, channel preflight, and static reusable workflow jobs together.
+- Remote build branches must include `.github/workflows/build-nightly-image.yml`, `.github/workflows/build-image-channel.yml`, `.github/workflows/build-all-components.yml`, and `.github/workflows/build-component.yml`.
+- If a custom image branch is added, add or update `images/<custom>.versions.sh` on that branch.

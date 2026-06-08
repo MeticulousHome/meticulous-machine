@@ -40,16 +40,13 @@ jobs:
           image="${{ inputs.image }}"
           machine_ref="${{ inputs.machine-ref }}"
 
-          case "$machine_ref" in
-            nightly|beta|stable) ;;
-            *)
-              echo "::error::machine-ref must be nightly, beta, or stable. Got '${machine_ref}'."
-              exit 1
-              ;;
-          esac
-
           if [[ ! "$image" =~ ^[A-Za-z0-9._-]+$ ]]; then
             echo "::error::Invalid image '${image}'. Use only letters, numbers, dots, underscores, and hyphens."
+            exit 1
+          fi
+
+          if [[ ! "$machine_ref" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Invalid machine-ref '${machine_ref}'. Use only letters, numbers, dots, underscores, and hyphens."
             exit 1
           fi
 
