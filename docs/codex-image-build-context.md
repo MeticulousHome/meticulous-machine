@@ -13,13 +13,13 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - Manual image builds are dispatched from the branch to build. The branch name must be the image name.
 - Custom images such as `factory`, `rel`, and certification images require their own branch with the same name as the image and a matching `images/<image>.versions.sh`.
 - Scheduled builds assume the repository default branch is `nightly`, because GitHub Actions schedules run from the default branch.
-- Manual builds can set only `no-cache` and `skip_emmc_upload_to_hawkbit`.
+- Manual builds can set only `no-cache` and `upload_emmc_to_hawkbit`.
 
 ## Workflow Roles
 
 - `.github/workflows/build-nightly-image.yml` is the user-facing image build workflow on each build branch.
 - `.github/workflows/build-nightly-image.yml` passes `github.ref_name` directly to `.github/workflows/build-image-channel.yml` through a local reusable workflow call.
-- `.github/workflows/build-image-channel.yml` contains the real image build and accepts `image`, `machine-ref`, `no-cache`, and `skip_emmc_upload_to_hawkbit`.
+- `.github/workflows/build-image-channel.yml` contains the real image build and accepts `image`, `machine-ref`, `no-cache`, and `upload_emmc_to_hawkbit`.
 - `.github/workflows/build-all-components.yml` calls `.github/workflows/build-component.yml` by local reusable workflow path so the channel branch supplies the component workflow implementation.
 - All checkouts of this repository inside the image build path must use `machine-ref`. Private repo checkouts, such as `rauc-secrets`, are separate and should not use `machine-ref`.
 - Component builds receive `machine-ref` through `build-all-components.yml` and `build-component.yml`; `build-component.yml` falls back to `github.ref_name` only for direct/manual component runs.
@@ -37,6 +37,7 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - The channel workflow fetches `images/changes` from `origin/main` before running `generate-build-info.sh`; otherwise channel branches would compare against stale changelog history.
 - The channel workflow uploads a `version-info` artifact containing `components/repo-info/` and `images/changes/`.
 - The branch workflow downloads `version-info`, commits only `images/changes/<image>/` to `main`, then calls `.github/workflows/deploy-changelog.yml@main`.
+- Changelog commit/deploy runs only when `upload_emmc_to_hawkbit` is true and the image build succeeds; if upload is disabled or the hawkBit upload fails, changelog publication is skipped.
 - `.github/workflows/deploy-changelog.yml` explicitly checks out `main` before generating GitHub Pages.
 
 ## Build Tags

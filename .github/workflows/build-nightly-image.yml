@@ -61,6 +61,7 @@ jobs:
   commit-changelog:
     name: Commit changelog to main
     needs: build-image
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout main
