@@ -3,11 +3,8 @@ name: Build image
 on:
   schedule:
     - cron: '0 0 * * *'  # Nightly at midnight
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
     inputs:
-      image:
-        description: Which image to build
-        default: nightly
       skip_emmc_upload_to_hawkbit:
         description: Skip uploading EMMC bundle to hawkBit
         type: boolean
@@ -23,385 +20,77 @@ permissions:
   id-token: write
   pages: write
 
-run-name: "Build ${{github.event.inputs.image || 'default (nightly)' }} image"
+run-name: "Build ${{ github.ref_name }} image"
 
 jobs:
-  build-components:
-    name: Build all image components
-    secrets: inherit
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-all-components.yml@main
+  build-image:
+    name: Build via selected branch
+    uses: ./.github/workflows/build-image-channel.yml
     with:
-      image: ${{ inputs['image'] || 'nightly' }}
-      no-cache: ${{ inputs['no-cache'] || false }}
+      image: ${{ github.ref_name }}
+      machine-ref: ${{ github.ref_name }}
+      skip_emmc_upload_to_hawkbit: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_emmc_upload_to_hawkbit || false }}
+      no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache || false }}
+    secrets: inherit
 
-  generate-version-info:
-    name: Generate version info and changelog
+  tag-controlled-repos:
+    name: Tag controlled component repos
+    needs: build-image
     runs-on: ubuntu-24.04
-    outputs:
-      build_version_number: ${{ steps.generate-build-number.outputs.build_version_number }}
+    env:
+      IMAGE: ${{ github.ref_name }}
+      BUILD_VERSION_NUMBER: ${{ needs.build-image.outputs.build_version_number }}
+      BUILD_TAG: ${{ github.ref_name }}/${{ needs.build-image.outputs.build_version_number }}
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
-      - name: Generate build number
-        id: generate-build-number
+      - name: Set up Git authentication
         run: |
-          BUILD_VERSION_NUMBER="$(./generate_image_version.sh "${{ github.run_number }}" "${{ inputs.image || 'nightly' }}")"
-          echo "BUILD_VERSION_NUMBER=${BUILD_VERSION_NUMBER}" >> "$GITHUB_ENV"
-          echo "build_version_number=${BUILD_VERSION_NUMBER}" >> "$GITHUB_OUTPUT"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "https://github.com/"
+
+      - name: Checkout all component sources
+        run: ./update-sources.sh --all --image "$IMAGE" --firmware --plotter
+
+      - name: Push build tags
+        run: ./tag-controlled-repos.sh --tag "$BUILD_TAG"
+
+  commit-changelog:
+    name: Commit changelog to main
+    needs: build-image
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up Git authentication
         run: |
           git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
-      - name: Checkout all component sources
-        run: |
-          ./update-sources.sh --all --image ${{ inputs['image'] || 'nightly' }} --firmware --plotter
-
-      - name: Generate build info and changelog
-        run: |
-          ./generate-build-info.sh ${{ inputs['image'] || 'nightly' }} $BUILD_VERSION_NUMBER          
-
-      - name: Upload version-info artifact
-        uses: actions/upload-artifact@v4
+      - name: Download version-info artifact
+        uses: actions/download-artifact@v4
         with:
           name: version-info
-          path: |
-            components/repo-info/
-            images/changes/
-          if-no-files-found: error
+          path: .
 
-  build-root:
-    name: Build RootFS
-    runs-on: ubuntu-24.04
-    needs: 
-      - build-components
-      - generate-version-info
-    env:
-      BUILD_VERSION_NUMBER: ${{ needs.generate-version-info.outputs.build_version_number }}
-    steps:
+      - name: Commit and push changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Checkout repository
-      uses: actions/checkout@v4
+          git add "images/changes/${{ github.ref_name }}/"
 
-    - name: Set up Git authentication
-      run: |
-        git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
-
-    - name: Download version-info artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'version-info'
-        path: .
-
-    - name: Download bootloader artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'bootloader'
-        path: components/bootloader/build/
-
-    - name: Download linux artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'linux'
-        path: components/linux-build
-
-    - name: Download debian artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'debian'
-        path: components/debian-base/
-
-    - name: Download crash reporter artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'crash-reporter'
-        path: components/crash-reporter/target
-
-    - name: Download psplash artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'psplash'
-        path: components/psplash-build
-
-    - name: Download rauc artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'rauc'
-        path:  components/rauc/build
-
-    - name: Download dial artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'dial'
-        path:  components/meticulous-dial/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/
-
-    - name: Download web artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'web'
-        path:  components/meticulous-web-ui/out/
-
-    - name: Download firmware artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'firmware'
-        path:  components/meticulous-firmware-build
-
-    - name: Download plotter artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'plotter'
-        path:  components/meticulous-plotter-ui/build/
-
-    - name: Download backend artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'backend'
-        path:  components/meticulous-backend-build/
-
-    - name: Download watcher artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'watcher'
-        path:  components/meticulous-watcher-build/
-
-    - name: Install Ubuntu dependencies
-      run: ./update-sources.sh --install_ubuntu_dependencies
-
-    - name: Install qemu-img
-      run: |
-        sudo apt install -y qemu-utils qemu-user-static
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-
-    - name: 'Exporting pio'
-      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
-
-    - name: Write build channel to image-build-channel
-      run: |
-        echo "${{ inputs.image || 'nightly' }}" | sudo tee ./image-build-channel
-
-    - name: Generate build number and writing it to to image-build-version
-      run: |
-        echo -n "Image build version: " >> $GITHUB_STEP_SUMMARY
-        echo "$BUILD_VERSION_NUMBER" | sudo tee ./image-build-version >> $GITHUB_STEP_SUMMARY
-
-    - name: Build rootfs
-      run: |
-        sudo ./make-rootfs.sh --all
-        sudo cat rootfs/opt/summary.txt | sed 's/ ##$//g' >> $GITHUB_STEP_SUMMARY
-
-    - name: Delete original debian rootfs
-      run: rm -r ./components/debian-base/rootfs-base.tar.gz
-
-    - name: Upload rootfs artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: meticulous-rootfs.tar.gz
-        path: meticulous-rootfs.tar.gz
-        if-no-files-found: error
-
-    - name: Build sdcard
-      run: sudo ./make-sdcard.sh --image
-
-    - name: Upload SDCard artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: sdcard.img
-        path: sdcard.img
-        if-no-files-found: error
-
-    - name: Upload EMMC artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: emmc.img
-        path: emmc.img
-        if-no-files-found: error
-
-  build-bundle:
-    name: Build RAUC bundle
-    needs: build-root
-    runs-on: ubuntu-24.04
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Git authentication
-      run: |
-        git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
-
-    - name: Clone private repository
-      uses: actions/checkout@v4
-      with:
-        repository: MeticulousHome/rauc-secrets
-        token: ${{ secrets.GH_REPO_WORKFLOW }}
-        path: components/rauc-secrets
-
-    - name: Download rootfs artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'meticulous-rootfs.tar.gz'
-        path: .
-
-    - name: Download rauc artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'rauc'
-        path:  components/rauc/build
-
-    - name: Install Ubuntu dependencies
-      run: |
-        sudo apt update && sudo apt install -y pigz
-        find components/rauc/build/
-        sudo apt install --reinstall ./components/rauc/build/rauc_*_amd64.deb
-
-    - name: Download bootloader artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'bootloader'
-        path: components/bootloader/build/
-
-    - name: Build Bootloader Bundle
-      run: ./make-bootloader-ota.sh --variant "${{ inputs.image || 'nightly' }}" --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
-
-    - name: Upload Bootloader bundle
-      uses: actions/upload-artifact@v4
-      with:
-        name: bootloader-bundle.raucb
-        path: rauc_meticulous_boot_*.raucb
-        if-no-files-found: error
-
-    - name: Build Bundles
-      run: ./make-ota.sh  --variant "${{ inputs.image || 'nightly' }}" --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
-
-    - name: Upload EMMC bundle
-      uses: actions/upload-artifact@v4
-      with:
-        name: emmc-bundle.raucb
-        path: rauc_meticulous_emmc_*.raucb
-        if-no-files-found: error
-
-  deploy-emmc-bundle:
-    name: Upload EMMC image to hawkbit
-    needs: build-bundle
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_emmc_upload_to_hawkbit != true }}
-    runs-on: ubuntu-24.04
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download emmc bundle
-      uses: actions/download-artifact@v4
-      with:
-        name: 'emmc-bundle.raucb'
-        path: .
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests attrs requests-toolbelt
-
-    - name: Upload emmc bundle
-      run: |
-        python misc/hawkbit-upload.py \
-          "${{ secrets.HAWKBIT_SERVER }}" \
-          "${{ secrets.HAWKBIT_PORT }}" \
-          *_emmc_*.raucb \
-          ${{ secrets.HAWKBIT_USER }} \
-          ${{ secrets.HAWKBIT_PASSWORD }} \
-          "${{ github.event.inputs.image || 'nightly' }} EMMC" \
-          "${{ github.event.inputs.image || 'nightly' }} Rootfs EMMC" \
-          "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
-          "${{ github.event.inputs.image || 'nightly' }}" \
-          "emmc"
-
-  build-deployment-image:
-    name: Build Deployment Image
-    needs: build-root
-    runs-on: ubuntu-24.04
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Download sdcard artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'sdcard.img'
-        path: .
-
-    - name: Download bootloader artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'bootloader'
-        path: components/bootloader/build/
-  
-    - name: Download rootfs artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'meticulous-rootfs.tar.gz '
-        path: ./
-
-    - name: Install Ubuntu dependencies
-      run: sudo apt update && sudo apt install -y pigz qemu-utils e2fsprogs mount cloud-guest-utils
-
-    - name: Build deployment image
-      run: sudo ./make-deployment-image.sh --inplace
-
-    - name: Rename image
-      run: sudo mv sdcard.img deployment.img
-
-    - name: Compress image
-      run: pigz -kf deployment.img
-
-    - name: Upload deployment image
-      uses: actions/upload-artifact@v4
-      with:
-        name: deployment.img.gz
-        path: deployment.img.gz
-        if-no-files-found: error
-
-  commit-changelog:
-    name: Commit changelog
-    needs: [build-bundle, deploy-emmc-bundle, build-deployment-image]
-    if: always() && !cancelled() && needs.build-bundle.result == 'success'
-    runs-on: ubuntu-24.04
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Git authentication
-      run: |
-        git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
-
-    - name: Download version-info artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: 'version-info'
-        path: .
-
-    - name: Commit and push changelog
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        git add images/changes/
-
-        if git diff --cached --quiet; then
-          echo "No changelog changes to commit."
-        else
-          git commit -m "changelog: ${{ inputs['image'] || 'nightly' }} build #${{ github.run_number }}"
-          git push
-        fi
+          if git diff --cached --quiet; then
+            echo "No changelog changes to commit."
+          else
+            git commit -m "changelog: ${{ github.ref_name }} build #${{ github.run_number }}"
+            git push origin HEAD:main
+          fi
 
   deploy-changelog:
     name: Deploy changelog to GitHub Pages
