@@ -11,14 +11,18 @@ on:
         description: Branch to use for this repository's config, services, scripts, and workflows
         required: true
         type: string
-      skip_emmc_upload_to_hawkbit:
-        description: Skip uploading EMMC bundle to hawkBit
+      upload_emmc_to_hawkbit:
+        description: Upload EMMC bundle to hawkBit
         type: boolean
-        default: true
+        default: false
       no-cache:
         description: Force rebuild all components, ignoring cache
         type: boolean
         default: false
+    outputs:
+      build_version_number:
+        description: Generated image build version number
+        value: ${{ jobs.generate-version-info.outputs.build_version_number }}
 
 permissions:
   contents: read
@@ -40,16 +44,13 @@ jobs:
           image="${{ inputs.image }}"
           machine_ref="${{ inputs.machine-ref }}"
 
-          case "$machine_ref" in
-            nightly|beta|stable) ;;
-            *)
-              echo "::error::machine-ref must be nightly, beta, or stable. Got '${machine_ref}'."
-              exit 1
-              ;;
-          esac
-
           if [[ ! "$image" =~ ^[A-Za-z0-9._-]+$ ]]; then
             echo "::error::Invalid image '${image}'. Use only letters, numbers, dots, underscores, and hyphens."
+            exit 1
+          fi
+
+          if [[ ! "$machine_ref" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Invalid machine-ref '${machine_ref}'. Use only letters, numbers, dots, underscores, and hyphens."
             exit 1
           fi
 
@@ -333,7 +334,7 @@ jobs:
   deploy-emmc-bundle:
     name: Upload EMMC image to hawkbit
     needs: build-bundle
-    if: ${{ !inputs.skip_emmc_upload_to_hawkbit }}
+    if: ${{ inputs.upload_emmc_to_hawkbit }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code

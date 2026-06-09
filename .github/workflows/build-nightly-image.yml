@@ -5,23 +5,10 @@ on:
     - cron: '0 0 * * *'  # Nightly at midnight
   workflow_dispatch:
     inputs:
-      image:
-        description: Image/version set to build
-        type: string
-        default: nightly
-      config_branch:
-        description: Branch to use for machine config/scripts
-        type: choice
-        default: auto
-        options:
-          - auto
-          - nightly
-          - beta
-          - stable
-      skip_emmc_upload_to_hawkbit:
-        description: Skip uploading EMMC bundle to hawkBit
+      upload_emmc_to_hawkbit:
+        description: Upload EMMC bundle to hawkBit
         type: boolean
-        default: true
+        default: false
       no-cache:
         description: Force rebuild all components, ignoring cache
         type: boolean
@@ -33,119 +20,48 @@ permissions:
   id-token: write
   pages: write
 
-run-name: "Build ${{ inputs.image || 'nightly' }} image using ${{ inputs.config_branch || 'auto' }} config"
+run-name: "Build ${{ github.ref_name }} image"
 
 jobs:
-  resolve-config:
-    name: Resolve image and config branch
+  build-image:
+    name: Build via selected branch
+    uses: ./.github/workflows/build-image-channel.yml
+    with:
+      image: ${{ github.ref_name }}
+      machine-ref: ${{ github.ref_name }}
+      upload_emmc_to_hawkbit: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
+      no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache || false }}
+    secrets: inherit
+
+  tag-controlled-repos:
+    name: Tag controlled component repos
+    needs: build-image
     runs-on: ubuntu-24.04
-    outputs:
-      image: ${{ steps.resolve.outputs.image }}
-      machine_ref: ${{ steps.resolve.outputs.machine_ref }}
-      no_cache: ${{ steps.resolve.outputs.no_cache }}
-      skip_emmc_upload_to_hawkbit: ${{ steps.resolve.outputs.skip_emmc_upload_to_hawkbit }}
+    env:
+      IMAGE: ${{ github.ref_name }}
+      BUILD_VERSION_NUMBER: ${{ needs.build-image.outputs.build_version_number }}
+      BUILD_TAG: ${{ github.ref_name }}/${{ needs.build-image.outputs.build_version_number }}
     steps:
-      - name: Resolve build inputs
-        id: resolve
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Git authentication
         run: |
-          image="${{ inputs.image || 'nightly' }}"
-          config_branch="${{ inputs.config_branch || 'auto' }}"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "https://github.com/"
 
-          if [[ ! "$image" =~ ^[A-Za-z0-9._-]+$ ]]; then
-            echo "::error::Invalid image '${image}'. Use only letters, numbers, dots, underscores, and hyphens."
-            exit 1
-          fi
+      - name: Checkout all component sources
+        run: ./update-sources.sh --all --image "$IMAGE" --firmware --plotter
 
-          case "$config_branch" in
-            auto)
-              case "$image" in
-                nightly|beta|stable)
-                  machine_ref="$image"
-                  ;;
-                *)
-                  echo "::error::Custom image '${image}' requires config_branch to be nightly, beta, or stable."
-                  exit 1
-                  ;;
-              esac
-              ;;
-            nightly|beta|stable)
-              machine_ref="$config_branch"
-              ;;
-            *)
-              echo "::error::Invalid config_branch '${config_branch}'. Use auto, nightly, beta, or stable."
-              exit 1
-              ;;
-          esac
-
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            no_cache="${{ inputs.no-cache }}"
-            skip_emmc_upload_to_hawkbit="${{ inputs.skip_emmc_upload_to_hawkbit }}"
-          else
-            no_cache="false"
-            skip_emmc_upload_to_hawkbit="false"
-          fi
-
-          echo "image=${image}" >> "$GITHUB_OUTPUT"
-          echo "machine_ref=${machine_ref}" >> "$GITHUB_OUTPUT"
-          echo "no_cache=${no_cache}" >> "$GITHUB_OUTPUT"
-          echo "skip_emmc_upload_to_hawkbit=${skip_emmc_upload_to_hawkbit}" >> "$GITHUB_OUTPUT"
-
-          echo "Image: ${image}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Machine config branch: ${machine_ref}" >> "$GITHUB_STEP_SUMMARY"
-
-  build-via-nightly:
-    name: Build via nightly config
-    needs: resolve-config
-    if: ${{ needs.resolve-config.outputs.machine_ref == 'nightly' }}
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-image-channel.yml@nightly
-    with:
-      image: ${{ needs.resolve-config.outputs.image }}
-      machine-ref: nightly
-      skip_emmc_upload_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.skip_emmc_upload_to_hawkbit) }}
-      no-cache: ${{ fromJSON(needs.resolve-config.outputs.no_cache) }}
-    secrets: inherit
-
-  build-via-beta:
-    name: Build via beta config
-    needs: resolve-config
-    if: ${{ needs.resolve-config.outputs.machine_ref == 'beta' }}
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-image-channel.yml@beta
-    with:
-      image: ${{ needs.resolve-config.outputs.image }}
-      machine-ref: beta
-      skip_emmc_upload_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.skip_emmc_upload_to_hawkbit) }}
-      no-cache: ${{ fromJSON(needs.resolve-config.outputs.no_cache) }}
-    secrets: inherit
-
-  build-via-stable:
-    name: Build via stable config
-    needs: resolve-config
-    if: ${{ needs.resolve-config.outputs.machine_ref == 'stable' }}
-    uses: meticuloushome/meticulous-machine/.github/workflows/build-image-channel.yml@stable
-    with:
-      image: ${{ needs.resolve-config.outputs.image }}
-      machine-ref: stable
-      skip_emmc_upload_to_hawkbit: ${{ fromJSON(needs.resolve-config.outputs.skip_emmc_upload_to_hawkbit) }}
-      no-cache: ${{ fromJSON(needs.resolve-config.outputs.no_cache) }}
-    secrets: inherit
+      - name: Push build tags
+        run: ./tag-controlled-repos.sh --tag "$BUILD_TAG"
 
   commit-changelog:
     name: Commit changelog to main
-    needs:
-      - resolve-config
-      - build-via-nightly
-      - build-via-beta
-      - build-via-stable
-    if: >-
-      ${{
-        always() &&
-        !cancelled() &&
-        (
-          needs.build-via-nightly.result == 'success' ||
-          needs.build-via-beta.result == 'success' ||
-          needs.build-via-stable.result == 'success'
-        )
-      }}
+    needs: build-image
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout main
@@ -168,12 +84,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add "images/changes/${{ needs.resolve-config.outputs.image }}/"
+          git add "images/changes/${{ github.ref_name }}/"
 
           if git diff --cached --quiet; then
             echo "No changelog changes to commit."
           else
-            git commit -m "changelog: ${{ needs.resolve-config.outputs.image }} build #${{ github.run_number }}"
+            git commit -m "changelog: ${{ github.ref_name }} build #${{ github.run_number }}"
             git push origin HEAD:main
           fi
 
