@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+iface="${1:-hci0}"
+
+if ! command -v hcitool >/dev/null 2>&1; then
+    echo "hcitool is not installed" >&2
+    exit 1
+fi
+
+hcitool -i "${iface}" cmd 0x03 0x003
+hcitool -i "${iface}" cmd 0x08 0x0034 0x00 0x25 0x00 0x01
+hcitool -i "${iface}" cmd 0x3F 0x0087 0x0a
