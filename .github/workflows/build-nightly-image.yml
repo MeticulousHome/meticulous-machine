@@ -49,8 +49,8 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "https://github.com/"
 
       - name: Checkout all component sources
         run: ./update-sources.sh --all --image "$IMAGE" --firmware --plotter
