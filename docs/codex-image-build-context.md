@@ -54,7 +54,10 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - `pin_version.yml` promotes component branches only for `nightly -> beta` and `beta -> stable`.
 - Direct `nightly -> stable` promotion is forbidden.
 - Branch promotion uses `pin-versions.sh --promote <source> <destination>` after `update-sources.sh --image <source>` checks out the source component refs.
-- During channel promotion, controlled component repo destination branches are pushed with `--force-with-lease`, and `images/<destination>.versions.sh` records `*_BRANCH=<destination>` plus exact promoted `*_REV=<sha>` pins.
+- During channel promotion, controlled component repo source commits are merged into the destination branch with `git merge --no-ff`; destination branches are pushed with normal fast-forward pushes, not force pushes.
+- If the destination branch already contains the source commit, no merge commit is created and the current destination branch HEAD is pinned.
+- `images/<destination>.versions.sh` records `*_BRANCH=<destination>` plus exact `*_REV=<destination HEAD sha>` pins for controlled repos.
+- Merge conflicts fail the workflow and the destination versions file is not replaced.
 - Custom destination images are file-only pins. They write exact SHAs to `images/<custom>.versions.sh` and do not push or record custom component branches.
 
 ## Important Constraints
