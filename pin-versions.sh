@@ -15,7 +15,7 @@ Usage:
 
 Modes:
   <image_name>                         Pin currently checked-out component SHAs to images/<image_name>.versions.sh.
-  --promote <source> <destination>      For nightly->beta or beta->stable, also move controlled component branches.
+  --promote <source> <destination>      For nightly->beta or beta->stable, merge controlled component branches.
 
 Controlled component repos are MeticulousHome GitHub repos. Custom destination images are file-only pins and never move component branches.
 EOF
@@ -65,6 +65,7 @@ fi
 
 mkdir -p images
 OUTPUT_FILE="images/${DEST_IMAGE}.versions.sh"
+FINAL_OUTPUT_FILE="$OUTPUT_FILE"
 
 source config.sh
 
@@ -80,6 +81,10 @@ is_controlled_repo() {
 should_push_branches() {
     [[ "$PROMOTE" -eq 1 && "$SOURCE_IMAGE" == "nightly" && "$DEST_IMAGE" == "beta" ]] ||
         [[ "$PROMOTE" -eq 1 && "$SOURCE_IMAGE" == "beta" && "$DEST_IMAGE" == "stable" ]]
+}
+
+should_merge_branches() {
+    should_push_branches
 }
 
 validate_promotion() {
@@ -137,6 +142,62 @@ append_pin() {
     fi
 }
 
+merge_component_branch() {
+    local name="$1"
+    local repo_dir="$2"
+    local source_rev="$3"
+    local destination_ref="refs/remotes/origin/${DEST_IMAGE}"
+    local destination_rev final_rev
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "DRY-RUN: git -C ${repo_dir} fetch origin refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2
+        echo "DRY-RUN: git -C ${repo_dir} fetch origin refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2
+        echo "DRY-RUN: require origin/${DEST_IMAGE} to exist for ${name}" >&2
+        echo "DRY-RUN: if origin/${DEST_IMAGE} already contains ${source_rev}, pin origin/${DEST_IMAGE}" >&2
+        echo "DRY-RUN: otherwise git -C ${repo_dir} checkout -B ${DEST_IMAGE} refs/remotes/origin/${DEST_IMAGE}" >&2
+        echo "DRY-RUN: git -C ${repo_dir} merge --no-ff --no-edit ${source_rev}" >&2
+        echo "DRY-RUN: git -C ${repo_dir} push origin HEAD:refs/heads/${DEST_IMAGE}" >&2
+        echo "<destination-head-after-merge>"
+        return
+    fi
+
+    if ! git -C "$repo_dir" fetch origin "refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2; then
+        echo "Error: source branch '${SOURCE_IMAGE}' does not exist in ${name} (${repo_dir})." >&2
+        exit 1
+    fi
+
+    if ! git -C "$repo_dir" fetch origin "refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2; then
+        echo "Error: destination branch '${DEST_IMAGE}' does not exist in ${name} (${repo_dir})." >&2
+        exit 1
+    fi
+
+    if ! git -C "$repo_dir" rev-parse -q --verify "$destination_ref" >/dev/null; then
+        echo "Error: destination branch '${DEST_IMAGE}' does not exist in ${name} (${repo_dir})." >&2
+        exit 1
+    fi
+
+    destination_rev="$(git -C "$repo_dir" rev-parse "$destination_ref")"
+    git -C "$repo_dir" checkout -B "$DEST_IMAGE" "$destination_ref" >&2
+
+    if git -C "$repo_dir" merge-base --is-ancestor "$source_rev" HEAD; then
+        final_rev="$(git -C "$repo_dir" rev-parse HEAD)"
+        echo "Destination branch ${DEST_IMAGE} for ${name} already contains ${source_rev}; pinning ${final_rev}." >&2
+        echo "$final_rev"
+        return
+    fi
+
+    if ! git -C "$repo_dir" merge --no-ff --no-edit "$source_rev" >&2; then
+        git -C "$repo_dir" merge --abort || true
+        git -C "$repo_dir" checkout -B "$DEST_IMAGE" "$destination_rev" >&2
+        echo "Error: merge conflict while promoting ${SOURCE_IMAGE} to ${DEST_IMAGE} in ${name} (${repo_dir})." >&2
+        exit 1
+    fi
+
+    final_rev="$(git -C "$repo_dir" rev-parse HEAD)"
+    git -C "$repo_dir" push origin "HEAD:refs/heads/${DEST_IMAGE}" >&2
+    echo "$final_rev"
+}
+
 pin_component() {
     local name="$1"
     local repo_dir="$2"
@@ -154,19 +215,19 @@ pin_component() {
         exit 1
     fi
 
-    local current_rev current_commit branch_name controlled push_branch
+    local current_rev current_commit branch_name controlled merge_branch final_rev
     current_rev="$(git -C "$repo_dir" rev-parse HEAD)"
     current_commit="$(git -C "$repo_dir" log --format=%B -n 1 HEAD | head -n1)"
     controlled=0
     if is_controlled_repo "$git_url"; then
         controlled=1
     fi
-    push_branch=0
-    if [[ "$controlled" -eq 1 ]] && should_push_branches; then
-        push_branch=1
+    merge_branch=0
+    if [[ "$controlled" -eq 1 ]] && should_merge_branches; then
+        merge_branch=1
     fi
 
-    if [[ "$push_branch" -eq 1 ]]; then
+    if [[ "$merge_branch" -eq 1 ]]; then
         branch_name="$DEST_IMAGE"
     else
         branch_name="$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
@@ -177,20 +238,20 @@ pin_component() {
 
     echo "Pinning ${name}: ${current_rev} (${current_commit})"
 
-    if [[ "$push_branch" -eq 1 ]]; then
+    final_rev="$current_rev"
+    if [[ "$merge_branch" -eq 1 ]]; then
+        final_rev="$(merge_component_branch "$name" "$repo_dir" "$current_rev")"
         if [[ "$DRY_RUN" -eq 1 ]]; then
-            echo "DRY-RUN: git -C ${repo_dir} fetch --depth 1 origin refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}"
-            echo "DRY-RUN: git -C ${repo_dir} push --force-with-lease origin ${current_rev}:refs/heads/${DEST_IMAGE}"
+            current_commit="destination branch HEAD after merge"
         else
-            git -C "$repo_dir" fetch --depth 1 origin "refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" || true
-            git -C "$repo_dir" push --force-with-lease origin "${current_rev}:refs/heads/${DEST_IMAGE}"
+            current_commit="$(git -C "$repo_dir" log --format=%B -n 1 "$final_rev" | head -n1)"
         fi
     fi
 
-    if [[ "$push_branch" -eq 1 ]]; then
+    if [[ "$merge_branch" -eq 1 ]]; then
         append_pin "$branch_var" "$branch_name"
     fi
-    append_pin "$rev_var" "$current_rev" "$current_commit"
+    append_pin "$rev_var" "$final_rev" "$current_commit"
 }
 
 pin_all_components() {
@@ -241,10 +302,20 @@ pin_single_component() {
 
 validate_promotion
 
+if [[ -z "$SINGLE_COMPONENT_PATH" && "$DRY_RUN" -ne 1 ]] && should_merge_branches; then
+    OUTPUT_FILE="$(mktemp "${FINAL_OUTPUT_FILE}.tmp.XXXXXX")"
+    trap 'rm -f "$OUTPUT_FILE"' EXIT
+fi
+
 if [[ -n "$SINGLE_COMPONENT_PATH" ]]; then
     ensure_output_file
     pin_single_component
 else
     reset_output_file
     pin_all_components
+fi
+
+if [[ "$OUTPUT_FILE" != "$FINAL_OUTPUT_FILE" ]]; then
+    mv "$OUTPUT_FILE" "$FINAL_OUTPUT_FILE"
+    trap - EXIT
 fi
