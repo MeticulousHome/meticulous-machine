@@ -1,0 +1,348 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+firmware_dir="${MET_IW612_FIRMWARE_DIR:-/lib/firmware/nxp}"
+state_dir="${MET_IW612_STATE_DIR:-/meticulous-user}"
+state_file="${MET_IW612_STATE_FILE:-${state_dir}/iw612-region.conf}"
+mod_para="${MET_IW612_MOD_PARA:-${firmware_dir}/var_wifi_mod_para.conf}"
+wifi_control="${MET_IW612_WIFI_CONTROL:-/etc/wifi/variscite-wifi}"
+
+apply_current=0
+reload_driver=0
+write_mod_para=1
+set_iw=1
+apply_bt_power=0
+show_current=0
+list_regions=0
+country_arg=""
+
+usage() {
+    cat <<EOF
+Usage:
+  met-iw612-set-region <country|region> [--reload-driver] [--apply-bt-power]
+  met-iw612-set-region --apply-current [--no-iw] [--no-write] [--apply-bt-power]
+  met-iw612-set-region --show
+  met-iw612-set-region --list
+
+Supported inputs:
+  CA, US, JP
+  EU or ETSI country codes such as DE, FR, IT, ES, GB
+
+Notes:
+  - The selected region is persisted in ${state_file}.
+  - Driver power tables take effect after the IW612 driver is reloaded or at
+    the next Wi-Fi start.
+EOF
+}
+
+uppercase() {
+    printf '%s' "$1" | tr '[:lower:]' '[:upper:]'
+}
+
+is_eu_profile_country() {
+    case "$1" in
+        AD|AL|AT|BA|BE|BG|CH|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IS|IT|LI|LT|LU|LV|MC|MD|ME|MK|MT|NL|NO|PL|PT|RO|RS|SE|SI|SK|TR)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+bt_profile_for_power_profile() {
+    case "$1" in
+        CA|US)
+            printf 'US_CA\n'
+            ;;
+        EU|JP)
+            printf '%s\n' "$1"
+            ;;
+        "")
+            printf '\n'
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+profile_for_input() {
+    local input="$1"
+
+    case "${input}" in
+        CA)
+            printf 'CA CA\n'
+            ;;
+        US)
+            printf 'US US\n'
+            ;;
+        JP)
+            printf 'JP JP\n'
+            ;;
+        EU)
+            printf 'DE EU\n'
+            ;;
+        *)
+            if is_eu_profile_country "${input}"; then
+                printf '%s EU\n' "${input}"
+            else
+                return 1
+            fi
+            ;;
+    esac
+}
+
+read_state_value() {
+    local key="$1"
+
+    if [ ! -r "${state_file}" ]; then
+        return 0
+    fi
+
+    awk -F= -v key="${key}" '$1 == key { print $2 }' "${state_file}" | tail -n 1
+}
+
+validate_profile_files() {
+    local profile="$1"
+
+    if [ -z "${profile}" ]; then
+        return 0
+    fi
+
+    for file in "${firmware_dir}/rutxpower_${profile}.bin" "${firmware_dir}/txpower_${profile}.bin"; do
+        if [ ! -r "${file}" ]; then
+            echo "Missing ${file}" >&2
+            return 1
+        fi
+    done
+}
+
+write_region_state() {
+    local country="$1"
+    local profile="$2"
+    local bt_profile="$3"
+
+    mkdir -p "${state_dir}"
+    {
+        printf 'IW612_COUNTRY=%s\n' "${country}"
+        printf 'IW612_POWER_PROFILE=%s\n' "${profile}"
+        printf 'IW612_BT_POWER_PROFILE=%s\n' "${bt_profile}"
+    } >"${state_file}.tmp"
+    mv "${state_file}.tmp" "${state_file}"
+}
+
+write_driver_config() {
+    local profile="$1"
+
+    validate_profile_files "${profile}"
+
+    mkdir -p "$(dirname "${mod_para}")"
+    {
+        cat <<EOF
+SDIW612 = {
+	cfg80211_wext=0xf
+	max_vir_bss=1
+	cal_data_cfg=none
+	ps_mode=1
+	auto_ds=1
+	host_mlme=1
+	fw_name=nxp/sduart_nw61x_v1.bin.se
+EOF
+        if [ -n "${profile}" ]; then
+            printf '\tinit_hostcmd_cfg=nxp/rutxpower_%s.bin\n' "${profile}"
+            printf '\ttxpwrlimit_cfg=nxp/txpower_%s.bin\n' "${profile}"
+        fi
+        cat <<EOF
+	sta_name=wlan
+	fw_serial=0
+	indrstcfg=0xFF02
+}
+EOF
+    } >"${mod_para}.tmp"
+    mv "${mod_para}.tmp" "${mod_para}"
+}
+
+set_regulatory_country() {
+    local country="$1"
+
+    if [ -z "${country}" ]; then
+        return 0
+    fi
+
+    if ! command -v iw >/dev/null 2>&1; then
+        echo "iw is not installed; regulatory country was not applied" >&2
+        return 0
+    fi
+
+    iw reg set "${country}"
+}
+
+apply_bt_power_config() {
+    local bt_profile="$1"
+    local script=""
+
+    if [ -z "${bt_profile}" ]; then
+        return 0
+    fi
+
+    script="${firmware_dir}/bt_power_config_${bt_profile}.sh"
+    if [ ! -r "${script}" ]; then
+        echo "Missing ${script}" >&2
+        return 1
+    fi
+
+    if ! command -v hcitool >/dev/null 2>&1; then
+        echo "hcitool is not installed; Bluetooth power was not applied" >&2
+        return 1
+    fi
+
+    if ! command -v hciconfig >/dev/null 2>&1; then
+        echo "hciconfig is not installed; Bluetooth power was not applied" >&2
+        return 1
+    fi
+
+    bash "${script}"
+}
+
+reload_wifi_driver() {
+    if [ ! -x "${wifi_control}" ]; then
+        echo "${wifi_control} is not executable; driver was not reloaded" >&2
+        return 1
+    fi
+
+    "${wifi_control}" stop || true
+    sleep 1
+    "${wifi_control}" start
+}
+
+show_region() {
+    local country=""
+    local profile=""
+    local bt_profile=""
+
+    country="$(read_state_value IW612_COUNTRY || true)"
+    profile="$(read_state_value IW612_POWER_PROFILE || true)"
+    bt_profile="$(read_state_value IW612_BT_POWER_PROFILE || true)"
+    if [ -z "${bt_profile}" ]; then
+        bt_profile="$(bt_profile_for_power_profile "${profile}" || true)"
+    fi
+
+    printf 'state_file=%s\n' "${state_file}"
+    printf 'country=%s\n' "${country:-unconfigured}"
+    printf 'power_profile=%s\n' "${profile:-none}"
+    printf 'bt_power_profile=%s\n' "${bt_profile:-none}"
+    printf 'mod_para=%s\n' "${mod_para}"
+    if [ -r "${mod_para}" ]; then
+        grep -E 'fw_name|init_hostcmd_cfg|txpwrlimit_cfg' "${mod_para}" || true
+    else
+        echo "mod_para is missing"
+    fi
+    if command -v iw >/dev/null 2>&1; then
+        iw reg get || true
+    fi
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --apply-current)
+            apply_current=1
+            ;;
+        --reload-driver)
+            reload_driver=1
+            ;;
+        --no-reload-driver)
+            reload_driver=0
+            ;;
+        --no-iw)
+            set_iw=0
+            ;;
+        --no-write)
+            write_mod_para=0
+            ;;
+        --apply-bt-power)
+            apply_bt_power=1
+            ;;
+        --no-bt-power)
+            apply_bt_power=0
+            ;;
+        --show)
+            show_current=1
+            ;;
+        --list)
+            list_regions=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+        *)
+            if [ -n "${country_arg}" ]; then
+                echo "Only one country or region may be provided" >&2
+                exit 2
+            fi
+            country_arg="$(uppercase "$1")"
+            ;;
+    esac
+    shift
+done
+
+if [ "${list_regions}" -eq 1 ]; then
+    echo "CA US JP EU"
+    echo "ETSI examples: DE FR IT ES GB"
+    exit 0
+fi
+
+if [ "${show_current}" -eq 1 ]; then
+    show_region
+    exit 0
+fi
+
+country=""
+profile=""
+bt_profile=""
+
+if [ "${apply_current}" -eq 1 ]; then
+    country="$(read_state_value IW612_COUNTRY || true)"
+    profile="$(read_state_value IW612_POWER_PROFILE || true)"
+    bt_profile="$(read_state_value IW612_BT_POWER_PROFILE || true)"
+    if [ -z "${bt_profile}" ]; then
+        bt_profile="$(bt_profile_for_power_profile "${profile}" || true)"
+    fi
+elif [ -n "${country_arg}" ]; then
+    if ! resolved="$(profile_for_input "${country_arg}")"; then
+        echo "Unsupported IW612 region: ${country_arg}" >&2
+        usage >&2
+        exit 2
+    fi
+    country="${resolved%% *}"
+    profile="${resolved##* }"
+    bt_profile="$(bt_profile_for_power_profile "${profile}")"
+    write_region_state "${country}" "${profile}" "${bt_profile}"
+else
+    usage >&2
+    exit 2
+fi
+
+if [ "${write_mod_para}" -eq 1 ]; then
+    write_driver_config "${profile}"
+fi
+
+if [ "${set_iw}" -eq 1 ]; then
+    set_regulatory_country "${country}"
+fi
+
+if [ "${apply_bt_power}" -eq 1 ]; then
+    apply_bt_power_config "${bt_profile}"
+fi
+
+if [ "${reload_driver}" -eq 1 ]; then
+    reload_wifi_driver
+fi
+
+show_region

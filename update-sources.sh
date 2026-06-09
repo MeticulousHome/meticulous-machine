@@ -211,6 +211,10 @@ function update_linux() {
     echo "Cloning / Updating mwifiex for linux Repository"
     get_git_src ${MWIFIEX_GIT} ${MWIFIEX_BRANCH} \
         ${MWIFIEX_SRC_DIR} ${MWIFIEX_REV}
+
+    echo "Cloning / Updating mlanutl source Repository"
+    get_git_src ${MLANUTL_GIT} ${MLANUTL_BRANCH} \
+        ${MLANUTL_SRC_DIR} ${MLANUTL_REV}
 }
 
 function update_uboot() {
