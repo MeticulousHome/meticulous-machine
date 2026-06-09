@@ -5,10 +5,10 @@ on:
     - cron: '0 0 * * *'  # Nightly at midnight
   workflow_dispatch:
     inputs:
-      skip_emmc_upload_to_hawkbit:
-        description: Skip uploading EMMC bundle to hawkBit
+      upload_emmc_to_hawkbit:
+        description: Upload EMMC bundle to hawkBit
         type: boolean
-        default: true
+        default: false
       no-cache:
         description: Force rebuild all components, ignoring cache
         type: boolean
@@ -29,7 +29,7 @@ jobs:
     with:
       image: ${{ github.ref_name }}
       machine-ref: ${{ github.ref_name }}
-      skip_emmc_upload_to_hawkbit: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_emmc_upload_to_hawkbit || false }}
+      upload_emmc_to_hawkbit: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
       no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache || false }}
     secrets: inherit
 
