@@ -60,6 +60,33 @@ get_mmc_boot_config() {
   fi
 }
 
+sync_update_channel_to_image() {
+  image_channel="$1"
+  image_build_date="$2"
+  image_state_file="/meticulous-user/hawkbit-image-id"
+
+  if [ -z "$image_channel" ] || [ "$image_channel" = "UNKNOWN" ]; then
+    echo "Image build channel is unknown, keeping existing update channel"
+    return
+  fi
+
+  image_id="${image_channel}|${image_build_date}"
+  previous_image_id="$(cat "$image_state_file" 2>/dev/null || true)"
+
+  if [ "$previous_image_id" = "$image_id" ]; then
+    return
+  fi
+
+  echo "Detected image change for Hawkbit channel sync"
+  echo "Previous image id: ${previous_image_id:-NONE}"
+  echo "Current image id: ${image_id}"
+  echo "Setting update channel to image build channel: ${image_channel}"
+
+  mkdir -p "$(dirname "$image_state_file")"
+  echo "$image_channel" > /etc/hawkbit/channel
+  echo "$image_id" > "$image_state_file"
+}
+
 if grep -q "root=/dev/mmcblk1" /proc/cmdline; then
   export boot_mode="sdcard";
   boot_partition="sdcard"  #get boot partition
@@ -69,6 +96,11 @@ else
 fi;
 
 echo "Boot mode is ${boot_mode}"
+build_date=$(cat /opt/ROOTFS_BUILD_DATE || echo UNKNOWN)                                          #get booted image build date
+build_channel=$(cat /opt/image-build-channel || echo UNKNOWN)
+
+sync_update_channel_to_image "$build_channel" "$build_date"
+
 export update_channel=$(cat /etc/hawkbit/channel)
 echo "Update Channel is ${update_channel}"
 
@@ -115,9 +147,6 @@ serial="UNSET"
 if [ ! -z "$(which met-config)" ]; then
   serial=$(met-config get .system.serial)
 fi
-
-build_date=$(cat /opt/ROOTFS_BUILD_DATE || echo UNKNOWN)                                          #get booted image build date
-build_channel=$(cat /opt/image-build-channel || echo UNKNOWN)
 
 installed_version=$(get_installed_sw_version)
 backup_version=$(get_backup_sw_version)
