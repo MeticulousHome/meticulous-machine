@@ -40,9 +40,20 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Validate promotion request
+        id: validate
         run: |
           destination="${{ inputs.image || 'beta' }}"
           source="${{ inputs.target_image || 'nightly' }}"
+
+          if [[ ! "$source" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Invalid source image '${source}'. Use only letters, numbers, dots, underscores, and hyphens."
+            exit 1
+          fi
+
+          if [[ ! "$destination" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Invalid destination image '${destination}'. Use only letters, numbers, dots, underscores, and hyphens."
+            exit 1
+          fi
 
           if [[ "$source" == "nightly" && "$destination" == "stable" ]]; then
             echo "::error::Direct promotion from nightly to stable is forbidden. Promote nightly to beta, then beta to stable."
@@ -56,21 +67,55 @@ jobs:
             fi
           fi
 
+          echo "source=${source}" >> "$GITHUB_OUTPUT"
+          echo "destination=${destination}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare destination image branch
+        run: |
+          source="${{ steps.validate.outputs.source }}"
+          destination="${{ steps.validate.outputs.destination }}"
+
+          git fetch origin "+refs/heads/*:refs/remotes/origin/*"
+
+          if ! git rev-parse -q --verify "refs/remotes/origin/${source}" >/dev/null; then
+            echo "::error::Source image branch '${source}' does not exist. Cannot pin an image from a non-existing branch."
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/remotes/origin/${destination}" >/dev/null; then
+            git checkout -B "$destination" "refs/remotes/origin/${destination}"
+
+            if [[ "$source" != "$destination" ]]; then
+              if ! git merge --no-ff --no-edit "refs/remotes/origin/${source}"; then
+                git merge --abort || true
+                echo "::error::Failed to merge image branch '${source}' into '${destination}'. Resolve the branch conflict and rerun."
+                exit 1
+              fi
+            fi
+          else
+            git checkout -B "$destination" "refs/remotes/origin/${source}"
+            echo "Created destination image branch '${destination}' from '${source}'."
+          fi
+
       - name: Checkout source image component refs
         run: |
-          ./update-sources.sh --all --image "${{ inputs.target_image || 'nightly' }}" --firmware --plotter
+          ./update-sources.sh --all --image "${{ steps.validate.outputs.source }}" --firmware --plotter
 
       - name: Promote branches or pin custom image
         run: |
-          ./pin-versions.sh --promote "${{ inputs.target_image || 'nightly' }}" "${{ inputs.image || 'beta' }}"
+          ./pin-versions.sh --promote "${{ steps.validate.outputs.source }}" "${{ steps.validate.outputs.destination }}"
 
       - name: Commit and push changes
         run: |
-          git add "images/${{ inputs.image || 'beta' }}.versions.sh"
+          destination="${{ steps.validate.outputs.destination }}"
+          source="${{ steps.validate.outputs.source }}"
+
+          git add "images/${destination}.versions.sh"
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "image: Promote ${{ inputs.target_image || 'nightly' }} to ${{ inputs.image || 'beta' }}"
-            git push
+            git commit -m "image: Promote ${source} to ${destination}"
           fi
+
+          git push origin "HEAD:refs/heads/${destination}"
