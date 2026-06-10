@@ -9,8 +9,8 @@ show_help() {
 Usage:
   $0 [--dry-run] --tag <tag_name>
 
-Tags checked-out MeticulousHome component repositories with a lightweight tag
-and pushes the tag to each component repository remote.
+Tags this repository and checked-out MeticulousHome component repositories with
+a lightweight tag, then pushes the tag to each repository remote.
 EOF
 }
 
@@ -91,6 +91,14 @@ tag_component() {
     fi
 
     current_rev="$(git -C "$repo_dir" rev-parse HEAD)"
+
+    echo "Tagging ${name}: ${TAG_NAME} -> ${current_rev}"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "DRY-RUN: git -C ${repo_dir} tag ${TAG_NAME} ${current_rev}"
+        echo "DRY-RUN: git -C ${repo_dir} push origin refs/tags/${TAG_NAME}"
+        return
+    fi
+
     remote_rev="$(remote_tag_commit "$repo_dir")"
 
     if [[ -n "$remote_rev" ]]; then
@@ -111,18 +119,13 @@ tag_component() {
         fi
     fi
 
-    echo "Tagging ${name}: ${TAG_NAME} -> ${current_rev}"
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-        echo "DRY-RUN: git -C ${repo_dir} tag ${TAG_NAME} ${current_rev}"
-        echo "DRY-RUN: git -C ${repo_dir} push origin refs/tags/${TAG_NAME}"
-    else
-        if ! git -C "$repo_dir" rev-parse -q --verify "refs/tags/${TAG_NAME}" >/dev/null; then
-            git -C "$repo_dir" tag "$TAG_NAME" "$current_rev"
-        fi
-        git -C "$repo_dir" push origin "refs/tags/${TAG_NAME}"
+    if ! git -C "$repo_dir" rev-parse -q --verify "refs/tags/${TAG_NAME}" >/dev/null; then
+        git -C "$repo_dir" tag "$TAG_NAME" "$current_rev"
     fi
+    git -C "$repo_dir" push origin "refs/tags/${TAG_NAME}"
 }
 
+tag_component "meticulous-machine" "." "git@github.com:MeticulousHome/meticulous-machine.git"
 tag_component "linux" "$LINUX_SRC_DIR" "$LINUX_GIT"
 tag_component "uboot" "$UBOOT_SRC_DIR" "$UBOOT_GIT"
 tag_component "debian" "$DEBIAN_SRC_DIR" "$DEBIAN_GIT"

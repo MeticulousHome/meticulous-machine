@@ -69,6 +69,13 @@ FINAL_OUTPUT_FILE="$OUTPUT_FILE"
 
 source config.sh
 
+declare -a DEFERRED_PUSH_NAMES=()
+declare -a DEFERRED_PUSH_DIRS=()
+declare -a DEFERRED_PUSH_BRANCHES=()
+declare -a DEFERRED_PUSH_REVS=()
+MERGE_FINAL_REV=""
+MERGE_PUSH_NEEDED=0
+
 is_channel_image() {
     [[ "$1" == "nightly" || "$1" == "beta" || "$1" == "stable" ]]
 }
@@ -127,11 +134,22 @@ append_pin() {
     local var_name="$1"
     local value="$2"
     local comment="${3:-}"
-    local line
+    local line existing_line
 
     line="export ${var_name}=\"${value}\""
     if [[ -n "$comment" ]]; then
         line="${line} # ${comment}"
+    fi
+
+    if should_preserve_head_rev "$var_name"; then
+        existing_line="$(existing_pin_line "$var_name")"
+        if [[ "$DRY_RUN" -eq 1 ]]; then
+            echo "DRY-RUN: preserving ${existing_line}"
+        else
+            sed -i "/^export ${var_name}=/d" "$OUTPUT_FILE"
+            echo "$existing_line" >> "$OUTPUT_FILE"
+        fi
+        return
     fi
 
     if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -142,12 +160,49 @@ append_pin() {
     fi
 }
 
+existing_pin_line() {
+    local var_name="$1"
+
+    if [[ -f "$FINAL_OUTPUT_FILE" ]]; then
+        grep -E "^export ${var_name}=\"[Hh][Ee][Aa][Dd]\"" "$FINAL_OUTPUT_FILE" | tail -n 1
+    fi
+}
+
+should_preserve_head_rev() {
+    local var_name="$1"
+
+    if [[ "$DEST_IMAGE" != "beta" && "$DEST_IMAGE" != "stable" ]]; then
+        return 1
+    fi
+
+    if [[ ! "$var_name" =~ _REV$ ]]; then
+        return 1
+    fi
+
+    existing_pin_line "$var_name" >/dev/null
+}
+
+record_deferred_push() {
+    local name="$1"
+    local repo_dir="$2"
+    local branch_name="$3"
+    local final_rev="$4"
+
+    DEFERRED_PUSH_NAMES+=("$name")
+    DEFERRED_PUSH_DIRS+=("$repo_dir")
+    DEFERRED_PUSH_BRANCHES+=("$branch_name")
+    DEFERRED_PUSH_REVS+=("$final_rev")
+}
+
 merge_component_branch() {
     local name="$1"
     local repo_dir="$2"
     local source_rev="$3"
     local destination_ref="refs/remotes/origin/${DEST_IMAGE}"
     local destination_rev final_rev
+
+    MERGE_FINAL_REV=""
+    MERGE_PUSH_NEEDED=0
 
     if [[ "$DRY_RUN" -eq 1 ]]; then
         echo "DRY-RUN: git -C ${repo_dir} fetch origin refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2
@@ -156,8 +211,9 @@ merge_component_branch() {
         echo "DRY-RUN: if origin/${DEST_IMAGE} already contains ${source_rev}, pin origin/${DEST_IMAGE}" >&2
         echo "DRY-RUN: otherwise git -C ${repo_dir} checkout -B ${DEST_IMAGE} refs/remotes/origin/${DEST_IMAGE}" >&2
         echo "DRY-RUN: git -C ${repo_dir} merge --no-ff --no-edit ${source_rev}" >&2
-        echo "DRY-RUN: git -C ${repo_dir} push origin HEAD:refs/heads/${DEST_IMAGE}" >&2
-        echo "<destination-head-after-merge>"
+        echo "DRY-RUN: defer push of ${repo_dir} ${DEST_IMAGE} until all merges succeed" >&2
+        MERGE_FINAL_REV="<destination-head-after-merge>"
+        MERGE_PUSH_NEEDED=1
         return
     fi
 
@@ -182,7 +238,8 @@ merge_component_branch() {
     if git -C "$repo_dir" merge-base --is-ancestor "$source_rev" HEAD; then
         final_rev="$(git -C "$repo_dir" rev-parse HEAD)"
         echo "Destination branch ${DEST_IMAGE} for ${name} already contains ${source_rev}; pinning ${final_rev}." >&2
-        echo "$final_rev"
+        MERGE_FINAL_REV="$final_rev"
+        MERGE_PUSH_NEEDED=0
         return
     fi
 
@@ -194,8 +251,35 @@ merge_component_branch() {
     fi
 
     final_rev="$(git -C "$repo_dir" rev-parse HEAD)"
-    git -C "$repo_dir" push origin "HEAD:refs/heads/${DEST_IMAGE}" >&2
-    echo "$final_rev"
+    MERGE_FINAL_REV="$final_rev"
+    MERGE_PUSH_NEEDED=1
+}
+
+push_deferred_component_branches() {
+    local index name repo_dir branch_name final_rev
+
+    if ! should_merge_branches; then
+        return
+    fi
+
+    if [[ "${#DEFERRED_PUSH_NAMES[@]}" -eq 0 ]]; then
+        return
+    fi
+
+    echo "Pushing ${#DEFERRED_PUSH_NAMES[@]} promoted component branch(es)."
+    for index in "${!DEFERRED_PUSH_NAMES[@]}"; do
+        name="${DEFERRED_PUSH_NAMES[$index]}"
+        repo_dir="${DEFERRED_PUSH_DIRS[$index]}"
+        branch_name="${DEFERRED_PUSH_BRANCHES[$index]}"
+        final_rev="${DEFERRED_PUSH_REVS[$index]}"
+
+        if [[ "$DRY_RUN" -eq 1 ]]; then
+            echo "DRY-RUN: git -C ${repo_dir} push origin ${final_rev}:refs/heads/${branch_name}"
+        else
+            echo "Pushing ${name}: ${final_rev} -> ${branch_name}"
+            git -C "$repo_dir" push origin "${final_rev}:refs/heads/${branch_name}"
+        fi
+    done
 }
 
 pin_component() {
@@ -240,7 +324,11 @@ pin_component() {
 
     final_rev="$current_rev"
     if [[ "$merge_branch" -eq 1 ]]; then
-        final_rev="$(merge_component_branch "$name" "$repo_dir" "$current_rev")"
+        merge_component_branch "$name" "$repo_dir" "$current_rev"
+        final_rev="$MERGE_FINAL_REV"
+        if [[ "$MERGE_PUSH_NEEDED" -eq 1 ]]; then
+            record_deferred_push "$name" "$repo_dir" "$DEST_IMAGE" "$final_rev"
+        fi
         if [[ "$DRY_RUN" -eq 1 ]]; then
             current_commit="destination branch HEAD after merge"
         else
@@ -314,6 +402,8 @@ else
     reset_output_file
     pin_all_components
 fi
+
+push_deferred_component_branches
 
 if [[ "$OUTPUT_FILE" != "$FINAL_OUTPUT_FILE" ]]; then
     mv "$OUTPUT_FILE" "$FINAL_OUTPUT_FILE"
