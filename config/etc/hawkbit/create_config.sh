@@ -63,7 +63,8 @@ get_mmc_boot_config() {
 sync_update_channel_to_image() {
   image_channel="$1"
   image_build_date="$2"
-  image_state_file="/meticulous-user/hawkbit-image-id"
+  image_state_file="/meticulous-user/hawkbit-image-id" #kept just to track the image id
+  hawkbit_channel_file="/etc/hawkbit/channel"
 
   if [ -z "$image_channel" ] || [ "$image_channel" = "UNKNOWN" ]; then
     echo "Image build channel is unknown, keeping existing update channel"
@@ -73,18 +74,25 @@ sync_update_channel_to_image() {
   image_id="${image_channel}|${image_build_date}"
   previous_image_id="$(cat "$image_state_file" 2>/dev/null || true)"
 
-  if [ "$previous_image_id" = "$image_id" ]; then
-    return
+  current_channel="$(cat "$hawkbit_channel_file" 2>/dev/null || echo NONE)"
+
+  if [ "$current_channel" != "$image_channel" ]; then
+    echo "Detected image change for Hawkbit channel sync"
+    echo "${current_channel} -> ${image_channel}, updating Hawkbit channel"
+    echo "$image_channel" > "$hawkbit_channel_file"
+  else
+    echo "Current Hawkbit channel matches image build channel: ${current_channel}"
   fi
 
-  echo "Detected image change for Hawkbit channel sync"
-  echo "Previous image id: ${previous_image_id:-NONE}"
-  echo "Current image id: ${image_id}"
-  echo "Setting update channel to image build channel: ${image_channel}"
+  #log image not changed
+  if [ "$previous_image_id" = "$image_id" ]; then
+    echo "image id has not changed: ${image_id}"
+  else
+    echo "image id has changed: ${previous_image_id} -> ${image_id}"
+    mkdir -p "$(dirname "$image_state_file")"
+    echo "$image_id" > "$image_state_file"
+  fi
 
-  mkdir -p "$(dirname "$image_state_file")"
-  echo "$image_channel" > /etc/hawkbit/channel
-  echo "$image_id" > "$image_state_file"
 }
 
 if grep -q "root=/dev/mmcblk1" /proc/cmdline; then

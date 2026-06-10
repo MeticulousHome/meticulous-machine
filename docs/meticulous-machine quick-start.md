@@ -9,9 +9,10 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 ## Branch Model
 
 - `nightly`, `beta`, and `stable` are branch-backed machine config channels and image names.
+- Any custom image branch, such as `factory`, `rel`, or a certification image, is also the image identifier for that build.
 - `main` remains the central changelog and GitHub Pages branch, but it is no longer the manual image launcher.
 - Manual image builds are dispatched from the branch to build. The branch name must be the image name.
-- Custom images such as `factory`, `rel`, and certification images require their own branch with the same name as the image and a matching `images/<image>.versions.sh`.
+- Custom images require their own branch with the same name as the image and a matching `images/<image>.versions.sh`.
 - Scheduled builds assume the repository default branch is `nightly`, because GitHub Actions schedules run from the default branch.
 - Manual builds can set only `no-cache` and `upload_emmc_to_hawkbit`.
 
@@ -43,26 +44,35 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 ## Build Tags
 
 - After the full image build succeeds, `.github/workflows/build-nightly-image.yml` checks out component sources again and runs `tag-controlled-repos.sh --tag "<image>/<BUILD_VERSION_NUMBER>"`.
+- The tag is applied to this repo and to controlled component repos.
 - Controlled component repos are URLs matching `github.com[:/]MeticulousHome/`; external repos are skipped.
-- Build tags are lightweight tags pushed to each controlled component repo remote.
+- Build tags are lightweight tags pushed to this repo and each controlled component repo remote.
 - Existing remote tags are safe only if they already point to the same commit; if a remote tag points elsewhere, tagging fails.
 - Build tags are never force-updated.
 
 ## Component Branch Promotion
 
+- `.github/workflows/pin_version.yml` keeps `image` as the destination image and `target_image` as the source image.
+- Source image branches must already exist. Pinning from a non-existing source branch fails.
+- If the destination image branch does not exist and the source image branch exists, the workflow creates the destination branch from the source branch before writing `images/<destination>.versions.sh`.
+- If both source and destination image branches exist, the workflow checks out the destination branch and merges the source branch into it before pinning.
 - Controlled component repos are URLs matching `github.com[:/]MeticulousHome/`.
 - Controlled component defaults in `config.sh` use `nightly` branches at `HEAD`; external repos keep their upstream branches and pinned revisions.
 - `pin_version.yml` promotes component branches only for `nightly -> beta` and `beta -> stable`.
 - Direct `nightly -> stable` promotion is forbidden.
 - Branch promotion uses `pin-versions.sh --promote <source> <destination>` after `update-sources.sh --image <source>` checks out the source component refs.
-- During channel promotion, controlled component repo source commits are merged into the destination branch with `git merge --no-ff`; destination branches are pushed with normal fast-forward pushes, not force pushes.
+- During channel promotion, controlled component repo source commits are merged locally into the destination branch with `git merge --no-ff`.
+- Destination branches are pushed with normal fast-forward pushes only after all controlled repo merges and version pins succeed.
 - If the destination branch already contains the source commit, no merge commit is created and the current destination branch HEAD is pinned.
 - `images/<destination>.versions.sh` records `*_BRANCH=<destination>` plus exact `*_REV=<destination HEAD sha>` pins for controlled repos.
+- For `beta` and `stable`, existing `*_REV="HEAD"` entries in the destination versions file are preserved instead of being replaced with SHAs.
 - Merge conflicts fail the workflow and the destination versions file is not replaced.
-- Custom destination images are file-only pins. They write exact SHAs to `images/<custom>.versions.sh` and do not push or record custom component branches.
+- The final push phase spans multiple repositories, so a network or permission failure during that phase can still require manual recovery.
+- Custom destination images are file-only pins. They create or update `images/<custom>.versions.sh` and do not move component branches.
 
 ## Important Constraints
 
 - Remote build branches must include `.github/workflows/build-nightly-image.yml`, `.github/workflows/build-image-channel.yml`, `.github/workflows/build-all-components.yml`, and `.github/workflows/build-component.yml`.
-- If a custom image branch is added, add or update `images/<custom>.versions.sh` on that branch.
-- `GH_REPO_WORKFLOW` must be able to push tags to controlled component repos for build tagging to succeed.
+- If a custom image branch is added manually, add or update `images/<custom>.versions.sh` on that branch.
+- If a custom image branch is created by `pin_version.yml`, the workflow writes `images/<custom>.versions.sh` on the newly created branch and pushes that branch to `origin`.
+- `GH_REPO_WORKFLOW` or `GH_ORG_WORKFLOW` must be able to push tags to this repo and controlled component repos for build tagging to succeed.
