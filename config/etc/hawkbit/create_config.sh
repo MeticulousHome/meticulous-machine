@@ -75,20 +75,17 @@ sync_update_channel_to_image() {
   previous_image_id="$(cat "$image_state_file" 2>/dev/null || true)"
 
   current_channel="$(cat "$hawkbit_channel_file" 2>/dev/null || echo NONE)"
+  #log image not changed
+  
+  [ "$previous_image_id" = "$image_id" ] && return;
+
+  echo "image id has changed: ${previous_image_id} -> ${image_id}"
 
   if [ "$current_channel" != "$image_channel" ]; then
-    echo "Detected image change for Hawkbit channel sync"
-    echo "${current_channel} -> ${image_channel}, updating Hawkbit channel"
+    echo "Detected that new image comes from different Hawkbit channel"
+    echo "${current_channel} (current) -> ${image_channel} (image)"
+    echo "updating Hawkbit channel"
     echo "$image_channel" > "$hawkbit_channel_file"
-  else
-    echo "Current Hawkbit channel matches image build channel: ${current_channel}"
-  fi
-
-  #log image not changed
-  if [ "$previous_image_id" = "$image_id" ]; then
-    echo "image id has not changed: ${image_id}"
-  else
-    echo "image id has changed: ${previous_image_id} -> ${image_id}"
     mkdir -p "$(dirname "$image_state_file")"
     echo "$image_id" > "$image_state_file"
   fi
