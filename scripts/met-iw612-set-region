@@ -2,8 +2,9 @@
 set -euo pipefail
 
 firmware_dir="${MET_IW612_FIRMWARE_DIR:-/lib/firmware/nxp}"
-state_dir="${MET_IW612_STATE_DIR:-/meticulous-user}"
+state_dir="${MET_IW612_STATE_DIR:-/etc/meticulous}"
 state_file="${MET_IW612_STATE_FILE:-${state_dir}/iw612-region.conf}"
+legacy_state_file="${MET_IW612_LEGACY_STATE_FILE:-/meticulous-user/iw612-region.conf}"
 mod_para="${MET_IW612_MOD_PARA:-${firmware_dir}/var_wifi_mod_para.conf}"
 wifi_control="${MET_IW612_WIFI_CONTROL:-/etc/wifi/variscite-wifi}"
 
@@ -96,11 +97,22 @@ profile_for_input() {
 read_state_value() {
     local key="$1"
 
+    migrate_legacy_state
+
     if [ ! -r "${state_file}" ]; then
         return 0
     fi
 
     awk -F= -v key="${key}" '$1 == key { print $2 }' "${state_file}" | tail -n 1
+}
+
+migrate_legacy_state() {
+    if [ -r "${state_file}" ] || [ ! -r "${legacy_state_file}" ]; then
+        return 0
+    fi
+
+    mkdir -p "${state_dir}"
+    cp "${legacy_state_file}" "${state_file}"
 }
 
 validate_profile_files() {
