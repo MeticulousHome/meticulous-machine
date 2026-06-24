@@ -136,11 +136,13 @@ jobs:
 
       - name: Clone lab certification tools
         if: ${{ inputs.image == 'lab_certification' }}
-        uses: actions/checkout@v4
-        with:
-          repository: MeticulousHome/lab-certification-tools
-          token: ${{ secrets.GH_ORG_WORKFLOW }}
-          path: components/lab-certification-tools
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LAB_CERTIFICATION_TOOLS_DEPLOY_KEY }}" > ~/.ssh/lab_certification_tools_key
+          chmod 600 ~/.ssh/lab_certification_tools_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/lab_certification_tools_key -o IdentitiesOnly=yes" \
+            git clone --depth 1 git@github.com:MeticulousHome/lab-certification-tools.git components/lab-certification-tools
 
       - name: Download version-info artifact
         uses: actions/download-artifact@v4
