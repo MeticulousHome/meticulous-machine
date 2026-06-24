@@ -37,6 +37,29 @@ function copy_services() {
     done
 }
 
+function install_lab_certification_tools() {
+    if [ ! -f ./image-build-channel ]; then
+        return
+    fi
+
+    image_channel=$(tr -d '[:space:]' < ./image-build-channel)
+    if [ "${image_channel}" != "lab_certification" ]; then
+        return
+    fi
+
+    if [ ! -d "${LAB_CERTIFICATION_TOOLS_SRC_DIR}/sgs" ]; then
+        echo "Lab certification tools are required for ${image_channel}, but ${LAB_CERTIFICATION_TOOLS_SRC_DIR}/sgs was not found."
+        exit 1
+    fi
+
+    target_dir="${ROOTFS_DIR}/opt/meticulous-lab-tools"
+    mkdir -p "${target_dir}"
+    cp -Rv "${LAB_CERTIFICATION_TOOLS_SRC_DIR}/sgs" "${target_dir}/"
+    find "${target_dir}" -type d -exec chmod 0755 {} +
+    find "${target_dir}" -type f -exec chmod 0644 {} +
+    find "${target_dir}" -name "*.py" -exec chmod 0755 {} +
+}
+
 function b_copy_components() {
 
     echo "Copying components into existing rootfs"
@@ -113,6 +136,8 @@ function b_copy_components() {
         mkdir -p ${ROOTFS_DIR}/opt/meticulous-firmware
         cp -r $FIRMWARE_OUT_DIR/* ${ROOTFS_DIR}/opt/meticulous-firmware
     fi
+
+    install_lab_certification_tools
 
     chown root:root ${ROOTFS_DIR}/opt/meticulous*
 

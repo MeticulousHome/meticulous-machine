@@ -35,6 +35,8 @@ readonly ROOTFS_DIR="rootfs"
 readonly SERVICES_DIR="system-services"
 readonly RAUC_CONFIG_DIR="rauc-config"
 readonly MISC_DIR="misc"
+readonly LAB_CERTIFICATION_TOOLS_SRC_DIR="${COMPONENTS_DIR}/lab-certification-tools"
+readonly LAB_CERTIFICATION_TOOLS_GIT="git@github.com:MeticulousHome/lab-certification-tools.git"
 
 readonly RAUC_CERT="beta.rsa4096.cert.pem"
 
