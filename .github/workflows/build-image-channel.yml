@@ -142,7 +142,7 @@ jobs:
           chmod 600 ~/.ssh/lab_certification_tools_key
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           GIT_SSH_COMMAND="ssh -i ~/.ssh/lab_certification_tools_key -o IdentitiesOnly=yes" \
-            git clone --depth 1 git@github.com:MeticulousHome/lab-certification-tools.git components/lab-certification-tools
+            git clone --depth 1 ssh://git@github.com/MeticulousHome/lab-certification-tools.git components/lab-certification-tools
 
       - name: Download version-info artifact
         uses: actions/download-artifact@v4
