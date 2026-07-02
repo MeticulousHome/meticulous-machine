@@ -9,12 +9,24 @@ import os
 import attr
 import requests as r
 import json
+from urllib.parse import quote
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 MAX_PRODUCTION_IMAGES_ON_SERVER = 3
 MAX_TESTING_IMAGES_ON_SERVER = 2
+ROLLOUT_GROUP_CONDITIONS = {
+    "successCondition": {"condition": "THRESHOLD", "expression": "90"},
+    "successAction": {"action": "PAUSE", "expression": ""},
+    "errorCondition": {"condition": "THRESHOLD", "expression": "10"},
+    "errorAction": {"action": "PAUSE", "expression": ""},
+}
 
+INTERNAL_TESTING_TARGETS = [
+    "meticulousFamousLungo-332233",
+    "meticulousLayeredHoney-000000",
+    "meticulousReverencedCoffeeCanister-99900776",
+]
 
 class HawkbitError(Exception):
     pass
@@ -635,8 +647,131 @@ class HawkbitMgmtClient:
         rollouts = self.get("rollouts")
         return rollouts.get("content", [])
 
-    def get_targets_by_filter(self, filter_query):
-        return self.get(f"targets?q={filter_query}")
+    def get_targets_by_filter(self, filter_query, offset=None, limit=None):
+        query_params = [f"q={quote(filter_query, safe='')}"]
+        if offset is not None:
+            query_params.append(f"offset={offset}")
+        if limit is not None:
+            query_params.append(f"limit={limit}")
+        return self.get(f"targets?{'&'.join(query_params)}")
+
+    def get_all_targets_by_filter(self, filter_query, page_size=500):
+        targets = []
+        offset = 0
+
+        while True:
+            response = self.get_targets_by_filter(
+                filter_query, offset=offset, limit=page_size
+            )
+            page_targets = response.get("content", [])
+            targets.extend(page_targets)
+
+            total = response.get("total")
+            if total is not None and len(targets) >= total:
+                break
+            if len(page_targets) < page_size:
+                break
+
+            offset += page_size
+
+        return targets
+
+    @staticmethod
+    def _target_controller_id(target):
+        return target.get("controllerId") or target.get("id")
+
+    @staticmethod
+    def _normalize_controller_ids(controller_ids):
+        normalized_ids = []
+        seen_ids = set()
+
+        for controller_id in controller_ids:
+            controller_id = str(controller_id).strip()
+            if not controller_id or controller_id in seen_ids:
+                continue
+            normalized_ids.append(controller_id)
+            seen_ids.add(controller_id)
+
+        return normalized_ids
+
+    @staticmethod
+    def _controller_id_query(controller_ids):
+        normalized_ids = HawkbitMgmtClient._normalize_controller_ids(controller_ids)
+        for controller_id in normalized_ids:
+            if any(char in controller_id for char in [",", "(", ")", ";"]):
+                raise HawkbitError(
+                    f"Cannot build rollout group query for unsafe target id: {controller_id}"
+                )
+
+        if not normalized_ids:
+            return None
+
+        return f"CONTROLLERID=in=({','.join(normalized_ids)})"
+
+    @staticmethod
+    def _rollout_group(order, target_filter_query, target_percentage=100.0):
+        group_name = str(order)
+        group = {
+            "name": group_name,
+            "description": group_name,
+            "targetFilterQuery": target_filter_query,
+            "targetPercentage": target_percentage,
+        }
+        group.update(ROLLOUT_GROUP_CONDITIONS)
+        return group
+
+    def generate_rollout_groups(
+        self, channel, target_filter_query, manual_target_ids=None
+    ):
+        channel = (channel or "").lower()
+        manual_target_ids = self._normalize_controller_ids(manual_target_ids or [])
+        manual_target_set = set(manual_target_ids)
+
+        matching_targets = self.get_all_targets_by_filter(target_filter_query)
+        matching_target_ids = [
+            self._target_controller_id(target) for target in matching_targets
+        ]
+        matching_target_ids = self._normalize_controller_ids(
+            target_id for target_id in matching_target_ids if target_id is not None
+        )
+
+        remaining_target_ids = [
+            target_id
+            for target_id in matching_target_ids
+            if target_id not in manual_target_set
+        ]
+
+        remaining_target_count = len(remaining_target_ids)
+
+        groups = []
+        manual_group_query = self._controller_id_query(manual_target_ids)
+        if manual_group_query is not None:
+            groups.append(self._rollout_group(len(groups) + 1, manual_group_query))
+
+        cap_index = 0
+        while remaining_target_count > 0:
+            if channel == "nightly":
+                group_size = 100
+            elif cap_index == 0:
+                group_size = 10
+            elif cap_index == 1:
+                group_size = 50
+            elif cap_index == 2:
+                group_size = 100
+            else:
+                group_size = 200
+
+            target_percentage = min(100.0, group_size / remaining_target_count * 100)
+            groups.append(
+                self._rollout_group(
+                    len(groups) + 1, target_filter_query, target_percentage
+                )
+            )
+
+            remaining_target_count -= min(group_size, remaining_target_count)
+            cap_index += 1
+
+        return groups
 
     def update_target(self, target_id: str, target_name: str, controller_id: str):
         self.put(
@@ -648,18 +783,16 @@ class HawkbitMgmtClient:
             },
         )
 
-    def deleteAllActionsForChannel(self, target_filter_query):
-        channel = args.channel
-        targets = self.get_targets_by_filter(target_filter_query) or {"content": []}
-        print(
-            f"Targets on channel {target_filter_query}: {len(targets.get('content', []))}"
-        )
-        for target in targets.get("content", []):
+    def deleteAllActionsForChannel(
+        self, target_filter_query, channel=None, dry_run=False
+    ):
+        channel = channel or args.channel
+        targets = self.get_all_targets_by_filter(target_filter_query)
+        print(f"Targets on channel {target_filter_query}: {len(targets)}")
+        for target in targets:
             print(f"{target.get('controllerId')} - {target.get('updateStatus')}")
 
-        if isinstance(targets, dict):
-            targets = targets.get("content", [])
-        elif not isinstance(targets, list):
+        if not isinstance(targets, list):
             print(f"Unexpected targets type: {type(targets)}")
             targets = []
 
@@ -683,10 +816,17 @@ class HawkbitMgmtClient:
                     active_actions = self.get_active_actions(target_id)
                     for action in active_actions:
                         try:
-                            print(
-                                f"Cancelling active action {action['id']} for target {target_name} (channel: {target_channel})"
-                            )
-                            self.cancel_action(action["id"], target_id, force=True)
+                            if dry_run:
+                                print(
+                                    f"[DRY RUN] Would cancel active action {action['id']} for target {target_name} (channel: {target_channel})"
+                                )
+                            else:
+                                print(
+                                    f"Cancelling active action {action['id']} for target {target_name} (channel: {target_channel})"
+                                )
+                                self.cancel_action(
+                                    action["id"], target_id, force=True
+                                )
                         except HawkbitError as e:
                             print(f"Error cancelling action {action['id']}: {str(e)}")
                 else:
@@ -699,8 +839,17 @@ class HawkbitMgmtClient:
         if not targets:
             print(f"No targets found matching the filter: {target_filter_query}")
 
-    def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
+    def createOrUpdateRollout(
+        self,
+        name,
+        dist_id,
+        target_filter_query,
+        autostart=True,
+        groups=None,
+        dry_run=False,
+    ):
 
+        has_static_groups = bool(groups)
         existing_rollouts = self.getAllRollouts()
         existing_rollout_id = None
         for rollout in existing_rollouts:
@@ -708,14 +857,24 @@ class HawkbitMgmtClient:
                 rollout.get("targetFilterQuery") == target_filter_query
                 and rollout.get("name") != name
             ):
-                print(
-                    f"Deleting existing rollout with identical query but different name: {rollout['name']}"
-                )
-                self.deleteRollout(rollout["id"])
+                if dry_run:
+                    print(
+                        f"[DRY RUN] Would delete existing rollout with identical query but different name: {rollout['name']} (id={rollout['id']})"
+                    )
+                else:
+                    print(
+                        f"Deleting existing rollout with identical query but different name: {rollout['name']}"
+                    )
+                    self.deleteRollout(rollout["id"])
             if rollout.get("name") == name:
-                print(
-                    f"Rollout with name '{name}' already exists. Using existing rollout."
-                )
+                if has_static_groups:
+                    print(
+                        f"Rollout with name '{name}' already exists. It will be recreated with static groups."
+                    )
+                else:
+                    print(
+                        f"Rollout with name '{name}' already exists. Using existing rollout."
+                    )
                 existing_rollout_id = rollout["id"]
 
         rollout_data = {
@@ -725,17 +884,53 @@ class HawkbitMgmtClient:
             "type": "forced",
             "weight": 0,
             "confirmationRequired": False,
-            "amountGroups": 1,
-            "dynamic": True,
         }
+        if has_static_groups:
+            if not isinstance(groups, list) or not all(
+                isinstance(group, dict) for group in groups
+            ):
+                raise HawkbitError("groups must be a list of hawkBit group dictionaries")
+            rollout_data["groups"] = groups
+        else:
+            rollout_data["amountGroups"] = 1
+            rollout_data["dynamic"] = True
+
         if autostart:
             rollout_data["startAt"] = str(int(time.time()))
+
+        if dry_run:
+            if existing_rollout_id is not None:
+                if has_static_groups:
+                    print(
+                        f"[DRY RUN] Would delete existing rollout before recreating with static groups: {existing_rollout_id} - {name}"
+                    )
+                    action = "delete-and-create"
+                else:
+                    print(
+                        f"[DRY RUN] Would update existing rollout: {existing_rollout_id} - {name}"
+                    )
+                    action = "update"
+            else:
+                print(f"[DRY RUN] Would create new rollout: {name}")
+                action = "create"
+
+            print("[DRY RUN] Rollout payload:")
+            print(json.dumps(rollout_data, indent=2))
+            return {"dryRun": True, "action": action, "payload": rollout_data}
+
         try:
             if existing_rollout_id is not None:
-                print(f"Updating existing rollout: {existing_rollout_id} - {name}")
-                return self.put(f"rollouts/{existing_rollout_id}", rollout_data).json()
-            else:
-                print(f"Creating new rollout: {name}")
+                if has_static_groups:
+                    print(
+                        f"Deleting existing rollout before recreating with static groups: {existing_rollout_id} - {name}"
+                    )
+                    self.deleteRollout(existing_rollout_id)
+                else:
+                    print(f"Updating existing rollout: {existing_rollout_id} - {name}")
+                    return self.put(
+                        f"rollouts/{existing_rollout_id}", rollout_data
+                    ).json()
+            print(f"Creating new rollout: {name}")
             return self.post("rollouts", rollout_data)
         except HawkbitError as e:
             print(f"Error creating rollout: {str(e)}")
@@ -939,12 +1134,45 @@ def ensure_filter(
     name: str,
     dist_id: str = "",
     action_type: str = "forced",
+    dry_run: bool = False,
 ):
     # Creating a target filter
     filters = client.get_all_targetfilters().get("content") or []
 
     requested_filter = [f for f in filters if f["query"] == query]
     update_filters = [f for f in filters if f["name"] == name]
+    if dry_run:
+        if len(update_filters) > 0 and len(requested_filter) == 0:
+            filter_to_update = update_filters[0]
+            filter_id = filter_to_update["id"]
+            print(
+                f"[DRY RUN] Would update target filter '{name}' (id={filter_id})"
+            )
+            print(f"[DRY RUN]   Old query: {filter_to_update.get('query')}")
+            print(f"[DRY RUN]   New query: {query}")
+            filter = {**filter_to_update, "query": query}
+        elif len(requested_filter) > 0:
+            filter = requested_filter[0]
+            print(
+                f"[DRY RUN] Target filter already exists: {name} (id={filter['id']})"
+            )
+            if filter.get("name") != name:
+                print(
+                    f"[DRY RUN]   Existing filter name differs: {filter.get('name')}"
+                )
+        else:
+            filter = {"id": "<dry-run-target-filter-id>", "name": name, "query": query}
+            print(f"[DRY RUN] Would create target filter: {name}")
+            print(f"[DRY RUN]   Query: {query}")
+
+        if dist_id != "":
+            print(
+                f"[DRY RUN] Would enable auto-assignment on filter '{name}' to distribution {dist_id} with action type {action_type.lower()}"
+            )
+        else:
+            print(f"[DRY RUN] Would remove auto-assignment from filter '{name}'")
+        return filter
+
     if len(update_filters) > 0 and len(requested_filter) == 0:
         print(f"Filter name '{name}' already exists, updating the query")
         filter_to_update = update_filters[0]
@@ -957,8 +1185,6 @@ def ensure_filter(
         print(f"Creating target filter: {name}")
         filter = client.add_targetfilter(query, name)
         print(f"Created new target filter: {name}")
-        if dist_id != "":
-            return filter
 
     filter_id = filter["id"]
     if dist_id != "":
@@ -987,6 +1213,66 @@ def get_max_number_of_historic_distributions(distribution_name: str) -> int:
     )
 
 
+def target_display_name(target):
+    controller_id = target.get("controllerId") or target.get("id") or "Unknown ID"
+    name = target.get("name")
+    if name and name != controller_id:
+        return f"{name} ({controller_id})"
+    return controller_id
+
+
+def print_dry_run_rollout_group_summary(client, groups):
+    print("\n[DRY RUN] Rollout groups:")
+
+    selected_target_ids = set()
+    for group in groups:
+        group_targets = client.get_all_targets_by_filter(group["targetFilterQuery"])
+        eligible_targets = []
+        for target in group_targets:
+            target_id = client._target_controller_id(target)
+            if target_id and target_id not in selected_target_ids:
+                eligible_targets.append(target)
+
+        target_percentage = group.get("targetPercentage", 100.0)
+        expected_count = int(round(len(eligible_targets) * target_percentage / 100))
+        expected_count = min(expected_count, len(eligible_targets))
+        expected_targets = eligible_targets[:expected_count]
+
+        for target in expected_targets:
+            target_id = client._target_controller_id(target)
+            if target_id:
+                selected_target_ids.add(target_id)
+
+        print(
+            f"[DRY RUN]   Group {group['name']}: {group['description']} - targetPercentage={target_percentage:.4f}%"
+        )
+        print(
+            f"[DRY RUN]     Filter: {group['targetFilterQuery']}"
+        )
+        print(
+            f"[DRY RUN]     Expected size: {expected_count} of {len(eligible_targets)} currently eligible targets"
+        )
+        print("[DRY RUN]     Expected targets:")
+        if expected_targets:
+            for target in expected_targets:
+                print(f"[DRY RUN]       - {target_display_name(target)}")
+        else:
+            print("[DRY RUN]       - none")
+
+
+def print_dry_run_distribution_plan(
+    distribution_name, software_module_name, version, bundle
+):
+    print("\n[DRY RUN] Distribution upload plan:")
+    print(
+        f"[DRY RUN]   Would create or reuse OS software module '{software_module_name}' version '{version}'"
+    )
+    print(f"[DRY RUN]   Would upload artifact: {os.path.basename(bundle)}")
+    print(
+        f"[DRY RUN]   Would create distribution set '{distribution_name}' version '{version}'"
+    )
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -1002,6 +1288,11 @@ if __name__ == "__main__":
     parser.add_argument("version", help="Distribution version")
     parser.add_argument("channel", help="Target channel")
     parser.add_argument("bootmode", help="Traget boot mode")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned Hawkbit changes without creating, updating, deleting, uploading, assigning, or cancelling anything.",
+    )
 
     args = parser.parse_args()
 
@@ -1016,30 +1307,51 @@ if __name__ == "__main__":
         version=args.version,
     )
 
-    print("Pushing new distribution set")
-    (dist_id, module_id, artifact_id) = client.push_new_distribution_set_with_os(
-        distribution_name, software_module_name, os_bundle_name=args.bundle
-    )
-    if dist_id is None:
-        print(
-            f"failed to push new OS distribution '{distribution_name}' cannot start rollout. Finished!"
+    if args.dry_run:
+        print("[DRY RUN] No changes will be sent to Hawkbit.")
+        print_dry_run_distribution_plan(
+            distribution_name, software_module_name, args.version, args.bundle
         )
-        exit(1)
+        dist_id = "<dry-run-distribution-set-id>"
+        module_id = "<dry-run-software-module-id>"
+        artifact_id = "<dry-run-artifact-id>"
+    else:
+        print("Pushing new distribution set")
+        (dist_id, module_id, artifact_id) = client.push_new_distribution_set_with_os(
+            distribution_name, software_module_name, os_bundle_name=args.bundle
+        )
+        if dist_id is None:
+            print(
+                f"failed to push new OS distribution '{distribution_name}' cannot start rollout. Finished!"
+            )
+            exit(1)
 
     sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
     # If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
     historics_to_keep = get_max_number_of_historic_distributions(distribution_name)
     print(f"\nRemoving extra distributions, keeping last {historics_to_keep}")
     distribution_ids_to_purge = []
+    if sorted_distributionsets is None:
+        sorted_distributionsets = []
+
     for index, dist in enumerate(sorted_distributionsets):
         if index >= historics_to_keep:
-            print(
-                f"Marking distributionset {distribution_name}:{dist['version']} to be purged"
-            )
+            if args.dry_run:
+                print(
+                    f"[DRY RUN] Would purge distributionset {distribution_name}:{dist['version']} (id={dist['id']})"
+                )
+            else:
+                print(
+                    f"Marking distributionset {distribution_name}:{dist['version']} to be purged"
+                )
             distribution_ids_to_purge.append(dist["id"])
 
     try:
-        if client.purge_distributionsets(distribution_ids_to_purge):
+        if args.dry_run:
+            print(
+                f"[DRY RUN] Distribution sets that would be purged: {distribution_ids_to_purge or 'none'}"
+            )
+        elif client.purge_distributionsets(distribution_ids_to_purge):
             print("Distribution sets successfuly purged")
     except Exception as e:
         print(f"error purging distribution sets: {e}")
@@ -1078,29 +1390,45 @@ if __name__ == "__main__":
         and rollout.get("name") != rollout_name
     ]
 
-    client.deleteAllActionsForChannel(current_channel_query)
+    client.deleteAllActionsForChannel(
+        current_channel_query, channel=args.channel, dry_run=args.dry_run
+    )
 
     channel_filter = ensure_filter(
         client,
         current_channel_query,
         f"Downloads from {args.channel} channel, boots from {args.bootmode}",
+        dry_run=args.dry_run,
     )
 
     # Create or replace the rollout
     target_filter_query = current_channel_query
     print(f"\nCreating or replacing rollout: {rollout_name} for {target_filter_query}")
 
+    groups = client.generate_rollout_groups(
+        args.channel,
+        target_filter_query,
+        manual_target_ids=INTERNAL_TESTING_TARGETS,
+    )
+    if args.dry_run:
+        print_dry_run_rollout_group_summary(client, groups)
+
     rollout = client.createOrUpdateRollout(
         name=rollout_name,
         dist_id=dist_id,
         target_filter_query=target_filter_query,
         autostart=True,
+        groups=groups,
+        dry_run=args.dry_run,
     )
 
     if rollout:
         print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
-        print("Waiting 10 seconds for Hawkbit to process the rollout...")
-        time.sleep(10)
+        if args.dry_run:
+            print("[DRY RUN] Would wait 10 seconds for Hawkbit to process the rollout.")
+        else:
+            print("Waiting 10 seconds for Hawkbit to process the rollout...")
+            time.sleep(10)
     else:
         print("No rollout was created. Relying on filter query instead")
 
@@ -1111,6 +1439,7 @@ if __name__ == "__main__":
         distribution_channel_query,
         f"Downloads from {args.channel} channel, boots from {args.bootmode}, needs the latest version assigned",
         dist_id=dist_id,
+        dry_run=args.dry_run,
     )
 
     print("\nSetting up debug query for machines which might have gone wrong")
@@ -1121,6 +1450,7 @@ if __name__ == "__main__":
         client,
         distribution_channel_query,
         f"Downloads from {args.channel} channel, but has not installed the latest version",
+        dry_run=args.dry_run,
     )
 
     print("\nSetting up failures query for machines which might have gone wrong")
@@ -1129,6 +1459,7 @@ if __name__ == "__main__":
         client,
         distribution_channel_query,
         f"Failures in {args.channel}",
+        dry_run=args.dry_run,
     )
 
     print("\nSetting up success query")
@@ -1139,6 +1470,7 @@ if __name__ == "__main__":
         client,
         distribution_channel_query,
         f"In Sync Machines in {args.channel}",
+        dry_run=args.dry_run,
     )
 
     print("\nSetting up in progress query")
@@ -1149,6 +1481,7 @@ if __name__ == "__main__":
         client,
         distribution_channel_query,
         f"In Progress Machines in {args.channel}",
+        dry_run=args.dry_run,
     )
 
     print("\nfinished!")
