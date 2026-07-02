@@ -9,7 +9,6 @@ import os
 import attr
 import requests as r
 import json
-import random
 from urllib.parse import quote
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
@@ -705,23 +704,19 @@ class HawkbitMgmtClient:
         return f"CONTROLLERID=in=({','.join(normalized_ids)})"
 
     @staticmethod
-    def _rollout_group(order, controller_ids):
-        target_filter_query = HawkbitMgmtClient._controller_id_query(controller_ids)
-        if target_filter_query is None:
-            return None
-
+    def _rollout_group(order, target_filter_query, target_percentage=100.0):
         group_name = str(order)
         group = {
             "name": group_name,
             "description": group_name,
             "targetFilterQuery": target_filter_query,
-            "targetPercentage": 100.0,
+            "targetPercentage": target_percentage,
         }
         group.update(ROLLOUT_GROUP_CONDITIONS)
         return group
 
     def generate_rollout_groups(
-        self, channel, target_filter_query, manual_target_ids=None, random_seed=None
+        self, channel, target_filter_query, manual_target_ids=None
     ):
         channel = (channel or "").lower()
         manual_target_ids = self._normalize_controller_ids(manual_target_ids or [])
@@ -741,17 +736,15 @@ class HawkbitMgmtClient:
             if target_id not in manual_target_set
         ]
 
-        if channel != "nightly":
-            rng = random.Random(random_seed)
-            rng.shuffle(remaining_target_ids)
+        remaining_target_count = len(remaining_target_ids)
 
         groups = []
-        manual_group = self._rollout_group(len(groups) + 1, manual_target_ids)
-        if manual_group is not None:
-            groups.append(manual_group)
+        manual_group_query = self._controller_id_query(manual_target_ids)
+        if manual_group_query is not None:
+            groups.append(self._rollout_group(len(groups) + 1, manual_group_query))
 
         cap_index = 0
-        while remaining_target_ids:
+        while remaining_target_count > 0:
             if channel == "nightly":
                 group_size = 100
             elif cap_index == 0:
@@ -763,11 +756,14 @@ class HawkbitMgmtClient:
             else:
                 group_size = 200
 
-            group_target_ids = remaining_target_ids[:group_size]
-            remaining_target_ids = remaining_target_ids[group_size:]
-            group = self._rollout_group(len(groups) + 1, group_target_ids)
-            if group is not None:
-                groups.append(group)
+            target_percentage = min(100.0, group_size / remaining_target_count * 100)
+            groups.append(
+                self._rollout_group(
+                    len(groups) + 1, target_filter_query, target_percentage
+                )
+            )
+
+            remaining_target_count -= min(group_size, remaining_target_count)
             cap_index += 1
 
         return groups
