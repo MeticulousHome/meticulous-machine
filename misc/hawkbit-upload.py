@@ -9,11 +9,19 @@ import os
 import attr
 import requests as r
 import json
+import random
+from urllib.parse import quote
 
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 MAX_PRODUCTION_IMAGES_ON_SERVER = 3
 MAX_TESTING_IMAGES_ON_SERVER = 2
+ROLLOUT_GROUP_CONDITIONS = {
+    "successCondition": {"condition": "THRESHOLD", "expression": "90"},
+    "successAction": {"action": "PAUSE", "expression": ""},
+    "errorCondition": {"condition": "THRESHOLD", "expression": "10"},
+    "errorAction": {"action": "PAUSE", "expression": ""},
+}
 
 
 class HawkbitError(Exception):
@@ -635,8 +643,134 @@ class HawkbitMgmtClient:
         rollouts = self.get("rollouts")
         return rollouts.get("content", [])
 
-    def get_targets_by_filter(self, filter_query):
-        return self.get(f"targets?q={filter_query}")
+    def get_targets_by_filter(self, filter_query, offset=None, limit=None):
+        query_params = [f"q={quote(filter_query, safe='')}"]
+        if offset is not None:
+            query_params.append(f"offset={offset}")
+        if limit is not None:
+            query_params.append(f"limit={limit}")
+        return self.get(f"targets?{'&'.join(query_params)}")
+
+    def get_all_targets_by_filter(self, filter_query, page_size=500):
+        targets = []
+        offset = 0
+
+        while True:
+            response = self.get_targets_by_filter(
+                filter_query, offset=offset, limit=page_size
+            )
+            page_targets = response.get("content", [])
+            targets.extend(page_targets)
+
+            total = response.get("total")
+            if total is not None and len(targets) >= total:
+                break
+            if len(page_targets) < page_size:
+                break
+
+            offset += page_size
+
+        return targets
+
+    @staticmethod
+    def _target_controller_id(target):
+        return target.get("controllerId") or target.get("id")
+
+    @staticmethod
+    def _normalize_controller_ids(controller_ids):
+        normalized_ids = []
+        seen_ids = set()
+
+        for controller_id in controller_ids:
+            controller_id = str(controller_id).strip()
+            if not controller_id or controller_id in seen_ids:
+                continue
+            normalized_ids.append(controller_id)
+            seen_ids.add(controller_id)
+
+        return normalized_ids
+
+    @staticmethod
+    def _controller_id_query(controller_ids):
+        normalized_ids = HawkbitMgmtClient._normalize_controller_ids(controller_ids)
+        for controller_id in normalized_ids:
+            if any(char in controller_id for char in [",", "(", ")", ";"]):
+                raise HawkbitError(
+                    f"Cannot build rollout group query for unsafe target id: {controller_id}"
+                )
+
+        if not normalized_ids:
+            return None
+
+        return f"CONTROLLERID=in=({','.join(normalized_ids)})"
+
+    @staticmethod
+    def _rollout_group(order, controller_ids):
+        target_filter_query = HawkbitMgmtClient._controller_id_query(controller_ids)
+        if target_filter_query is None:
+            return None
+
+        group_name = str(order)
+        group = {
+            "name": group_name,
+            "description": group_name,
+            "targetFilterQuery": target_filter_query,
+            "targetPercentage": 100.0,
+        }
+        group.update(ROLLOUT_GROUP_CONDITIONS)
+        return group
+
+    def generate_rollout_groups(
+        self, channel, target_filter_query, manual_target_ids=None, random_seed=None
+    ):
+        channel = (channel or "").lower()
+        manual_target_ids = self._normalize_controller_ids(manual_target_ids or [])
+        manual_target_set = set(manual_target_ids)
+
+        matching_targets = self.get_all_targets_by_filter(target_filter_query)
+        matching_target_ids = [
+            self._target_controller_id(target) for target in matching_targets
+        ]
+        matching_target_ids = self._normalize_controller_ids(
+            target_id for target_id in matching_target_ids if target_id is not None
+        )
+
+        remaining_target_ids = [
+            target_id
+            for target_id in matching_target_ids
+            if target_id not in manual_target_set
+        ]
+
+        if channel != "nightly":
+            rng = random.Random(random_seed)
+            rng.shuffle(remaining_target_ids)
+
+        groups = []
+        manual_group = self._rollout_group(len(groups) + 1, manual_target_ids)
+        if manual_group is not None:
+            groups.append(manual_group)
+
+        cap_index = 0
+        while remaining_target_ids:
+            if channel == "nightly":
+                group_size = 100
+            elif cap_index == 0:
+                group_size = 10
+            elif cap_index == 1:
+                group_size = 50
+            elif cap_index == 2:
+                group_size = 100
+            else:
+                group_size = 200
+
+            group_target_ids = remaining_target_ids[:group_size]
+            remaining_target_ids = remaining_target_ids[group_size:]
+            group = self._rollout_group(len(groups) + 1, group_target_ids)
+            if group is not None:
+                groups.append(group)
+            cap_index += 1
+
+        return groups
 
     def update_target(self, target_id: str, target_name: str, controller_id: str):
         self.put(
