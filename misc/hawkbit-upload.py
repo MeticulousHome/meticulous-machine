@@ -699,8 +699,11 @@ class HawkbitMgmtClient:
         if not targets:
             print(f"No targets found matching the filter: {target_filter_query}")
 
-    def createOrUpdateRollout(self, name, dist_id, target_filter_query, autostart=True):
+    def createOrUpdateRollout(
+        self, name, dist_id, target_filter_query, autostart=True, groups=None
+    ):
 
+        has_static_groups = bool(groups)
         existing_rollouts = self.getAllRollouts()
         existing_rollout_id = None
         for rollout in existing_rollouts:
@@ -713,9 +716,14 @@ class HawkbitMgmtClient:
                 )
                 self.deleteRollout(rollout["id"])
             if rollout.get("name") == name:
-                print(
-                    f"Rollout with name '{name}' already exists. Using existing rollout."
-                )
+                if has_static_groups:
+                    print(
+                        f"Rollout with name '{name}' already exists. It will be recreated with static groups."
+                    )
+                else:
+                    print(
+                        f"Rollout with name '{name}' already exists. Using existing rollout."
+                    )
                 existing_rollout_id = rollout["id"]
 
         rollout_data = {
@@ -725,17 +733,32 @@ class HawkbitMgmtClient:
             "type": "forced",
             "weight": 0,
             "confirmationRequired": False,
-            "amountGroups": 1,
-            "dynamic": True,
         }
+        if has_static_groups:
+            if not isinstance(groups, list) or not all(
+                isinstance(group, dict) for group in groups
+            ):
+                raise HawkbitError("groups must be a list of hawkBit group dictionaries")
+            rollout_data["groups"] = groups
+        else:
+            rollout_data["amountGroups"] = 1
+            rollout_data["dynamic"] = True
+
         if autostart:
             rollout_data["startAt"] = str(int(time.time()))
         try:
             if existing_rollout_id is not None:
-                print(f"Updating existing rollout: {existing_rollout_id} - {name}")
-                return self.put(f"rollouts/{existing_rollout_id}", rollout_data).json()
-            else:
-                print(f"Creating new rollout: {name}")
+                if has_static_groups:
+                    print(
+                        f"Deleting existing rollout before recreating with static groups: {existing_rollout_id} - {name}"
+                    )
+                    self.deleteRollout(existing_rollout_id)
+                else:
+                    print(f"Updating existing rollout: {existing_rollout_id} - {name}")
+                    return self.put(
+                        f"rollouts/{existing_rollout_id}", rollout_data
+                    ).json()
+            print(f"Creating new rollout: {name}")
             return self.post("rollouts", rollout_data)
         except HawkbitError as e:
             print(f"Error creating rollout: {str(e)}")
