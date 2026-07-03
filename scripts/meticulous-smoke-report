@@ -2,6 +2,7 @@
 import argparse
 import configparser
 import json
+import os
 import subprocess
 import sys
 import time
@@ -14,9 +15,18 @@ from pathlib import Path
 HAWKBIT_CONFIG = Path("/etc/hawkbit/config.conf")
 HAWKBIT_CONFIG_GENERATOR = Path("/etc/hawkbit/create_config.sh")
 BACKEND_URL = "http://127.0.0.1:8080/api/v1/smoke-validation"
+MACHINE_INFO_URL = "http://127.0.0.1:8080/api/v1/machine"
+MACHINE_CONFIG_FILE = Path("/meticulous-user/config/config.yml")
+HOSTNAME_FILE = Path("/etc/hostname")
 DIAL_READY_MARKER = Path("/run/meticulous-dial-ready")
 DIAL_HOME_READY_MARKER = Path("/run/meticulous-dial-home-ready")
 VERSION_FILE = Path("/opt/image-build-version")
+SENTRY_DIAL_BOOT_FAILURE_MARKER = Path("/run/meticulous-smoke-dial-sentry-reported")
+DEFAULT_DIAL_SENTRY_DSN = (
+    "https://8d8dbea1f60d65c201b7f40f8a5ee20c@"
+    "o4506723336060928.ingest.us.sentry.io/4511430165921792"
+)
+DIAL_CHECKS = ("dial_service", "dial_ready", "dial_home_ready")
 
 
 def now():
@@ -33,6 +43,10 @@ def read_text(path, default="unknown"):
 
 def bool_string(value):
     return "true" if value else "false"
+
+
+def string_value(value):
+    return "" if value is None else str(value)
 
 
 def run(command, timeout=10):
@@ -52,10 +66,47 @@ def systemd_active(unit):
     return run(["systemctl", "is-active", "--quiet", unit]).returncode == 0
 
 
-def read_backend_status(timeout=5):
-    request = urllib.request.Request(BACKEND_URL, headers={"Accept": "application/json"})
+def read_json_url(url, timeout=5):
+    request = urllib.request.Request(url, headers={"Accept": "application/json"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def read_backend_status(timeout=5):
+    return read_json_url(BACKEND_URL, timeout=timeout)
+
+
+def read_machine_info(timeout=5):
+    try:
+        info = read_json_url(MACHINE_INFO_URL, timeout=timeout)
+        info["identity_source"] = "backend_api"
+        return info
+    except Exception as api_exc:
+        try:
+            return read_machine_info_from_config(api_exc)
+        except Exception as config_exc:
+            return {
+                "serial": "",
+                "hostname": read_text(HOSTNAME_FILE, default=""),
+                "name": "",
+                "identity_source": "hostname_only",
+                "backend_error": str(api_exc),
+                "config_error": str(config_exc),
+            }
+
+
+def read_machine_info_from_config(api_error):
+    import yaml
+
+    config = yaml.safe_load(MACHINE_CONFIG_FILE.read_text(encoding="utf-8")) or {}
+    system = config.get("system") or {}
+    return {
+        "serial": string_value(system.get("serial")),
+        "hostname": read_text(HOSTNAME_FILE, default=""),
+        "name": string_value(system.get("machine_name")),
+        "identity_source": "config_file",
+        "backend_error": str(api_error),
+    }
 
 
 def boot_checks():
@@ -95,7 +146,7 @@ def make_boot_attributes(timeout):
     checks, backend_status = wait_for_boot_checks(timeout)
     failed = [name for name, passed in checks.items() if not passed]
 
-    return {
+    attributes = {
         "boot_smoke_status": "pass" if not failed else "fail",
         "boot_smoke_at": now(),
         "boot_smoke_version": read_text(VERSION_FILE),
@@ -109,6 +160,8 @@ def make_boot_attributes(timeout):
         "boot_smoke_machine_status": str(backend_status.get("machine_status", "")),
         "boot_smoke_firmware_version": str(backend_status.get("firmware_version", "")),
     }
+    report_dial_boot_failure_to_sentry(checks, backend_status, attributes)
+    return attributes
 
 
 def make_shot_attributes():
@@ -186,6 +239,75 @@ def publish_attributes(attributes):
 
     with urllib.request.urlopen(request, timeout=30, context=context) as response:
         response.read()
+
+
+def send_sentry_event(dsn, checks, backend_status, attributes, machine_info):
+    import sentry_sdk
+
+    sentry_sdk.init(dsn=dsn)
+
+    failed_dial_checks = [name for name in DIAL_CHECKS if checks.get(name) is False]
+    with sentry_sdk.new_scope() as scope:
+        scope.fingerprint = [
+            "meticulous-smoke-report",
+            "dial-boot-readiness-timeout",
+        ]
+        scope.set_tag("component", "meticulous-dial")
+        scope.set_tag("source", "meticulous-smoke-report")
+        scope.set_tag("image_version", attributes.get("boot_smoke_version", "unknown"))
+        scope.set_tag("machine_status", attributes.get("boot_smoke_machine_status", ""))
+        scope.set_tag(
+            "firmware_version", attributes.get("boot_smoke_firmware_version", "")
+        )
+        scope.set_tag("serial", string_value(machine_info.get("serial")))
+        scope.set_tag("hostname", string_value(machine_info.get("hostname")))
+        scope.set_tag("machine_name", string_value(machine_info.get("name")))
+        scope.set_tag(
+            "machine_identity_source",
+            string_value(machine_info.get("identity_source")),
+        )
+        scope.set_tag("dial_service_active", bool_string(checks.get("dial_service")))
+        scope.set_tag("dial_ready", bool_string(checks.get("dial_ready")))
+        scope.set_tag("dial_home_ready", bool_string(checks.get("dial_home_ready")))
+        scope.set_tag(
+            "backend_initialized", bool_string(checks.get("backend_initialized"))
+        )
+        scope.set_tag("esp32_responding", bool_string(checks.get("esp32_responding")))
+
+        scope.set_context("machine-info", machine_info)
+        scope.set_context("boot-smoke-attributes", attributes)
+        scope.set_context("boot-checks", checks)
+        scope.set_context("backend-status", backend_status)
+        scope.set_extra("failed_dial_checks", failed_dial_checks)
+
+        event_id = sentry_sdk.capture_message(
+            "Dial did not reach ready state during boot smoke validation",
+            level="error",
+        )
+    sentry_sdk.flush(timeout=10)
+    return str(event_id or "")
+
+
+def report_dial_boot_failure_to_sentry(checks, backend_status, attributes):
+    if not any(checks.get(name) is False for name in DIAL_CHECKS):
+        return
+    if SENTRY_DIAL_BOOT_FAILURE_MARKER.exists():
+        return
+    dsn = os.environ.get("METICULOUS_SMOKE_SENTRY_DSN", DEFAULT_DIAL_SENTRY_DSN).strip()
+    if not dsn:
+        return
+
+    try:
+        machine_info = read_machine_info()
+        event_id = send_sentry_event(
+            dsn, checks, backend_status, attributes, machine_info
+        )
+        SENTRY_DIAL_BOOT_FAILURE_MARKER.write_text(event_id, encoding="utf-8")
+    except Exception as exc:
+        print(
+            f"Failed to report dial boot smoke failure to Sentry: {exc}",
+            file=sys.stderr,
+        )
 
 
 def main():
