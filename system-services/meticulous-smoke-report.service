@@ -7,7 +7,7 @@ OnFailure=crash-reporter@.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/meticulous-smoke-report --boot
+ExecStart=/opt/meticulous-venv/bin/python3 /usr/local/bin/meticulous-smoke-report --boot
 TimeoutStartSec=4min
 User=root
 
