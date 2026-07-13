@@ -2,9 +2,11 @@
 Description=Meticulous Dial App
 After=network.target
 After=weston.service
+Requires=weston.service
 OnFailure=crash-reporter@.service
 
 [Service]
+ExecStartPre=/bin/bash -c 'for i in {1..50}; do test -S /run/user/0/wayland-0 && exit 0; sleep 0.1; done; echo "Timed out waiting for /run/user/0/wayland-0" >&2; exit 1'
 ExecStart=/usr/bin/meticulous-dial
 Restart=on-success
 User=root

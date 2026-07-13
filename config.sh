@@ -49,6 +49,11 @@ readonly MWIFIEX_GIT="https://github.com/nxp-imx/mwifiex.git"
 export   MWIFIEX_BRANCH="lf-6.12.3_1.0.0"
 export   MWIFIEX_REV="0396cfb38ad73a3d587cd0f8c139b47801e70891"
 
+readonly MLANUTL_SRC_DIR="${COMPONENTS_DIR}/linux-mwifiex-iw612"
+readonly MLANUTL_GIT="https://github.com/nxp-imx/mwifiex-iw612.git"
+export   MLANUTL_BRANCH="lf-5.15.71_2.2.0"
+export   MLANUTL_REV="4cc2c8831f27c8eceece6b66fc2de8b73360f520"
+
 readonly UBOOT_SRC_DIR=${COMPONENTS_DIR}/"bootloader/uboot"
 readonly UBOOT_GIT="git@github.com:MeticulousHome/uboot-variscite-fika.git"
 export   UBOOT_BRANCH="nightly"
@@ -148,7 +153,7 @@ readonly MOBILE_GIT="git@github.com:MeticulousHome/meticulous-mobile"
 export   MOBILE_BRANCH="nightly"
 export   MOBILE_REV="HEAD"
 
-readonly SYSTEM_PACKAGES="git parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs dnsmasq iptables-persistent gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-alsa gstreamer1.0-plugins-base-apps alembic systemd-timesyncd wireless-regdb fonts-noto-color-emoji e2fsprogs mmc-utils curl gpg"
+readonly SYSTEM_PACKAGES="git parted avahi-daemon gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 zstd nginx ssl-cert exfatprogs dnsmasq iptables-persistent gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-alsa gstreamer1.0-plugins-base-apps alembic systemd-timesyncd wireless-regdb iw fonts-noto-color-emoji e2fsprogs mmc-utils curl gpg iputils-ping"
 readonly DEVELOPMENT_PACKAGES="rsync bash-completion"
 readonly HOST_PACKAGES="\
     binfmt-support pv qemu-user-static debootstrap kpartx lvm2 dosfstools gpart\

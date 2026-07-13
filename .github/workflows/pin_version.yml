@@ -32,10 +32,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          # config.sh declares some components (crash-reporter, rauc, hawkbit, psplash)
+          # with plain https remotes; they clone anonymously but need the token to push.
+          git config --global --add url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "https://github.com/"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 

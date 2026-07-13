@@ -2,7 +2,7 @@ name: Build image
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Nightly at midnight
+    - cron: '0 0 * * *'  # Nightly at midnight UTC time
   workflow_dispatch:
     inputs:
       upload_emmc_to_hawkbit:
@@ -71,7 +71,7 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
       - name: Download version-info artifact
         uses: actions/download-artifact@v4
