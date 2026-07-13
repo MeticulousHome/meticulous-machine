@@ -79,7 +79,7 @@ jobs:
 
     - name: Set up Git authentication
       run: |
-        git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
+        git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }} --image ${{ inputs['image'] }}
