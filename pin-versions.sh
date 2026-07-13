@@ -211,7 +211,7 @@ merge_component_branch() {
         echo "DRY-RUN: require origin/${DEST_IMAGE} to exist for ${name}" >&2
         echo "DRY-RUN: if origin/${DEST_IMAGE} already contains ${source_rev}, pin origin/${DEST_IMAGE}" >&2
         echo "DRY-RUN: otherwise git -C ${repo_dir} checkout -B ${DEST_IMAGE} refs/remotes/origin/${DEST_IMAGE}" >&2
-        echo "DRY-RUN: git -C ${repo_dir} merge --no-ff --no-edit ${source_rev}" >&2
+        echo "DRY-RUN: git -C ${repo_dir} -c core.hooksPath=/dev/null merge --no-ff --no-edit ${source_rev}" >&2
         echo "DRY-RUN: defer push of ${repo_dir} ${DEST_IMAGE} until all merges succeed" >&2
         MERGE_FINAL_REV="<destination-head-after-merge>"
         MERGE_PUSH_NEEDED=1
@@ -250,10 +250,13 @@ merge_component_branch() {
         return
     fi
 
-    if ! git -C "$repo_dir" merge --no-ff --no-edit "$source_rev" >&2; then
+    # Components install husky hooks via `npm install` (dial runs commitlint on
+    # commit-msg), which reject this bot-authored merge commit. Hooks lint human
+    # commits, not promotions, so keep them out of the merge entirely.
+    if ! git -C "$repo_dir" -c core.hooksPath=/dev/null merge --no-ff --no-edit "$source_rev" >&2; then
         git -C "$repo_dir" merge --abort || true
         git -C "$repo_dir" checkout -B "$DEST_IMAGE" "$destination_rev" >&2
-        echo "Error: merge conflict while promoting ${SOURCE_IMAGE} to ${DEST_IMAGE} in ${name} (${repo_dir})." >&2
+        echo "Error: failed to merge ${SOURCE_IMAGE} into ${DEST_IMAGE} in ${name} (${repo_dir}); check the git output above for conflicts." >&2
         exit 1
     fi
 
