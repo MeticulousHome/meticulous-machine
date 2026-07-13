@@ -75,4 +75,4 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - Remote build branches must include `.github/workflows/build-nightly-image.yml`, `.github/workflows/build-image-channel.yml`, `.github/workflows/build-all-components.yml`, and `.github/workflows/build-component.yml`.
 - If a custom image branch is added manually, add or update `images/<custom>.versions.sh` on that branch.
 - If a custom image branch is created by `pin_version.yml`, the workflow writes `images/<custom>.versions.sh` on the newly created branch and pushes that branch to `origin`.
-- `GH_REPO_WORKFLOW` or `GH_ORG_WORKFLOW` must be able to push tags to this repo and controlled component repos for build tagging to succeed.
+- `GH_ORG_WORKFLOW` must be able to push tags to this repo and controlled component repos for build tagging to succeed.

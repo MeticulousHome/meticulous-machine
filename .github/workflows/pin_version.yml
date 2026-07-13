@@ -37,7 +37,7 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
