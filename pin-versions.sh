@@ -205,6 +205,7 @@ merge_component_branch() {
     MERGE_PUSH_NEEDED=0
 
     if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "DRY-RUN: git -C ${repo_dir} fetch --unshallow origin (if shallow)" >&2
         echo "DRY-RUN: git -C ${repo_dir} fetch origin refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2
         echo "DRY-RUN: git -C ${repo_dir} fetch origin refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2
         echo "DRY-RUN: require origin/${DEST_IMAGE} to exist for ${name}" >&2
@@ -215,6 +216,12 @@ merge_component_branch() {
         MERGE_FINAL_REV="<destination-head-after-merge>"
         MERGE_PUSH_NEEDED=1
         return
+    fi
+
+    # Components are cloned shallow (see update-sources.sh); a plain fetch keeps
+    # that boundary, leaving the branches without a common ancestor to merge on.
+    if [[ "$(git -C "$repo_dir" rev-parse --is-shallow-repository)" == "true" ]]; then
+        git -C "$repo_dir" fetch --unshallow origin >&2 || true
     fi
 
     if ! git -C "$repo_dir" fetch origin "refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2; then
