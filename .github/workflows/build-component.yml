@@ -92,7 +92,13 @@ jobs:
             HASH="$(git -C components/linux rev-parse HEAD)-$(git -C components/linux-mwifiex rev-parse HEAD)"
             ;;
           debian)
-            HASH="$(git -C components/debian-base rev-parse HEAD)"
+            TRIXIE_VERSION="$(curl -fsSL --max-time 30 https://deb.debian.org/debian/dists/trixie/InRelease | awk '/^Version:/{print $2; exit}')"
+            if [ -z "${TRIXIE_VERSION}" ]; then
+              # If the archive is unreachable, fall back to a monthly bucket: worst
+              # case one spurious rebuild, never a silently stale key.
+              TRIXIE_VERSION="unknown-$(date +%Y%m)"
+            fi
+            HASH="$(git -C components/debian-base rev-parse HEAD)-trixie${TRIXIE_VERSION}"
             ;;
           bootloader)
             HASH="$(git -C components/bootloader/uboot rev-parse HEAD)-$(git -C components/bootloader/imx-atf rev-parse HEAD)-$(git -C components/bootloader/imx-mkimage rev-parse HEAD)"
