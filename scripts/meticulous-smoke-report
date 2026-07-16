@@ -243,8 +243,26 @@ def publish_attributes(attributes):
 
 def send_sentry_event(dsn, checks, backend_status, attributes, machine_info):
     import sentry_sdk
+    SHSentryClientDSN="https://7d1372b7d47d3aec5a35a02da09dcd2f@sentry.meticulousespresso.com/8"
 
-    sentry_sdk.init(dsn=dsn)
+    eventIDs : dict[str, str] = {}
+
+    SHSentryClient = sentry_sdk.Client(
+        dsn=SHSentryClientDSN,
+        debug=True
+    )
+
+    def before_send(event, hint):
+        if SHSentryClient is not None:
+            eventID = SHSentryClient.capture_event(event=event)
+            eventIDs['self_hosted_sentry'] = eventID
+        return event
+
+    sentry_sdk.init(
+        dsn=dsn,
+        debug=True,
+        before_send=before_send,
+    )
 
     failed_dial_checks = [name for name in DIAL_CHECKS if checks.get(name) is False]
     with sentry_sdk.new_scope() as scope:
@@ -280,12 +298,16 @@ def send_sentry_event(dsn, checks, backend_status, attributes, machine_info):
         scope.set_context("backend-status", backend_status)
         scope.set_extra("failed_dial_checks", failed_dial_checks)
 
-        event_id = sentry_sdk.capture_message(
+        eventIDs['sentry'] = sentry_sdk.capture_message(
             "Dial did not reach ready state during boot smoke validation",
             level="error",
         )
+
+        for remote, eventID in eventIDs.items():
+            print(f"Reported dial boot smoke failure to ({remote}) with eventID: {eventID}")
+
     sentry_sdk.flush(timeout=10)
-    return str(event_id or "")
+    return eventIDs
 
 
 def report_dial_boot_failure_to_sentry(checks, backend_status, attributes):
@@ -299,10 +321,11 @@ def report_dial_boot_failure_to_sentry(checks, backend_status, attributes):
 
     try:
         machine_info = read_machine_info()
-        event_id = send_sentry_event(
+        event_ids = send_sentry_event(
             dsn, checks, backend_status, attributes, machine_info
         )
-        SENTRY_DIAL_BOOT_FAILURE_MARKER.write_text(event_id, encoding="utf-8")
+        str_event_ids = str("\n".join([f"{k}: {str(v)}" if v is not None else None for k, v in event_ids.items()]))
+        SENTRY_DIAL_BOOT_FAILURE_MARKER.write_text(str_event_ids, encoding="utf-8")
     except Exception as exc:
         print(
             f"Failed to report dial boot smoke failure to Sentry: {exc}",
