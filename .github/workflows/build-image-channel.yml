@@ -97,7 +97,7 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
       - name: Checkout all component sources
         run: |
@@ -132,7 +132,7 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
       - name: Download version-info artifact
         uses: actions/download-artifact@v4
@@ -278,13 +278,13 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
 
       - name: Clone private repository
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/rauc-secrets
-          token: ${{ secrets.GH_REPO_WORKFLOW }}
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
           path: components/rauc-secrets
 
       - name: Download rootfs artifact
