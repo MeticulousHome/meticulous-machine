@@ -59,11 +59,6 @@ function b_copy_components() {
     echo "Installing services"
     copy_services
 
-    echo "Enable fluent-bit for log forwarding"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "curl https://raw.githubusercontent.com/fluent/fluent-bit/master/install.sh | sh"
-    systemd-nspawn -D ${ROOTFS_DIR} bash -c "systemctl enable fluent-bit"
-    mkdir -p ${ROOTFS_DIR}/var/lib/fluent-bit
-
     # Install Crash Reporter
     echo "Installing Crash reporter"
     cp -r ${CRASH_REPORTER_SRC_DIR}/target/aarch64-unknown-linux-gnu/release/crash-reporter ${ROOTFS_DIR}/opt/meticulous-crash-reporter
