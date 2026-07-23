@@ -28,6 +28,7 @@
   som                       = __SOM__
   installed_version         = __INSTALLED_VERSION__
   backup_version            = __BACKUP_VERSION__
+  next_controller_id        = __NEXT_CONTROLLER_ID__
   memory                    = __MEMORY__
   uboot_active_version      = __UBOOT_ACTIVE_REV__
   uboot_active_slot         = __UBOOT_ACTIVE__
