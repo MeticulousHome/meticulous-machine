@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source "${HAWKBIT_DEVICE_IDENTITY_LIB:-/etc/hawkbit/device_identity.sh}"
+
 get_somrev() {
         # Get the raw output
         raw_output=$(i2cget -f -y 0x0 0x52 0x1e)
@@ -155,6 +157,7 @@ fi
 
 installed_version=$(get_installed_sw_version)
 backup_version=$(get_backup_sw_version)
+device_uuid=$(get_or_create_device_uuid) || device_uuid="UNKNOWN"
 
 memory=$(cat /proc/meminfo | grep MemTotal | grep "[0-9]* [a-zA-Z]B" -o)
 som=$(get_somrev)
@@ -188,6 +191,7 @@ sed -i "s/__SOM__/${som}/" /etc/hawkbit/config.conf
 sed -i "s/__MEMORY__/${memory}/" /etc/hawkbit/config.conf
 sed -i "s/__INSTALLED_VERSION__/${installed_version}/" /etc/hawkbit/config.conf
 sed -i "s/__BACKUP_VERSION__/${backup_version}/" /etc/hawkbit/config.conf
+sed -i "s/__NEXT_CONTROLLER_ID__/${device_uuid}/" /etc/hawkbit/config.conf
 
 sed -i "s/__UBOOT_DISK_REV__/${uboot_disk_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" /etc/hawkbit/config.conf
