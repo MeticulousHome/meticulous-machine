@@ -157,7 +157,7 @@ fi
 
 installed_version=$(get_installed_sw_version)
 backup_version=$(get_backup_sw_version)
-device_uuid=$(get_or_create_device_uuid) || device_uuid="UNKNOWN"
+device_uuid=$(get_cached_device_uuid) || device_uuid="UNKNOWN"
 
 memory=$(cat /proc/meminfo | grep MemTotal | grep "[0-9]* [a-zA-Z]B" -o)
 som=$(get_somrev)
