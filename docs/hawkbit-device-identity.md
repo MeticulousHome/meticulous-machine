@@ -10,10 +10,16 @@ The UUID is stored at:
 /meticulous-user/.device-identity/device-uuid
 ```
 
-The ESP32 NVS value is the source of truth. When the backend receives ESPInfo,
-it validates the UUID and atomically updates this VAR-SOM cache whenever the
-ESP32 value differs. The backend then restarts the Hawkbit updater so its
-generated configuration uses the current cache.
+The VAR-SOM generates the initial UUIDv4 using the Linux OS entropy source only
+when compatible firmware reports that the ESP32 has no valid UUID. It sends the
+candidate through a dedicated write-once UART command. The ESP32 validates and
+persists the value in NVS, then reports it back through ESPInfo.
+
+After that assignment, the ESP32 NVS value is the source of truth. The backend
+updates this VAR-SOM cache only from a valid UUID confirmed through ESPInfo. If
+the confirmed ESP32 value differs, it atomically overwrites the cache and
+restarts the Hawkbit updater so its generated configuration uses the current
+value.
 
 The hidden cache directory is on the shared user partition. It therefore
 survives RAUC slot updates and rollbacks. The current backend factory reset
@@ -23,8 +29,13 @@ and `0600`. The UUID is an opaque identifier, not a credential.
 
 The updater never generates or repairs device identity. If the cache is
 missing or invalid, it reports `next_controller_id` as `UNKNOWN` without
-changing the active Hawkbit target. The backend repairs the cache only from a
-valid ESP32 value.
+changing the active Hawkbit target.
+
+The backend never copies a previously cached VAR-SOM UUID into an empty or
+corrupt ESP32. That state may indicate that the ESP32 was replaced. Instead, it
+generates a new candidate, assigns it write-once, waits for the ESP32 to confirm
+it, and then replaces the VAR-SOM cache. A valid UUID already stored on the
+ESP32 always wins.
 
 Before switching `target_name`, fleet validation must confirm:
 
@@ -36,10 +47,10 @@ Before switching `target_name`, fleet validation must confirm:
 
 This change depends on coordinated firmware and backend support:
 
-- EspressoFirmware generates and stores the UUIDv4 in ESP32 NVS when an info
-  request finds no valid value.
-- meticulous-backend parses the UUID from ESPInfo and synchronizes the
-  VAR-SOM cache with the ESP32 value.
+- EspressoFirmware exposes UUID protocol support in ESPInfo and accepts a
+  dedicated write-once assignment only while no valid UUID exists in NVS.
+- meticulous-backend generates the initial UUIDv4, sends the assignment, waits
+  for ESPInfo confirmation, and then synchronizes the VAR-SOM cache.
 
 The updater sends device attributes only when Hawkbit includes the
 `configData` link in its DDI response. After deploying this image, request
