@@ -761,7 +761,9 @@ class HawkbitMgmtClient:
             else:
                 group_size = 200
 
+            # Cap the group percentage to 100% and ensure it is at least 1%
             target_percentage = min(100.0, group_size / remaining_target_count * 100)
+            target_percentage = max(1.0, target_percentage)
             groups.append(
                 self._rollout_group(
                     len(groups) + 1, target_filter_query, target_percentage
