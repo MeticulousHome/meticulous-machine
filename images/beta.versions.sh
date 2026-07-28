@@ -1,7 +1,5 @@
 #!/bin/bash
-export LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
 export LINUX_BRANCH="beta"
-export HISTORY_UI_REV="452f6984333304c914554bf4470d42721a8e696c" # fix(config): conditionally set assetPrefix in Next.js config
 export LINUX_REV="HEAD" # set the usbotg1 node as host only on meticulous DT
 export UBOOT_BRANCH="beta"
 export UBOOT_REV="HEAD" # config:_Enable GPIO read command
