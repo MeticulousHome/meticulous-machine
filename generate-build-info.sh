@@ -27,6 +27,34 @@ source config.sh
 
 MACHINE_SRC_DIR="$(git rev-parse --show-toplevel)"
 
+range_has_shallow_boundary() {
+    local old_rev="$1"
+    local new_rev="$2"
+    local shallow_file
+
+    shallow_file=$(git rev-parse --git-path shallow)
+    [[ -s "$shallow_file" ]] || return 1
+
+    grep -Fxf "$shallow_file" <(git rev-list "${old_rev}..${new_rev}") > /dev/null
+}
+
+deepen_history_for_range() {
+    local old_rev="$1"
+    local new_rev="$2"
+
+    while ! git cat-file -e "${old_rev}^{commit}" 2>/dev/null; do
+        [[ "$(git rev-parse --is-shallow-repository)" == "true" ]] || return 1
+        echo "Fetching deeper history to find ${old_rev}..." >&2
+        git fetch --deepen=200 2>/dev/null || return 1
+    done
+
+    while [[ "$(git rev-parse --is-shallow-repository)" == "true" ]] &&
+        range_has_shallow_boundary "$old_rev" "$new_rev"; do
+        echo "Fetching deeper history to complete ${old_rev}..${new_rev}..." >&2
+        git fetch --deepen=200 2>/dev/null || return 1
+    done
+}
+
 # Source the image-specific version overrides (same logic as update-sources.sh)
 if [[ "${IMAGE_NAME}" && "${IMAGE_NAME}" != "nightly" ]]; then
     VERSIONS_FILE="images/${IMAGE_NAME}.versions.sh"
@@ -207,18 +235,13 @@ yaml_escape() {
         if [[ -n "$old_rev" && -d "$dir" ]]; then
             echo "    commits:"
 
-            # The shallow clone may not have enough history. Try to fetch
-            # enough commits to cover the range.
             log_output=""
             pushd "$dir" > /dev/null
 
-            # First attempt: check if old_rev is reachable
-            if ! git cat-file -e "${old_rev}^{commit}" 2>/dev/null; then
-                echo "      # Fetching deeper history to cover range..."  >&2
-                git fetch --deepen=200 2>/dev/null || true
-            fi
-
-            if git cat-file -e "${old_rev}^{commit}" 2>/dev/null; then
+            # A shallow clone can contain old_rev while still truncating a
+            # merged branch inside old_rev..new_rev. Deepen until no shallow
+            # boundary remains in the range before generating the commit list.
+            if deepen_history_for_range "$old_rev" "$new_rev"; then
                 log_output=$(git log --oneline "${old_rev}..${new_rev}" 2>/dev/null) || true
             fi
 
