@@ -34,7 +34,7 @@ RUN apt update
 RUN apt build-dep -y rauc
 
 COPY ./config.sh ./update-sources.sh ./
-RUN ./update-sources.sh --rauc --psplash
+RUN ./update-sources.sh --rauc --psplash --image nightly
 
 RUN DEBIAN_FRONTEND=noninteractive mk-build-deps -r -i components/rauc/rauc/debian/control \
     -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends'
