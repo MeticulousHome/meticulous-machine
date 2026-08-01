@@ -45,6 +45,21 @@ jobs:
         name: emmc-bundle
         github-token: ${{ secrets.GH_TOKEN }}
         path: .
+
+    - name: Read bundle version
+      run: |
+        bundles=( *_emmc_*.raucb )
+        if [[ ${#bundles[@]} -ne 1 || ! -f "${bundles[0]}" ]]; then
+          echo "::error::Expected exactly one EMMC bundle"
+          exit 1
+        fi
+        bundle_version="${bundles[0]#*_emmc_nightly_}"
+        bundle_version="${bundle_version%.raucb}"
+        if [[ ! "$bundle_version" =~ ^[0-9]{4}M[0-9]+-nightly$ ]]; then
+          echo "::error::Unexpected nightly bundle version: $bundle_version"
+          exit 1
+        fi
+        echo "BUNDLE_VERSION=$bundle_version" >> "$GITHUB_ENV"
     
     - name: Upload sdcard bundle
       run: |
@@ -56,7 +71,7 @@ jobs:
           ${{ secrets.HAWKBIT_PASSWORD }} \
           "Nightly SDCard" \
           "Rootfs SDCard" \
-          "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
+          "$BUNDLE_VERSION" \
           "nightly" \
           "sdcard"
 
@@ -70,6 +85,6 @@ jobs:
           ${{ secrets.HAWKBIT_PASSWORD }} \
           "Nightly EMMC" \
           "Rootfs EMMC" \
-          "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
+          "$BUNDLE_VERSION" \
           "nightly" \
           "emmc"

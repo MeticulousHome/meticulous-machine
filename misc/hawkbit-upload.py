@@ -1114,18 +1114,23 @@ class HawkbitMgmtClient:
                 print(f"Cause: {e}")
         return True
 
-    def sort_distributions_by_version(self, dist_name: str):
-        from datetime import datetime
-
+    def sort_distributions_by_creation_time(self, dist_name: str):
         distributions = self.get_distributionsets_by_name(dist_name)
         if distributions is None:
             return None
 
+        def creation_time(distribution):
+            value = distribution.get(
+                "createdAt", distribution.get("lastModifiedAt", 0)
+            )
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return 0
+
         return sorted(
             distributions,
-            key=lambda dist: datetime.strptime(
-                dist["version"], "%Y-%m-%dT%H_%M_%S+0000"
-            ),
+            key=creation_time,
             reverse=True,
         )
 
@@ -1328,7 +1333,9 @@ if __name__ == "__main__":
             )
             exit(1)
 
-    sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
+    sorted_distributionsets = client.sort_distributions_by_creation_time(
+        distribution_name
+    )
     # If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
     historics_to_keep = get_max_number_of_historic_distributions(distribution_name)
     print(f"\nRemoving extra distributions, keeping last {historics_to_keep}")

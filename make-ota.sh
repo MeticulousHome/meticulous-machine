@@ -5,6 +5,7 @@ source config.sh
 set -eo pipefail
 
 variant=""
+version=""
 
 # Check if $ROOTFS_PATH exists as a file
 if [[ ! -f $METIUCULOUS_ROOTFS ]]; then
@@ -27,6 +28,10 @@ while [[ $# -gt 0 ]]; do
     --key)
         shift
         key="$1"
+        ;;
+    --version)
+        shift
+        version="$1"
         ;;
     *)
         echo "Invalid argument: $key"
