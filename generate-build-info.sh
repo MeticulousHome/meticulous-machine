@@ -25,6 +25,8 @@ fi
 
 source config.sh
 
+MACHINE_SRC_DIR="$(git rev-parse --show-toplevel)"
+
 # Source the image-specific version overrides (same logic as update-sources.sh)
 if [[ "${IMAGE_NAME}" && "${IMAGE_NAME}" != "nightly" ]]; then
     VERSIONS_FILE="images/${IMAGE_NAME}.versions.sh"
@@ -39,19 +41,19 @@ elif [[ "${IMAGE_NAME}" == "nightly" ]]; then
 fi
 
 COMPONENT_NAMES=(
-    linux uboot atf imx-mkimage debian
+    meticulous-machine linux uboot atf imx-mkimage debian
     backend dial web-app watcher firmware
     rauc hawkbit psplash history-ui plotter-ui crash-reporter
 )
 
 COMPONENT_DIRS=(
-    "$LINUX_SRC_DIR" "$UBOOT_SRC_DIR" "$ATF_SRC_DIR" "$IMX_MKIMAGE_SRC_DIR" "$DEBIAN_SRC_DIR"
+    "$MACHINE_SRC_DIR" "$LINUX_SRC_DIR" "$UBOOT_SRC_DIR" "$ATF_SRC_DIR" "$IMX_MKIMAGE_SRC_DIR" "$DEBIAN_SRC_DIR"
     "$BACKEND_SRC_DIR" "$DIAL_SRC_DIR" "$WEB_APP_SRC_DIR" "$WATCHER_SRC_DIR" "$FIRMWARE_SRC_DIR"
     "$RAUC_SRC_DIR" "$HAWKBIT_SRC_DIR" "$PSPLASH_SRC_DIR" "$HISTORY_UI_SRC_DIR" "$PLOTTER_UI_SRC_DIR" "$CRASH_REPORTER_SRC_DIR"
 )
 
 COMPONENT_OPTIONAL=(
-    false false false false false
+    false false false false false false
     false false false false false
     false false false true true false
 )
