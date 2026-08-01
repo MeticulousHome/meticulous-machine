@@ -268,8 +268,12 @@ jobs:
 
   build-bundle:
     name: Build RAUC bundle
-    needs: build-root
+    needs:
+      - build-root
+      - generate-version-info
     runs-on: ubuntu-24.04
+    env:
+      BUILD_VERSION_NUMBER: ${{ needs.generate-version-info.outputs.build_version_number }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -322,7 +326,7 @@ jobs:
           if-no-files-found: error
 
       - name: Build Bundles
-        run: ./make-ota.sh --variant "${{ inputs.image }}" --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
+        run: ./make-ota.sh --variant "${{ inputs.image }}" --version "$BUILD_VERSION_NUMBER" --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
 
       - name: Upload EMMC bundle
         uses: actions/upload-artifact@v4
@@ -333,7 +337,9 @@ jobs:
 
   deploy-emmc-bundle:
     name: Upload EMMC image to hawkbit
-    needs: build-bundle
+    needs:
+      - build-bundle
+      - generate-version-info
     if: ${{ inputs.upload_emmc_to_hawkbit }}
     runs-on: ubuntu-24.04
     steps:
@@ -368,7 +374,7 @@ jobs:
             ${{ secrets.HAWKBIT_PASSWORD }} \
             "${{ inputs.image }} EMMC" \
             "${{ inputs.image }} Rootfs EMMC" \
-            "$(date -u +'%Y-%m-%dT%H_%M_%S%z')" \
+            "${{ needs.generate-version-info.outputs.build_version_number }}" \
             "${{ inputs.image }}" \
             "emmc"
 
