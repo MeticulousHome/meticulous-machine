@@ -1,0 +1,41 @@
+channel: "stable"
+timestamp: "2026-08-04T00-35-25"
+build-version: "2026M1352-stable"
+versions:
+  meticulous-machine: "274a46b4b5a6217ad13afddf460af0879b0360cc"
+  linux: "896ed562b8e72bfc4fd1893171faed0acdcf06a8"
+  uboot: "00ba0da24a8b4a5b5d5e9ec56ebf92c8d1b055d0"
+  atf: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+  imx-mkimage: "71b8c18af93a5eb972d80fbec290006066cff24f"
+  debian: "db279cf0c71d35b1a9930699bca0446414390549"
+  backend: "ba9905095741b0076c5880ac35fc675e0060384e"
+  dial: "c3de9fad7e3ae422c2295da7e6e54978eb6ae39c"
+  web-app: "0fa5934b219a32ce2c6aaa8f60125796e6d4374d"
+  watcher: "283693934e84b236d86e2082c7c59cf1dc7028cf"
+  firmware: "7aa359b23ceb5ad18c615ca4d5cea1ea9ac48c20"
+  rauc: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+  hawkbit: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+  psplash: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+  plotter-ui: "a82332b5d16ddb6014045c6cf4345cc7039bf849"
+  crash-reporter: "c05c5615b6813717f30ddacc246c1ac9e55fdeb7"
+changes:
+  meticulous-machine:
+    old_rev: null
+    new_rev: "274a46b4b5a6217ad13afddf460af0879b0360cc"
+    commits: []
+  backend:
+    old_rev: "dd2da1ed91b80b4b55cc2a7ba8aaa3e64ceda0dc"
+    new_rev: "ba9905095741b0076c5880ac35fc675e0060384e"
+    commits:
+      - hash: "ba99050"
+        message: "Merge pull request #377 from MeticulousHome/chore/filter_send_bugreport_generation"
+      - hash: "c11b80f"
+        message: "fix: add log_redactor gitlink"
+  watcher:
+    old_rev: "03ce735ec25c4bc10cc1883fd7a9d5584fcf476d"
+    new_rev: "283693934e84b236d86e2082c7c59cf1dc7028cf"
+    commits:
+      - hash: "2836939"
+        message: "Merge pull request #11 from MeticulousHome/fix/redact_personal_information_from_logs"
+      - hash: "18addeb"
+        message: "fix: add log_redactor gitlink"
