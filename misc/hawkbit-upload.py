@@ -6,6 +6,7 @@
 
 import time
 import os
+import random
 import attr
 import requests as r
 import json
@@ -15,6 +16,13 @@ from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 MAX_PRODUCTION_IMAGES_ON_SERVER = 3
 MAX_TESTING_IMAGES_ON_SERVER = 2
+
+# Retries for requests that are safe to replay. hawkBit occasionally answers a perfectly
+# valid request with a 5xx while it is under load, so retrying recovers the run instead of
+# failing the whole upload.
+RETRY_MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 1.0
+RETRY_JITTER_SECONDS = 0.2
 ROLLOUT_GROUP_CONDITIONS = {
     "successCondition": {"condition": "THRESHOLD", "expression": "90"},
     "successAction": {"action": "PAUSE", "expression": ""},
@@ -27,6 +35,18 @@ INTERNAL_TESTING_TARGETS = [
     "meticulousLayeredHoney-000000",
     "meticulousReverencedCoffeeCanister-99900776",
 ]
+
+
+def is_retryable_status(status_code: int) -> bool:
+    """A 5xx means hawkBit itself (or a proxy in front of it) failed, not the request."""
+    return 500 <= status_code < 600
+
+
+def retry_delay() -> float:
+    """Fixed delay with jitter, so parallel uploads do not retry in lockstep."""
+    jitter = random.uniform(-RETRY_JITTER_SECONDS, RETRY_JITTER_SECONDS)
+    return max(0.0, RETRY_DELAY_SECONDS + jitter)
+
 
 class HawkbitError(Exception):
     pass
@@ -65,6 +85,48 @@ class HawkbitMgmtClient:
             self.url = f"http://{self.host}:{self.port}/rest/v1/{{endpoint}}"
         self.id = HawkbitIdStore()
 
+    def _request_with_retry(
+        self,
+        description: str,
+        send_request,
+        retry: bool = True,
+        recovered_statuses: tuple = (),
+    ):
+        """
+        Calls `send_request` and replays it while hawkBit answers with a 5xx status.
+
+        Only for requests that are safe to replay: GET, PUT, DELETE and the endpoints that opt in
+        via `post(retry_on_server_error=True)`.
+
+        Returns `(response, recovered)`. `recovered` is True when a replay answered with one of
+        `recovered_statuses` *after* an earlier attempt had already failed with a 5xx, which means
+        that lost attempt did reach hawkBit after all. Outside of that window the status is
+        reported normally, so the caller still has to check the response itself.
+        """
+        attempts = RETRY_MAX_RETRIES + 1 if retry else 1
+        retried_after_server_error = False
+
+        for attempt in range(1, attempts + 1):
+            response = send_request()
+
+            if (
+                retried_after_server_error
+                and response.status_code in recovered_statuses
+            ):
+                return response, True
+
+            if not is_retryable_status(response.status_code) or attempt == attempts:
+                return response, False
+
+            delay = retry_delay()
+            print(
+                f"{description} failed with HTTP {response.status_code}, retrying in "
+                f"{delay:.2f}s (retry {attempt} of {RETRY_MAX_RETRIES})",
+                flush=True,
+            )
+            time.sleep(delay)
+            retried_after_server_error = True
+
     def get(self, endpoint: str):
         """
         Performs an authenticated HTTP GET request on `endpoint`.
@@ -76,10 +138,13 @@ class HawkbitMgmtClient:
             if endpoint.startswith("http")
             else self.url.format(endpoint=endpoint)
         )
-        req = r.get(
-            url,
-            headers={"Content-Type": "application/json;charset=UTF-8"},
-            auth=(self.username, self.password),
+        req, _ = self._request_with_retry(
+            f"GET {url}",
+            lambda: r.get(
+                url,
+                headers={"Content-Type": "application/json;charset=UTF-8"},
+                auth=(self.username, self.password),
+            ),
         )
         if req.status_code != 200:
             try:
@@ -91,7 +156,13 @@ class HawkbitMgmtClient:
 
         return req.json()
 
-    def post(self, endpoint: str, json_data: dict = None, file_name: str = None):
+    def post(
+        self,
+        endpoint: str,
+        json_data: dict = None,
+        file_name: str = None,
+        retry_on_server_error: bool = False,
+    ):
         """
         Performs an authenticated HTTP POST request on `endpoint`.
         If `json_data` is given, it is sent along with the request and JSON data is expected in the
@@ -100,8 +171,18 @@ class HawkbitMgmtClient:
         expected in the response, which is in that case returned.
         json_data and file_name must not be specified in the same call.
         Endpoint can either be a full URL or a path relative to /rest/v1/.
+
+        POST is not idempotent in general, so 5xx responses are not retried by default. Pass
+        `retry_on_server_error=True` only for endpoints where replaying the identical request
+        cannot create a second resource or duplicate a side effect. In particular the creating
+        endpoints (softwaremodules, distributionsets, rollouts, targets, targetfilters) must not
+        opt in: if hawkBit created the entity and only then failed to answer, the replay hits the
+        uniqueness constraint and reports a 409 instead of the original result.
         """
         assert not (json_data and file_name)
+        # The multipart encoder wraps an already opened file handle and is consumed by the first
+        # attempt, so an upload cannot be replayed as-is.
+        assert not (file_name and retry_on_server_error)
 
         url = (
             endpoint
@@ -136,12 +217,16 @@ class HawkbitMgmtClient:
         )
         headers = {"Content-Type": monitor.content_type} if monitor else headers
 
-        req = r.post(
-            url,
-            headers=headers,
-            auth=(self.username, self.password),
-            json=json_data,
-            data=monitor,
+        req, _ = self._request_with_retry(
+            f"POST {url}",
+            lambda: r.post(
+                url,
+                headers=headers,
+                auth=(self.username, self.password),
+                json=json_data,
+                data=monitor,
+            ),
+            retry=retry_on_server_error,
         )
 
         if not 200 <= req.status_code < 300:
@@ -162,6 +247,9 @@ class HawkbitMgmtClient:
         Performs an authenticated HTTP PUT request on `endpoint`. `json_data` is sent along with
         the request.
         `endpoint` can either be a full URL or a path relative to /rest/v1/.
+
+        Every PUT of this client replaces the state of an existing resource, so replaying it after
+        a 5xx converges on the same result.
         """
         url = (
             endpoint
@@ -169,7 +257,10 @@ class HawkbitMgmtClient:
             else self.url.format(endpoint=endpoint)
         )
 
-        req = r.put(url, auth=(self.username, self.password), json=json_data)
+        req, _ = self._request_with_retry(
+            f"PUT {url}",
+            lambda: r.put(url, auth=(self.username, self.password), json=json_data),
+        )
         if not 200 <= req.status_code < 300:
             try:
                 raise HawkbitError(f"HTTP error {req.status_code}: {req.json()}")
@@ -183,6 +274,12 @@ class HawkbitMgmtClient:
         """
         Performs an authenticated HTTP DELETE request on endpoint.
         Endpoint can either be a full URL or a path relative to /rest/v1/.
+
+        Retried on 5xx like the other replayable requests. If hawkBit removed the resource and
+        only then failed to answer, the replay reports a 404. That 404 counts as success only
+        once an earlier attempt has failed with a 5xx, because in that window our own lost
+        attempt is what removed the resource. A 404 on the first attempt still raises, so a
+        genuinely missing resource is not silently swallowed.
         """
         url = (
             endpoint
@@ -190,7 +287,19 @@ class HawkbitMgmtClient:
             else self.url.format(endpoint=endpoint)
         )
 
-        req = r.delete(url, auth=(self.username, self.password))
+        req, recovered = self._request_with_retry(
+            f"DELETE {url}",
+            lambda: r.delete(url, auth=(self.username, self.password)),
+            recovered_statuses=(404,),
+        )
+        if recovered:
+            print(
+                f"DELETE {url} answered 404 after a server error, "
+                "treating the resource as already deleted",
+                flush=True,
+            )
+            return
+
         if not 200 <= req.status_code < 300:
             try:
                 raise HawkbitError(f"HTTP error {req.status_code}: {req.json()}")
@@ -370,7 +479,11 @@ class HawkbitMgmtClient:
         endpoint = f"targetfilters/{filter_id}/autoAssignDS"
 
         try:
-            response = self.post(endpoint, json_data=json_data)
+            # Sets the auto assignment of the filter to a single value, so replaying it after a
+            # 5xx leaves the filter in the exact same state.
+            response = self.post(
+                endpoint, json_data=json_data, retry_on_server_error=True
+            )
 
             if response is not None:
                 return response
@@ -1114,18 +1227,23 @@ class HawkbitMgmtClient:
                 print(f"Cause: {e}")
         return True
 
-    def sort_distributions_by_version(self, dist_name: str):
-        from datetime import datetime
-
+    def sort_distributions_by_creation_time(self, dist_name: str):
         distributions = self.get_distributionsets_by_name(dist_name)
         if distributions is None:
             return None
 
+        def creation_time(distribution):
+            value = distribution.get(
+                "createdAt", distribution.get("lastModifiedAt", 0)
+            )
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return 0
+
         return sorted(
             distributions,
-            key=lambda dist: datetime.strptime(
-                dist["version"], "%Y-%m-%dT%H_%M_%S+0000"
-            ),
+            key=creation_time,
             reverse=True,
         )
 
@@ -1328,7 +1446,9 @@ if __name__ == "__main__":
             )
             exit(1)
 
-    sorted_distributionsets = client.sort_distributions_by_version(distribution_name)
+    sorted_distributionsets = client.sort_distributions_by_creation_time(
+        distribution_name
+    )
     # If the deployments are production images (nightly, beta, stable), we keep 3 copies of them, else 2.
     historics_to_keep = get_max_number_of_historic_distributions(distribution_name)
     print(f"\nRemoving extra distributions, keeping last {historics_to_keep}")
