@@ -34,9 +34,18 @@ case "$1" in
                         mkdir -p "$RAUC_SLOT_MOUNT_POINT/root/.ssh"
                         cp -rv /root/.ssh/authorized_keys "$RAUC_SLOT_MOUNT_POINT/root/.ssh/"
                 fi
+
+                #Keep the log redactions keys stable
+                if [ -e /root/.redaction_key ]; then
+                        echo "Copying log redaction key to installed rootfs"
+                        cp -rv /root/.redaction_key     "$RAUC_SLOT_MOUNT_POINT/root/"
+                else
+                        echo "no .redaction_key available at /root/.redaction_key"
+                fi
+
                 fw_setenv BOOT_A_LEFT 3
                 fw_setenv BOOT_B_LEFT 3
-                shutdown -r 03:00
+                shutdown -r 03:00 #! this should be a soft signal sent to the backend, we dont want to restart the machine mid-shot
                 ;;
         *)
                 exit 1

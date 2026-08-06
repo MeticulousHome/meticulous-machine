@@ -275,6 +275,15 @@ function build_docker() {
     docker build --platform linux/amd64 -t ${DOCKER_DEB_BUILER_IMAGE}:latest-amd64 -f deb-builder.Dockerfile .
 }
 
+# The backend and the watcher share the log redaction rules as a submodule and
+# share the per-device key that makes their tokens match. Check that the pinned
+# commit for the submodule is the same in both of them
+function check_redactor_pins() {
+    if [ -d "$BACKEND_SRC_DIR" ] && [ -d "$WATCHER_SRC_DIR" ]; then
+        bash scripts/check-redactor-pins.sh
+    fi
+}
+
 function build_backend() {
     if [ -d $BACKEND_SRC_DIR ]; then
         echo "Building Backend .deb package"
@@ -402,6 +411,14 @@ done
 if [ $docker_selected -eq 1 ]; then
     build_docker
     any_selected=1
+fi
+
+# Before anything is built, not per-component: a mismatch is a property of the
+# pair, and finding out after the backend .deb is already built wastes the build.
+if [ ${steps[build_backend]} -eq 1 ] ||
+    [ ${steps[build_watcher]} -eq 1 ] ||
+    [ $all_selected -eq 1 ]; then
+    check_redactor_pins
 fi
 
 for key in "${!steps[@]}"; do
