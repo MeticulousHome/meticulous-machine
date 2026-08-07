@@ -10,3 +10,4 @@ bundle.rauc
 *.raucb
 .venv
 venv
+__pycache__/
