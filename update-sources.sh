@@ -242,12 +242,12 @@ function show_help() {
 Usage: ${0##*/} [OPTIONS]
 Run various functions to install dependencies and checkout or update components.
 
-By default --all functions should be used to get a full initial checkout.
+Use --all with --image to get a full initial checkout for a specific channel.
 Specific components can be fetched and updated by passing their names as options.
 
 Available options:
     --all                           Checkout / Update All repositories except for the firmware
-    --image [IMAGE]                 Checkout a specific image version / pinning
+    --image [IMAGE]                 Required channel/version set for component checkouts
 
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
 
@@ -336,6 +336,24 @@ while [[ $# -gt 0 ]]; do
     shift # Shift past the argument
 done
 
+source_checkout_selected=$all_selected
+if [[ $firmware_selected -eq 1 || $mobile_selected -eq 1 || $plotter_ui_selected -eq 1 ]]; then
+    source_checkout_selected=1
+fi
+
+for selected in "${steps[@]}"; do
+    if [[ $selected -eq 1 ]]; then
+        source_checkout_selected=1
+        break
+    fi
+done
+
+if [[ $source_checkout_selected -eq 1 && -z "${IMAGE_NAME:-}" ]]; then
+    echo "Error: --image NAME is required when checking out component sources."
+    echo "Use --image nightly, --image beta, --image stable, or another configured image."
+    exit 1
+fi
+
 if [[ ${IMAGE_NAME} && ${IMAGE_NAME} != "nightly" ]]; then
     VERSIONS_FILE="images/${IMAGE_NAME}.versions.sh"
     if [[ -f "$VERSIONS_FILE" ]]; then
@@ -347,8 +365,6 @@ if [[ ${IMAGE_NAME} && ${IMAGE_NAME} != "nightly" ]]; then
     fi
 elif [[ ${IMAGE_NAME} == "nightly" ]]; then
     echo "Nightly image was requested, always using the defaults in config.sh"
-else
-    echo "No image name provided, using default versions."
 fi
 
 if [ ${install_ubuntu_dependencies_selected} -eq 1 ]; then

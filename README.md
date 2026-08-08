@@ -8,7 +8,7 @@ which can be transfered to the machines emmc
 ## TLDR
 
 ```bash
-update-sources.sh --all
+update-sources.sh --all --image stable
 build-components.sh --all
 sudo make-rootfs.sh --all
 sudo make-sdcard.sh --image
@@ -23,7 +23,7 @@ installed
 Before running any scripts, ensure you have installed all necessary dependencies and configured the config.sh file for your environment.
 
 ```bash
-update-sources.sh --all
+update-sources.sh --all --image stable
 ```
 
 The update-sources.sh script manages the updating and checking out of various software components from their respective repositories.
@@ -33,7 +33,15 @@ Usage
 update-sources.sh [OPTIONS]
 ```
 
-By default, running the script should be done with the `--all` flag which will update all components.
+For a full initial checkout, use `--all` together with an explicit image channel:
+
+```bash
+update-sources.sh --all --image stable
+```
+
+Component checkouts require `--image` so that a `stable` machine checkout cannot
+silently fetch `nightly` component branches. Use `nightly`, `beta`, `stable`, or
+another image that has a matching `images/<image>.versions.sh` file.
 You can also update specific components using the following options:
 
 - `--install_ubuntu_dependencies`: Installs required dependencies on Ubuntu.
