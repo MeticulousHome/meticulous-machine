@@ -1,0 +1,415 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-08-10",
+  "source_snapshot": {
+    "meticulous-machine": "220dbcbc41d64069c85f98f46b7c2808c86ee20d",
+    "meticulous-dial": "7f4482871d4feb73a5518f26954f33256c3c3d19",
+    "meticulous-backend": "69086ade492fffdb4d304b47281239ca560bb485",
+    "EspressoFirmware": "f201fbbd4a85cc7c47127f900268700e21468a03"
+  },
+  "dial": {
+    "screen_groups": {
+      "brew_lifecycle": [
+        "ready",
+        "profileHome",
+        "barometer",
+        "manual-purge",
+        "heating",
+        "heat_timeout_after_shot",
+        "brewComplete",
+        "idle",
+        "shot_history"
+      ],
+      "profile_authoring": [
+        "pressetSettings",
+        "name",
+        "pressure",
+        "time",
+        "weight",
+        "flow",
+        "temperature",
+        "piston_position",
+        "motor_power",
+        "dose",
+        "output",
+        "pressetProfileImage",
+        "defaultProfiles",
+        "defaultProfileDetails"
+      ],
+      "settings": [
+        "settings",
+        "quick-settings",
+        "brewSettings",
+        "scrollDirections"
+      ],
+      "wifi": [
+        "wifiSettings",
+        "wifiModeSettings",
+        "wifiQrMenu",
+        "wifiDetails",
+        "connectWifiMenu",
+        "selectWifi",
+        "connectWifiViaApp",
+        "enterWifiPassword",
+        "KnownWifi",
+        "deleteKnowWifiMenu"
+      ],
+      "advanced": [
+        "advancedSettings",
+        "deviceInfo",
+        "updateChannel",
+        "idleScreenSettings",
+        "timeDate",
+        "timeZoneConfig",
+        "selectLetterCountry",
+        "countrySettings",
+        "timeZoneSettings",
+        "timeConfig",
+        "dateConfig",
+        "calibrateScale",
+        "factoryReset",
+        "retraction_volume",
+        "manufacturingSettings",
+        "displayAlignment",
+        "masterCalibrationLock",
+        "deviceInfoQR"
+      ],
+      "support_and_diagnostics": [
+        "notifications",
+        "bug-report",
+        "OSStatus",
+        "snake",
+        "unlock"
+      ]
+    },
+    "api_methods": [
+      "acknowledgeNotification",
+      "connectToWiFi",
+      "createReport",
+      "deleteProfile",
+      "deleteWifi",
+      "executeAction",
+      "fetchAllProfiles",
+      "getDefaultProfiles",
+      "getDeviceInfo",
+      "getDraftReport",
+      "getLastProfile",
+      "getLastShot",
+      "getManufacturingMenuItems",
+      "getMeticulousReportTracking",
+      "getNotifications",
+      "getOSStatus",
+      "getProfileDefaultImages",
+      "getProfileImage",
+      "getProfileImageUrl",
+      "getRootPassword",
+      "getSettings",
+      "getTimezoneRegion",
+      "getWiFiQR",
+      "getWiFiQRURL",
+      "getWiFiStatus",
+      "listAvailableWiFi",
+      "loadProfileFromJSON",
+      "markSubmittedReport",
+      "saveProfile",
+      "searchHistory",
+      "setBrightness",
+      "setTime",
+      "setWiFiConfig",
+      "updateManufacturingSettings",
+      "updateReport",
+      "updateSetting"
+    ],
+    "socket_receives": [
+      "OSUpdate",
+      "button",
+      "heater_status",
+      "notification",
+      "profile",
+      "profileHover",
+      "sensors",
+      "status",
+      "water_status"
+    ],
+    "socket_emits": [
+      "action",
+      "calibrate",
+      "profileHover"
+    ]
+  },
+  "backend": {
+    "api_routes": [
+      "/action/(.*)",
+      "/history",
+      "/history/current",
+      "/history/debug",
+      "/history/debug.zip",
+      "/history/debug/(.*)",
+      "/history/files",
+      "/history/files/(.*)",
+      "/history/last",
+      "/history/last-debug-file",
+      "/history/rating/(.*)",
+      "/history/search",
+      "/history/stats",
+      "/machine",
+      "/machine/OS_update_status",
+      "/machine/backlight",
+      "/machine/factory_reset",
+      "/machine/root-password",
+      "/machine/time",
+      "/manufacturing[/]*",
+      "/notifications",
+      "/notifications/acknowledge",
+      "/profile/changes",
+      "/profile/defaults",
+      "/profile/delete/([0-9a-fA-F-]+)",
+      "/profile/get/([0-9a-fA-F-]+)",
+      "/profile/image([/]*)",
+      "/profile/image/(.*)",
+      "/profile/last",
+      "/profile/legacy",
+      "/profile/list",
+      "/profile/load",
+      "/profile/load/([0-9a-fA-F-]+)",
+      "/profile/save",
+      "/profile/selected",
+      "/reports/create",
+      "/reports/draft/([^/]+)",
+      "/reports/list",
+      "/reports/submit",
+      "/scaleCalibrate",
+      "/serial",
+      "/settings[/]*(.*)",
+      "/smoke-validation",
+      "/sounds/list",
+      "/sounds/play/(.*)",
+      "/sounds/theme/get",
+      "/sounds/theme/list",
+      "/sounds/theme/set/(.*)",
+      "/sounds/theme/upload",
+      "/timezones/(.*)",
+      "/update/firmware",
+      "/wifi/config",
+      "/wifi/config/qr.png",
+      "/wifi/connect",
+      "/wifi/delete",
+      "/wifi/list",
+      "/wifi/repair"
+    ],
+    "socket_receives": [
+      "action",
+      "calibrate",
+      "notification",
+      "profileHover"
+    ],
+    "socket_emits": [
+      "OSUpdate",
+      "button",
+      "heater_status",
+      "notification",
+      "profile",
+      "profileHover",
+      "sensors",
+      "settings",
+      "status"
+    ],
+    "emulation_scenarios": [
+      "idle",
+      "home",
+      "purge",
+      "espresso"
+    ],
+    "allowed_actions": [
+      "abort",
+      "continue",
+      "home",
+      "preheat",
+      "purge",
+      "reset",
+      "scale_master_calibration",
+      "start",
+      "stop",
+      "tare"
+    ]
+  },
+  "firmware": {
+    "uart_incoming_keys": [
+      "action",
+      "hash",
+      "heater_timeout",
+      "json",
+      "nvs_request"
+    ],
+    "uart_actions": [
+      "calibration",
+      "continue",
+      "home",
+      "idle",
+      "info",
+      "json",
+      "manual_control",
+      "preheat",
+      "purge",
+      "scale_master_calibration",
+      "start",
+      "stop",
+      "tare"
+    ],
+    "uart_outbound_messages": [
+      "Data",
+      "ERROR",
+      "ESPInfo",
+      "Event",
+      "HeaterTimeoutInfo",
+      "Log",
+      "MANUAL_CONTROL",
+      "Notify",
+      "Sensors",
+      "TaskInfo",
+      "nvs_response"
+    ]
+  },
+  "image": {
+    "component_sources": [
+      "ATF",
+      "BACKEND",
+      "CRASH_REPORTER",
+      "DASH",
+      "DEBIAN",
+      "DIAL",
+      "FIRMWARE",
+      "HAWKBIT",
+      "IMX_MKIMAGE",
+      "LINUX",
+      "MLANUTL",
+      "MOBILE",
+      "MWIFIEX",
+      "PLOTTER_UI",
+      "PSPLASH",
+      "RAUC",
+      "UBOOT",
+      "WATCHER",
+      "WEB_APP"
+    ],
+    "required_services": [
+      "meticulous-backend.service",
+      "meticulous-dial.service",
+      "meticulous-watcher.service",
+      "pulseaudio.service",
+      "rauc-hawkbit-updater.service",
+      "weston.service"
+    ],
+    "nginx_contracts": [
+      "location / {",
+      "location /debug {",
+      "location /debug/plotter-ui {",
+      "^/(socket\\.io|api)",
+      "^/health"
+    ],
+    "channels": [
+      "nightly",
+      "beta",
+      "stable"
+    ]
+  },
+  "journeys": [
+    {
+      "id": "dial-all-routes-reachable",
+      "priority": "P0",
+      "tiers": ["simulated", "rootfs", "hil"],
+      "screen_groups": ["*"],
+      "summary": "Open every registered Dial route through production navigation and return without a render or state error.",
+      "status": "planned"
+    },
+    {
+      "id": "boot-to-ready",
+      "priority": "P0",
+      "tiers": ["simulated", "rootfs", "hil"],
+      "screen_groups": ["brew_lifecycle"],
+      "summary": "Start backend and Dial, receive machine state and reach the ready/profile selection experience.",
+      "status": "planned"
+    },
+    {
+      "id": "profile-select-edit-persist",
+      "priority": "P0",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["profile_authoring"],
+      "summary": "Browse, select, edit, save and reload a profile while preserving its selected identity.",
+      "status": "planned"
+    },
+    {
+      "id": "espresso-complete",
+      "priority": "P0",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["brew_lifecycle"],
+      "summary": "Load a profile, start, heat, brew, complete, remove the cup and return to idle with history recorded.",
+      "status": "planned"
+    },
+    {
+      "id": "espresso-abort-and-recover",
+      "priority": "P0",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["brew_lifecycle"],
+      "summary": "Abort an active shot, stop outputs and recover to a usable idle/home state.",
+      "status": "planned"
+    },
+    {
+      "id": "maintenance-actions",
+      "priority": "P0",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["brew_lifecycle", "advanced"],
+      "summary": "Exercise home, purge, tare and scale calibration with explicit simulated versus hardware assertions.",
+      "status": "planned"
+    },
+    {
+      "id": "settings-persistence",
+      "priority": "P1",
+      "tiers": ["simulated", "rootfs", "hil"],
+      "screen_groups": ["settings", "advanced"],
+      "summary": "Change supported settings, restart the stack and verify persisted values and resulting UI state.",
+      "status": "planned"
+    },
+    {
+      "id": "wifi-lifecycle",
+      "priority": "P1",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["wifi"],
+      "summary": "List, connect, inspect, repair and delete Wi-Fi configuration, including failure and recovery states.",
+      "status": "planned"
+    },
+    {
+      "id": "backend-disconnect-recovery",
+      "priority": "P0",
+      "tiers": ["simulated", "rootfs", "hil"],
+      "screen_groups": ["brew_lifecycle", "support_and_diagnostics"],
+      "summary": "Lose and restore REST/Socket connectivity without leaving Dial permanently stale or unusable.",
+      "status": "planned"
+    },
+    {
+      "id": "update-and-diagnostics",
+      "priority": "P1",
+      "tiers": ["rootfs", "hil"],
+      "screen_groups": ["advanced", "support_and_diagnostics"],
+      "summary": "Expose image/device information, update state, notifications and privacy-safe diagnostic reporting.",
+      "status": "planned"
+    }
+  ],
+  "known_gaps": [
+    {
+      "id": "dial-water-status-without-static-backend-emitter",
+      "evidence": "Dial subscribes to water_status, while no literal backend Socket.IO emitter is present in the captured nightly source.",
+      "next_step": "Confirm whether status replaces this legacy event before implementing the socket contract tests."
+    },
+    {
+      "id": "backend-emulation-has-no-deterministic-control-api",
+      "evidence": "The emulator selects recorded idle, home, purge and espresso streams from UART commands but has no reset/scenario test API.",
+      "next_step": "Add an emulation-only control surface in the vertical-slice milestone."
+    },
+    {
+      "id": "image-build-has-no-runtime-boot-gate",
+      "evidence": "The image workflow uploads rootfs, SD/eMMC, RAUC and deployment artifacts without starting the produced system.",
+      "next_step": "Add rootfs smoke and HIL boot gates in the image milestone."
+    }
+  ]
+}
