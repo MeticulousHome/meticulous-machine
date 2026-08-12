@@ -18,8 +18,9 @@ persists the value in NVS, then reports it back through ESPInfo.
 After that assignment, the ESP32 NVS value is the source of truth. The backend
 updates this VAR-SOM cache only from a valid UUID confirmed through ESPInfo. If
 the confirmed ESP32 value differs, it atomically overwrites the cache and
-restarts the Hawkbit updater so its generated configuration uses the current
-value.
+restarts the Hawkbit updater so its generated local configuration uses the
+current value. Restarting the updater does not itself make Hawkbit request or
+replace the target's stored device attributes.
 
 The hidden cache directory is on the shared user partition. It therefore
 survives RAUC slot updates and rollbacks. The current backend factory reset
@@ -53,6 +54,14 @@ This change depends on coordinated firmware and backend support:
   for ESPInfo confirmation, and then synchronizes the VAR-SOM cache.
 
 The updater sends device attributes only when Hawkbit includes the
-`configData` link in its DDI response. After deploying this image, request
-attributes for the existing targets by setting `requestAttributes` to `true`
-through the Hawkbit Management API before auditing `next_controller_id`.
+`configData` link in its DDI response. Hawkbit controls that link through the
+target's server-side `requestAttributes` flag; restarting the updater cannot
+set it.
+
+After deploying this image, set `requestAttributes` to `true` through the
+Hawkbit Management API for every target before auditing `next_controller_id`.
+Repeat that refresh for targets whose first upload reported `UNKNOWN`, including
+newly provisioned machines that contacted Hawkbit before ESP32 enrollment
+completed. A cache update and updater restart alone do not replace a previously
+stored `UNKNOWN` attribute. Do not begin the fleet uniqueness and completeness
+audit until the refreshed attributes have been received.

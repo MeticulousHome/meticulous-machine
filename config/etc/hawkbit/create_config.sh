@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "${HAWKBIT_DEVICE_IDENTITY_LIB:-/etc/hawkbit/device_identity.sh}"
+source /etc/hawkbit/device_identity.sh
 
 get_somrev() {
         # Get the raw output
