@@ -41,6 +41,15 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - Changelog commit/deploy runs only when `upload_emmc_to_hawkbit` is true and the image build succeeds; if upload is disabled or the hawkBit upload fails, changelog publication is skipped.
 - `.github/workflows/deploy-changelog.yml` explicitly checks out `main` before generating GitHub Pages.
 
+## hawkBit Upload and Rollout Thresholds
+
+- `deploy-emmc-bundle` runs `misc/hawkbit-upload.py`, which uploads the bundle, creates the rollout, and then pins that rollout's auto-resume thresholds. See `docs/hawkbit-rollout-thresholds.md`.
+- The Rollout Manager lives in `MeticulousHome/hawkbit-docker-deployment` under `aux/rollout_manager/`; its contract is `docs/RolloutManagerContracts.md` in that repo.
+- Its shipped default thresholds match `boot_smoke_version` and `post_update_shot_version` by regex, which accepts any well-formed version rather than the one being rolled out. The upload script rewrites those two matchers to `exact`.
+- Both are pinned to `build_version_number`, which the script already receives as its `version` positional argument.
+- The admin API is on the same host and port as hawkBit but outside `/rest/v1/`, at `/rollout-manager/`. nginx validates the `Authorization` header against hawkBit `/rest/v1/userinfo`, so `HAWKBIT_USER` and `HAWKBIT_PASSWORD` work unchanged.
+- A failed threshold update does not abort the run. The remaining target filter setup still completes and the script exits non-zero, leaving the rollout on the default regex thresholds.
+
 ## Build Tags
 
 - After the full image build succeeds, `.github/workflows/build-nightly-image.yml` checks out component sources again and runs `tag-controlled-repos.sh --tag "<image>/<BUILD_VERSION_NUMBER>"`.
