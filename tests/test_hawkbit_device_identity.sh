@@ -40,6 +40,8 @@ assert_invalid_cache "123e4567-e89b-12d3-a456-426614174000\n" "non-v4"
 assert_invalid_cache "123e4567-e89b-42d3-7456-426614174000\n" "non-RFC-variant"
 assert_invalid_cache "" "empty"
 assert_invalid_cache "${first_uuid} trailing-content\n" "trailing-content"
+assert_invalid_cache "${first_uuid}\nunexpected-line\n" "multi-line"
+assert_invalid_cache "${first_uuid}\n\n" "extra-empty-line"
 
 printf '%s\n' "$second_uuid" > "$HAWKBIT_DEVICE_UUID_FILE"
 test "$(get_cached_device_uuid)" = "$second_uuid"

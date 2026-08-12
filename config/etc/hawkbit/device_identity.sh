@@ -11,13 +11,20 @@ is_valid_uuid_v4() {
 
 get_cached_device_uuid() {
   local cached_uuid=""
+  local cached_lines=()
 
   if [ ! -r "$HAWKBIT_DEVICE_UUID_FILE" ]; then
     echo "ESP32 device UUID cache is not available" >&2
     return 1
   fi
 
-  IFS= read -r cached_uuid < "$HAWKBIT_DEVICE_UUID_FILE"
+  mapfile -t cached_lines < "$HAWKBIT_DEVICE_UUID_FILE"
+  if [ "${#cached_lines[@]}" -ne 1 ]; then
+    echo "ESP32 device UUID cache is invalid" >&2
+    return 1
+  fi
+
+  cached_uuid="${cached_lines[0]}"
   if ! is_valid_uuid_v4 "$cached_uuid"; then
     echo "ESP32 device UUID cache is invalid" >&2
     return 1
