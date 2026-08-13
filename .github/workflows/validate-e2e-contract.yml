@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/meticulous-dial
-          ref: ${{ github.event_name == 'pull_request' && 'ef27a418988351bcdbfe5bca2cf8e1a2a1471726' || 'nightly' }}
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/sw-8-optimize-hawkbit-polling-frequency-attempt-5' && 'ef27a418988351bcdbfe5bca2cf8e1a2a1471726' || 'nightly' }}
           path: meticulous-dial
           token: ${{ secrets.GH_ORG_WORKFLOW }}
 
@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/meticulous-backend
-          ref: ${{ github.event_name == 'pull_request' && '857f6f51ae1e89fee1e2b4e03c3436c51a05faa0' || 'nightly' }}
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/sw-8-optimize-hawkbit-polling-frequency-attempt-5' && '857f6f51ae1e89fee1e2b4e03c3436c51a05faa0' || 'nightly' }}
           path: meticulous-backend
           token: ${{ secrets.GH_ORG_WORKFLOW }}
 
