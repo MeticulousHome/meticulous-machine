@@ -18,15 +18,20 @@ persists the value in NVS, then reports it back through ESPInfo.
 After that assignment, the ESP32 NVS value is the source of truth. The backend
 updates this VAR-SOM cache only from a valid UUID confirmed through ESPInfo. If
 the confirmed ESP32 value differs, it atomically overwrites the cache and
-restarts the Hawkbit updater so its generated local configuration uses the
-current value. Restarting the updater does not itself make Hawkbit request or
-replace the target's stored device attributes.
+requests a real Hawkbit updater restart, including when the updater was
+inactive, so startup regenerates its local configuration with the current
+value. The restart is performed outside the UART reader and is bounded.
+Restarting the updater does not itself make Hawkbit request or replace the
+target's stored device attributes.
 
 The hidden cache directory is on the shared user partition. It therefore
 survives RAUC slot updates and rollbacks. The current backend factory reset
 removes `/meticulous-user/*`; shell globbing does not include hidden entries,
-so the cache also survives that reset. The directory and file use modes `0700`
-and `0600`. The UUID is an opaque identifier, not a credential.
+so the cache also survives that reset. This is guarded by the backend-owned
+factory-reset cleanup regression in `tests/test_factory_reset.py`, which runs
+the production cleanup helper and verifies that ordinary user data is removed
+while the hidden identity cache remains. The directory and file use modes
+`0700` and `0600`. The UUID is an opaque identifier, not a credential.
 
 The updater never generates or repairs device identity. If the cache is
 missing or invalid, it reports `next_controller_id` as `UNKNOWN` without

@@ -45,6 +45,14 @@ jobs:
         with:
           path: meticulous-machine
 
+      - name: Validate Hawkbit device identity
+        working-directory: meticulous-machine
+        run: |
+          bash -n config/etc/hawkbit/create_config.sh
+          bash -n config/etc/hawkbit/device_identity.sh
+          bash -n tests/test_hawkbit_device_identity.sh
+          bash tests/test_hawkbit_device_identity.sh
+
       - name: Checkout Dial nightly
         uses: actions/checkout@v4
         with:
@@ -77,14 +85,6 @@ jobs:
       - name: Validate contract structure
         working-directory: meticulous-machine
         run: python -m unittest discover -s tests -p 'test_e2e_contract.py' -v
-
-      - name: Validate Hawkbit device identity
-        working-directory: meticulous-machine
-        run: |
-          bash -n config/etc/hawkbit/create_config.sh
-          bash -n config/etc/hawkbit/device_identity.sh
-          bash -n tests/test_hawkbit_device_identity.sh
-          bash tests/test_hawkbit_device_identity.sh
 
       - name: Validate contract against source
         working-directory: meticulous-machine

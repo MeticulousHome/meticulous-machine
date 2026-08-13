@@ -32,3 +32,14 @@ get_cached_device_uuid() {
 
   printf '%s\n' "$cached_uuid"
 }
+
+render_hawkbit_device_identity() {
+  local config_file="$1"
+  local target_name="$2"
+  local device_uuid=""
+
+  device_uuid=$(get_cached_device_uuid) || device_uuid="UNKNOWN"
+
+  sed -i "s/__TARGET_NAME__/${target_name}/" "$config_file"
+  sed -i "s/__NEXT_CONTROLLER_ID__/${device_uuid}/" "$config_file"
+}
