@@ -14,7 +14,7 @@ cross-repository contract and complete-machine journeys.
 ## Captured baseline
 
 The baseline was refreshed for SW-8 from machine `nightly` and the coordinated
-Dial and backend pull-request heads on 2026-08-12:
+Dial and backend pull-request heads on 2026-08-13:
 
 | Repository | Captured commit | Authority inspected |
 | --- | --- | --- |
