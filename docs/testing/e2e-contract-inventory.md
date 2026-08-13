@@ -19,8 +19,8 @@ Dial and backend pull-request heads on 2026-08-12:
 | Repository | Captured commit | Authority inspected |
 | --- | --- | --- |
 | meticulous-machine | `c584d054ade57a92ba69d27e1bc3b3109dfddcd6` | `config.sh`, image channel manifests, Nginx and systemd units |
-| meticulous-dial | `ef27a418988351bcdbfe5bca2cf8e1a2a1471726` | `ScreenType`, route registry, API calls and Socket.IO usage |
-| meticulous-backend | `857f6f51ae1e89fee1e2b4e03c3436c51a05faa0` | API registration, Socket.IO, allowed actions and emulator traces |
+| meticulous-dial | `847de5ada9958f336649d0e63cd4318ffde2a009` | `ScreenType`, route registry, API calls and Socket.IO usage |
+| meticulous-backend | `4a4149fd99e131671d97c16604b43d2359b28244` | API registration, Socket.IO, allowed actions and emulator traces |
 | EspressoFirmware | `f201fbbd4a85cc7c47127f900268700e21468a03` | `FikaUart` incoming keys/actions and backend-consumed messages |
 
 The validator intentionally compares discovered source surfaces with the

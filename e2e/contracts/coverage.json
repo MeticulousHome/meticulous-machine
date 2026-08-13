@@ -3,8 +3,8 @@
   "captured_at": "2026-08-12",
   "source_snapshot": {
     "meticulous-machine": "c584d054ade57a92ba69d27e1bc3b3109dfddcd6",
-    "meticulous-dial": "ef27a418988351bcdbfe5bca2cf8e1a2a1471726",
-    "meticulous-backend": "857f6f51ae1e89fee1e2b4e03c3436c51a05faa0",
+    "meticulous-dial": "847de5ada9958f336649d0e63cd4318ffde2a009",
+    "meticulous-backend": "4a4149fd99e131671d97c16604b43d2359b28244",
     "EspressoFirmware": "f201fbbd4a85cc7c47127f900268700e21468a03"
   },
   "dial": {
