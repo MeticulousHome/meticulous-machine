@@ -1,0 +1,84 @@
+name: Validate E2E contract inventory
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/validate-e2e-contract.yml"
+      - "docs/testing/e2e-contract-inventory.md"
+      - "e2e/contracts/**"
+      - "scripts/validate_e2e_contract.py"
+      - "tests/test_e2e_contract.py"
+      - "config.sh"
+      - "images/*.versions.sh"
+      - "system-services/**"
+      - "config/etc/nginx/sites-available/default"
+  push:
+    branches:
+      - nightly
+    paths:
+      - ".github/workflows/validate-e2e-contract.yml"
+      - "docs/testing/e2e-contract-inventory.md"
+      - "e2e/contracts/**"
+      - "scripts/validate_e2e_contract.py"
+      - "tests/test_e2e_contract.py"
+      - "config.sh"
+      - "images/*.versions.sh"
+      - "system-services/**"
+      - "config/etc/nginx/sites-available/default"
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout meticulous-machine
+        uses: actions/checkout@v4
+        with:
+          path: meticulous-machine
+
+      - name: Checkout Dial contract source
+        uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/meticulous-dial
+          ref: ${{ github.event_name == 'pull_request' && 'ef27a418988351bcdbfe5bca2cf8e1a2a1471726' || 'nightly' }}
+          path: meticulous-dial
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
+
+      - name: Checkout backend contract source
+        uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/meticulous-backend
+          ref: ${{ github.event_name == 'pull_request' && '857f6f51ae1e89fee1e2b4e03c3436c51a05faa0' || 'nightly' }}
+          path: meticulous-backend
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
+
+      - name: Checkout firmware nightly
+        uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/EspressoFirmware
+          ref: nightly
+          path: EspressoFirmware
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate contract structure
+        working-directory: meticulous-machine
+        run: python -m unittest discover -s tests -p 'test_e2e_contract.py' -v
+
+      - name: Validate contract against source
+        working-directory: meticulous-machine
+        run: >-
+          python scripts/validate_e2e_contract.py
+          --machine .
+          --dial ../meticulous-dial
+          --backend ../meticulous-backend
+          --firmware ../EspressoFirmware

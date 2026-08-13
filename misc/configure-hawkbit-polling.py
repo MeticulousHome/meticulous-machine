@@ -7,7 +7,9 @@ from pathlib import Path
 
 
 POLLING_TIME_KEY = "pollingTime"
+POLLING_OVERDUE_TIME_KEY = "pollingOverdueTime"
 HOURLY_POLLING_TIME = "01:00:00"
+POLLING_KEYS = (POLLING_TIME_KEY, POLLING_OVERDUE_TIME_KEY)
 
 
 class PollingConfigurationError(Exception):
@@ -23,46 +25,63 @@ def load_management_client():
 
 
 def configure_hourly_polling(client, apply=False, output=print):
-    try:
-        current_value = client.get_config(POLLING_TIME_KEY)
-    except Exception:
-        raise PollingConfigurationError(
-            "Failed to read the current Hawkbit pollingTime."
-        ) from None
+    current_values = {}
+    for key in POLLING_KEYS:
+        try:
+            current_values[key] = client.get_config(key)
+        except Exception:
+            raise PollingConfigurationError(
+                f"Failed to read the current Hawkbit {key}."
+            ) from None
 
-    output(f"Current Hawkbit pollingTime: {current_value}")
+        output(f"Current Hawkbit {key}: {current_values[key]}")
 
-    if current_value == HOURLY_POLLING_TIME:
-        output("Hawkbit pollingTime is already 01:00:00; no change is needed.")
+    keys_to_change = [
+        key for key in POLLING_KEYS if current_values[key] != HOURLY_POLLING_TIME
+    ]
+    if not keys_to_change:
+        output(
+            "Both Hawkbit polling settings are already 01:00:00; "
+            "no change is needed."
+        )
         return
 
     if not apply:
-        output(
-            f"[DRY RUN] Would change Hawkbit pollingTime from "
-            f"{current_value} to {HOURLY_POLLING_TIME}."
-        )
+        for key in keys_to_change:
+            output(
+                f"[DRY RUN] Would change Hawkbit {key} from "
+                f"{current_values[key]} to {HOURLY_POLLING_TIME}."
+            )
         return
 
-    try:
-        client.set_config(POLLING_TIME_KEY, HOURLY_POLLING_TIME)
-    except Exception:
-        raise PollingConfigurationError(
-            "Failed to write the Hawkbit pollingTime."
-        ) from None
+    for key in keys_to_change:
+        try:
+            client.set_config(key, HOURLY_POLLING_TIME)
+        except Exception:
+            raise PollingConfigurationError(
+                f"Failed to write the Hawkbit {key}."
+            ) from None
 
-    try:
-        readback_value = client.get_config(POLLING_TIME_KEY)
-    except Exception:
-        raise PollingConfigurationError(
-            "Failed to read back the Hawkbit pollingTime."
-        ) from None
+    mismatched_keys = []
+    for key in POLLING_KEYS:
+        try:
+            readback_value = client.get_config(key)
+        except Exception:
+            raise PollingConfigurationError(
+                f"Failed to read back the Hawkbit {key}."
+            ) from None
+        if readback_value != HOURLY_POLLING_TIME:
+            mismatched_keys.append(key)
 
-    if readback_value != HOURLY_POLLING_TIME:
+    if mismatched_keys:
         raise PollingConfigurationError(
-            "Hawkbit pollingTime readback did not equal 01:00:00."
+            "Hawkbit polling configuration readback did not equal 01:00:00 "
+            f"for: {', '.join(mismatched_keys)}."
         )
 
-    output("Hawkbit pollingTime readback verified: 01:00:00.")
+    output(
+        "Hawkbit pollingTime and pollingOverdueTime readback verified: 01:00:00."
+    )
 
 
 def parse_args(argv=None):

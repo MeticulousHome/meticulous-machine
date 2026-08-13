@@ -1,10 +1,16 @@
 name: Configure Hawkbit polling
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/configure-hawkbit-polling.yml"
+      - "misc/configure-hawkbit-polling.py"
+      - "misc/hawkbit-upload.py"
+      - "tests/test_configure_hawkbit_polling.py"
   workflow_dispatch:
     inputs:
       apply:
-        description: Apply pollingTime=01:00:00 (otherwise dry-run only)
+        description: Apply both polling settings as 01:00:00 (otherwise dry-run only)
         required: true
         type: boolean
         default: false
@@ -13,7 +19,26 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: python -m pip install attrs requests requests-toolbelt
+
+      - name: Test polling configuration
+        run: python -m unittest discover -s tests -p 'test_configure_hawkbit_polling.py' -v
+
   configure-polling:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
     runs-on: ubuntu-24.04
     env:
       HAWKBIT_SERVER: ${{ secrets.HAWKBIT_SERVER }}
