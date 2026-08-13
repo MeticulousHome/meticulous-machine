@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source /etc/hawkbit/device_identity.sh
+
 get_somrev() {
         # Get the raw output
         raw_output=$(i2cget -f -y 0x0 0x52 0x1e)
@@ -155,7 +157,6 @@ fi
 
 installed_version=$(get_installed_sw_version)
 backup_version=$(get_backup_sw_version)
-
 memory=$(cat /proc/meminfo | grep MemTotal | grep "[0-9]* [a-zA-Z]B" -o)
 som=$(get_somrev)
 
@@ -177,7 +178,7 @@ if [[ "$identifier" != *"$serial"* ]]; then
   identifier="${identifier}-${serial}"
 fi
 
-sed -i "s/__TARGET_NAME__/${identifier}/" /etc/hawkbit/config.conf
+render_hawkbit_device_identity /etc/hawkbit/config.conf "$identifier"
 sed -i "s/__BOOT_MODE__/${boot_mode}/" /etc/hawkbit/config.conf
 sed -i "s/__UPDATE_CHANNEL__/${update_channel}/" /etc/hawkbit/config.conf
 sed -i "s/__SERIAL__/${serial}/" /etc/hawkbit/config.conf
@@ -188,7 +189,6 @@ sed -i "s/__SOM__/${som}/" /etc/hawkbit/config.conf
 sed -i "s/__MEMORY__/${memory}/" /etc/hawkbit/config.conf
 sed -i "s/__INSTALLED_VERSION__/${installed_version}/" /etc/hawkbit/config.conf
 sed -i "s/__BACKUP_VERSION__/${backup_version}/" /etc/hawkbit/config.conf
-
 sed -i "s/__UBOOT_DISK_REV__/${uboot_disk_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT1_REV__/${uboot_boot1_rev}/" /etc/hawkbit/config.conf

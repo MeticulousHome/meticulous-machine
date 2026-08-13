@@ -236,6 +236,7 @@
   "firmware": {
     "uart_incoming_keys": [
       "action",
+      "device_uuid",
       "hash",
       "heater_timeout",
       "json",
