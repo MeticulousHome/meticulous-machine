@@ -37,7 +37,7 @@ The captured contract contains:
 - 57 backend API route patterns, 4 inbound Socket.IO events and 9 outbound
   Socket.IO events.
 - 4 existing backend emulation scenarios: idle, home, purge and espresso.
-- 5 firmware UART command families, 13 actions and 11 outbound message
+- 6 firmware UART command families, 13 actions and 11 outbound message
   families.
 - 19 component repositories declared by the image integrator.
 - 10 product journeys targeted for future automated execution.
