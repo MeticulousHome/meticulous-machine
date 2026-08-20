@@ -168,7 +168,11 @@ def make_shot_attributes():
     try:
         backend_status = read_backend_status()
     except Exception as exc:
-        backend_status = {"error": str(exc)}
+        # These attributes are merged, not replaced. Falling back to "false"
+        # here would clobber a real completion every time the backend happens to
+        # be unreachable, which the hourly resync would then repeat forever.
+        print(f"Skipping post-update shot attributes: {exc}", file=sys.stderr)
+        return {}
 
     completed = backend_status.get("post_update_shot_completed") is True
     return {
