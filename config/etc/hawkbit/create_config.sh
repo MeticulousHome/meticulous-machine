@@ -1,5 +1,61 @@
 #!/bin/bash
 
+CONFIG_LOCK_FILE="/run/meticulous-hawkbit-config.lock"
+ATTRIBUTE_CACHE="/run/meticulous-hawkbit-attributes.json"
+
+# meticulous-smoke-report regenerates the config when it finds it missing, so
+# this script can run concurrently with rauc-hawkbit-updater's ExecStartPre.
+# Both writers edit /etc/hawkbit/config.conf in place; serialise them.
+exec 9>"$CONFIG_LOCK_FILE"
+if ! flock -w 120 9; then
+  echo "WARNING: timed out waiting for ${CONFIG_LOCK_FILE}, continuing unlocked"
+fi
+
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/\\t/g' | tr -d '\n\r'
+}
+
+emit_attribute() {
+  if [ "${ATTR_FIRST}" -eq 1 ]; then
+    ATTR_FIRST=0
+  else
+    printf ',\n' >> "$ATTR_TMP"
+  fi
+  printf '  "%s": "%s"' "$(json_escape "$1")" "$(json_escape "$2")" >> "$ATTR_TMP"
+}
+
+# Cache the boot-invariant device attributes so meticulous-smoke-report can
+# publish them without re-deriving anything. update_channel is deliberately
+# absent: it is the one attribute that changes at runtime, so the publisher
+# reads /etc/hawkbit/channel directly instead of trusting a boot-time copy.
+write_attribute_cache() {
+  ATTR_TMP="$(mktemp "${ATTRIBUTE_CACHE}.XXXXXX")" || return 1
+  ATTR_FIRST=1
+
+  printf '{\n' > "$ATTR_TMP"
+  emit_attribute "product"              "Meticulous-Machine"
+  emit_attribute "model"                "M-1"
+  emit_attribute "boot_mode"            "${boot_mode}"
+  emit_attribute "serial"               "${serial}"
+  emit_attribute "boot_partition"       "${boot_partition}"
+  emit_attribute "build_date"           "${build_date}"
+  emit_attribute "build_channel"        "${build_channel}"
+  emit_attribute "som"                  "${som}"
+  emit_attribute "installed_version"    "${installed_version}"
+  emit_attribute "backup_version"       "${backup_version}"
+  emit_attribute "memory"               "${memory}"
+  emit_attribute "uboot_active_version" "${uboot_active_ref}"
+  emit_attribute "uboot_active_slot"    "${uboot_active}"
+  emit_attribute "uboot_disk_version"   "${uboot_disk_rev}"
+  emit_attribute "uboot_boot0_version"  "${uboot_boot0_rev}"
+  emit_attribute "uboot_boot1_version"  "${uboot_boot1_rev}"
+  printf '\n}\n' >> "$ATTR_TMP"
+
+  # Published atomically: a killed generator must leave no half-written cache.
+  chmod 0644 "$ATTR_TMP"
+  mv -f "$ATTR_TMP" "$ATTRIBUTE_CACHE"
+}
+
 get_somrev() {
         # Get the raw output
         raw_output=$(i2cget -f -y 0x0 0x52 0x1e)
@@ -179,7 +235,6 @@ fi
 
 sed -i "s/__TARGET_NAME__/${identifier}/" /etc/hawkbit/config.conf
 sed -i "s/__BOOT_MODE__/${boot_mode}/" /etc/hawkbit/config.conf
-sed -i "s/__UPDATE_CHANNEL__/${update_channel}/" /etc/hawkbit/config.conf
 sed -i "s/__SERIAL__/${serial}/" /etc/hawkbit/config.conf
 sed -i "s/__BOOTED__/${boot_partition}/" /etc/hawkbit/config.conf
 sed -i "s/__BUILD_DATE__/${build_date}/" /etc/hawkbit/config.conf
@@ -194,3 +249,5 @@ sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT1_REV__/${uboot_boot1_rev}/" /etc/hawkbit/config.conf
 sed -i "s|__UBOOT_ACTIVE__|${uboot_active}|" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_ACTIVE_REV__/${uboot_active_ref}/" /etc/hawkbit/config.conf
+
+write_attribute_cache
