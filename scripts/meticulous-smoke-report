@@ -14,6 +14,8 @@ from pathlib import Path
 
 HAWKBIT_CONFIG = Path("/etc/hawkbit/config.conf")
 HAWKBIT_CONFIG_GENERATOR = Path("/etc/hawkbit/create_config.sh")
+HAWKBIT_ATTRIBUTE_CACHE = Path("/run/meticulous-hawkbit-attributes.json")
+HAWKBIT_CHANNEL_FILE = Path("/etc/hawkbit/channel")
 BACKEND_URL = "http://127.0.0.1:8080/api/v1/smoke-validation"
 MACHINE_INFO_URL = "http://127.0.0.1:8080/api/v1/machine"
 MACHINE_CONFIG_FILE = Path("/meticulous-user/config/config.yml")
@@ -27,6 +29,12 @@ DEFAULT_DIAL_SENTRY_DSN = (
     "o4506723336060928.ingest.us.sentry.io/4511430165921792"
 )
 DIAL_CHECKS = ("dial_service", "dial_ready", "dial_home_ready")
+
+# Marks a machine as reporting its own attributes. The server-side
+# hawkbit-attribute-refresher is retired per channel once every online
+# target in that channel carries this attribute, so it must be published
+# on every run, even when deriving the rest of the set fails.
+ATTRIBUTE_REPORTER = "push-v1"
 
 
 def now():
@@ -164,11 +172,44 @@ def make_boot_attributes(timeout):
     return attributes
 
 
+def make_device_attributes():
+    """Device attributes previously published only by rauc-hawkbit-updater.
+
+    Everything except update_channel is fixed for the lifetime of a boot, so it
+    is derived once by create_config.sh and cached. update_channel is read live:
+    the backend rewrites it whenever the user switches channel, and a boot-time
+    copy would be stale exactly when it matters.
+    """
+    attributes = {"attribute_reporter": ATTRIBUTE_REPORTER}
+
+    try:
+        cached = json.loads(HAWKBIT_ATTRIBUTE_CACHE.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"Failed to read {HAWKBIT_ATTRIBUTE_CACHE}: {exc}", file=sys.stderr)
+        cached = {}
+
+    for key, value in cached.items():
+        # Attributes are merged server-side, so an empty value would overwrite a
+        # good one. Omitting the key leaves whatever hawkBit already holds.
+        if isinstance(value, str) and value:
+            attributes[key] = value
+
+    channel = read_text(HAWKBIT_CHANNEL_FILE, default="")
+    if channel:
+        attributes["update_channel"] = channel
+
+    return attributes
+
+
 def make_shot_attributes():
     try:
         backend_status = read_backend_status()
     except Exception as exc:
-        backend_status = {"error": str(exc)}
+        # These attributes are merged, not replaced. Falling back to "false"
+        # here would clobber a real completion every time the backend happens to
+        # be unreachable, which the hourly resync would then repeat forever.
+        print(f"Skipping post-update shot attributes: {exc}", file=sys.stderr)
+        return {}
 
     completed = backend_status.get("post_update_shot_completed") is True
     return {
@@ -185,10 +226,14 @@ def make_shot_attributes():
 
 
 def ensure_hawkbit_config():
-    if HAWKBIT_CONFIG.exists():
+    # The cache lives on tmpfs and is normally written by rauc-hawkbit-updater's
+    # ExecStartPre, so it is absent whenever that unit failed or is masked while
+    # config.conf survives from an earlier boot. The generator takes a lock, so
+    # racing the updater is safe.
+    if HAWKBIT_CONFIG.exists() and HAWKBIT_ATTRIBUTE_CACHE.exists():
         return
     if HAWKBIT_CONFIG_GENERATOR.exists():
-        run(["bash", str(HAWKBIT_CONFIG_GENERATOR)], timeout=30)
+        run(["bash", str(HAWKBIT_CONFIG_GENERATOR)], timeout=60)
 
 
 def load_hawkbit_config():
@@ -341,12 +386,21 @@ def main():
         action="store_true",
         help="publish persisted post-update shot state without waiting for boot checks",
     )
+    parser.add_argument(
+        "--attributes",
+        action="store_true",
+        help="publish device attributes without waiting for boot checks",
+    )
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
 
     attributes = {}
-    if args.boot or not args.shot:
+    if args.boot or not (args.shot or args.attributes):
         attributes.update(make_boot_attributes(args.timeout))
+    # Device attributes ride along on every publish: each one is a full
+    # synchronisation, so a machine that reaches hawkBit at all reports a
+    # complete, current set.
+    attributes.update(make_device_attributes())
     attributes.update(make_shot_attributes())
 
     try:

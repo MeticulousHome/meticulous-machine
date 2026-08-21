@@ -1,0 +1,14 @@
+[Unit]
+Description=Republish hawkBit attributes when the update channel changes
+Documentation=https://linear.app/meticulous/issue/SW-114
+ConditionHost=meticulous*
+
+[Path]
+# The backend rewrites this file when the user switches update channel. It is
+# the only hawkBit attribute that changes while the machine is running, so
+# watching it replaces polling for attribute changes entirely.
+PathChanged=/etc/hawkbit/channel
+Unit=meticulous-hawkbit-attributes.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=Publish Meticulous hawkBit device attributes
+Documentation=https://linear.app/meticulous/issue/SW-114
+ConditionHost=meticulous*
+After=network-online.target rauc-hawkbit-updater.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/meticulous-venv/bin/python3 /usr/local/bin/meticulous-smoke-report --attributes
+TimeoutStartSec=4min
+User=root
+
+# Deliberately no OnFailure=crash-reporter@.service: this unit runs hourly on
+# every machine, and a transient network failure is not a crash.
+
+[Install]
+WantedBy=multi-user.target
