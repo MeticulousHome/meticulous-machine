@@ -119,8 +119,9 @@ get_mmc_boot_config() {
 sync_update_channel_to_image() {
   image_channel="$1"
   image_build_date="$2"
-  image_state_file="/meticulous-user/hawkbit-image-id" #kept just to track the image id
-  hawkbit_channel_file="/etc/hawkbit/channel"
+  # Paths are overridable so the reconciliation can be exercised by tests.
+  image_state_file="${HAWKBIT_IMAGE_STATE_FILE:-/meticulous-user/hawkbit-image-id}" #kept just to track the image id
+  hawkbit_channel_file="${HAWKBIT_CHANNEL_FILE:-/etc/hawkbit/channel}"
 
   if [ -z "$image_channel" ] || [ "$image_channel" = "UNKNOWN" ]; then
     echo "Image build channel is unknown, keeping existing update channel"
@@ -142,9 +143,15 @@ sync_update_channel_to_image() {
     echo "${current_channel} (current) -> ${image_channel} (image)"
     echo "updating Hawkbit channel"
     echo "$image_channel" > "$hawkbit_channel_file"
-    mkdir -p "$(dirname "$image_state_file")"
-    echo "$image_id" > "$image_state_file"
   fi
+
+  # Record the image even when the channel already matched it. Leaving the
+  # state file unwritten makes every later run re-detect this same image as
+  # new, so the first channel the user picks is reverted the next time this
+  # script runs -- which is immediately, because changing the channel
+  # restarts rauc-hawkbit-updater.
+  mkdir -p "$(dirname "$image_state_file")"
+  echo "$image_id" > "$image_state_file"
 
 }
 
