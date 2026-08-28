@@ -1,4 +1,8 @@
 #!/bin/bash
+export LINUX_GIT="git@github.com:MeticulousHome/linux-fika.git"
+export LINUX_BRANCH="linux-6.12.y"
+export BACKEND_BRANCH="main-factory"
+export DIAL_BRANCH="beta-factory"
 export LINUX_REV="896ed562b8e72bfc4fd1893171faed0acdcf06a8" # Merge pull request #2 from MeticulousHome/nightly
 export UBOOT_REV="00ba0da24a8b4a5b5d5e9ec56ebf92c8d1b055d0" # config:_Enable GPIO read command
 export ATF_REV="bed39c167c883b335d5fc1046ce16e10a611b4c4" # plat: imx8m: Fix compile errors with active VAR_ENABLE_IMX_UART
