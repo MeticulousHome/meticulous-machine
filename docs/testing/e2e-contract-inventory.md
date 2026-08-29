@@ -13,13 +13,14 @@ cross-repository contract and complete-machine journeys.
 
 ## Captured baseline
 
-The first baseline was captured from the `nightly` branches on 2026-08-10:
+The baseline was refreshed for SW-8 from machine `nightly` and the coordinated
+Dial and backend pull-request heads on 2026-08-13:
 
 | Repository | Captured commit | Authority inspected |
 | --- | --- | --- |
-| meticulous-machine | `220dbcbc41d64069c85f98f46b7c2808c86ee20d` | `config.sh`, image channel manifests, Nginx and systemd units |
-| meticulous-dial | `7f4482871d4feb73a5518f26954f33256c3c3d19` | `ScreenType`, route registry, API calls and Socket.IO usage |
-| meticulous-backend | `69086ade492fffdb4d304b47281239ca560bb485` | API registration, Socket.IO, allowed actions and emulator traces |
+| meticulous-machine | `c584d054ade57a92ba69d27e1bc3b3109dfddcd6` | `config.sh`, image channel manifests, Nginx and systemd units |
+| meticulous-dial | `847de5ada9958f336649d0e63cd4318ffde2a009` | `ScreenType`, route registry, API calls and Socket.IO usage |
+| meticulous-backend | `4a4149fd99e131671d97c16604b43d2359b28244` | API registration, Socket.IO, allowed actions and emulator traces |
 | EspressoFirmware | `f201fbbd4a85cc7c47127f900268700e21468a03` | `FikaUart` incoming keys/actions and backend-consumed messages |
 
 The validator intentionally compares discovered source surfaces with the
@@ -34,7 +35,7 @@ The captured contract contains:
   settings, Wi-Fi, advanced settings and diagnostics.
 - 36 API-client methods called by Dial.
 - 9 Socket.IO events consumed by Dial and 3 emitted by Dial.
-- 57 backend API route patterns, 4 inbound Socket.IO events and 9 outbound
+- 58 backend API route patterns, 4 inbound Socket.IO events and 9 outbound
   Socket.IO events.
 - 4 existing backend emulation scenarios: idle, home, purge and espresso.
 - 5 firmware UART command families, 13 actions and 11 outbound message

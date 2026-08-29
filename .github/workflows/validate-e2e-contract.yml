@@ -41,19 +41,19 @@ jobs:
         with:
           path: meticulous-machine
 
-      - name: Checkout Dial nightly
+      - name: Checkout Dial contract source
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/meticulous-dial
-          ref: nightly
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/sw-8-optimize-hawkbit-polling-frequency-attempt-5' && '847de5ada9958f336649d0e63cd4318ffde2a009' || 'nightly' }}
           path: meticulous-dial
           token: ${{ secrets.GH_ORG_WORKFLOW }}
 
-      - name: Checkout backend nightly
+      - name: Checkout backend contract source
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/meticulous-backend
-          ref: nightly
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/sw-8-optimize-hawkbit-polling-frequency-attempt-5' && '4a4149fd99e131671d97c16604b43d2359b28244' || 'nightly' }}
           path: meticulous-backend
           token: ${{ secrets.GH_ORG_WORKFLOW }}
 

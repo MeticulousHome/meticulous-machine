@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-08-10",
+  "captured_at": "2026-08-13",
   "source_snapshot": {
-    "meticulous-machine": "220dbcbc41d64069c85f98f46b7c2808c86ee20d",
-    "meticulous-dial": "7f4482871d4feb73a5518f26954f33256c3c3d19",
-    "meticulous-backend": "69086ade492fffdb4d304b47281239ca560bb485",
+    "meticulous-machine": "c584d054ade57a92ba69d27e1bc3b3109dfddcd6",
+    "meticulous-dial": "847de5ada9958f336649d0e63cd4318ffde2a009",
+    "meticulous-backend": "4a4149fd99e131671d97c16604b43d2359b28244",
     "EspressoFirmware": "f201fbbd4a85cc7c47127f900268700e21468a03"
   },
   "dial": {
@@ -189,6 +189,7 @@
       "/sounds/theme/set/(.*)",
       "/sounds/theme/upload",
       "/timezones/(.*)",
+      "/update/check",
       "/update/firmware",
       "/wifi/config",
       "/wifi/config/qr.png",
