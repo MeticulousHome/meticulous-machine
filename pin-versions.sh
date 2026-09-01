@@ -455,7 +455,11 @@ if [[ -n "$SINGLE_COMPONENT_PATH" ]]; then
     ensure_output_file
     pin_single_component
 else
-    reset_output_file
+    if [[ "$DEST_IMAGE" == "factory" ]]; then
+        ensure_output_file
+    else
+        reset_output_file
+    fi
     pin_all_components
 fi
 
