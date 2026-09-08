@@ -97,7 +97,7 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
       - name: Checkout all component sources
         run: |
@@ -132,7 +132,7 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
       - name: Clone lab certification tools
         if: ${{ inputs.image == 'lab_certification' }}
@@ -288,7 +288,7 @@ jobs:
 
       - name: Set up Git authentication
         run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
 
       - name: Clone private repository
         uses: actions/checkout@v4
