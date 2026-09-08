@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  build-bootloader:
     uses: ./.github/workflows/build-component.yml
     with:
       build-option: bootloader
@@ -21,3 +21,60 @@ jobs:
       no-cache: true
       machine-ref: codex/sw-122-integration-build
     secrets: inherit
+
+  build-rauc:
+    uses: ./.github/workflows/build-component.yml
+    with:
+      build-option: rauc
+      build-path: components/rauc/build
+      image: beta
+      runner: ubuntu-24.04
+      no-cache: true
+      machine-ref: codex/sw-122-integration-build
+    secrets: inherit
+
+  bundle:
+    name: Build signed bootloader bundle
+    needs:
+      - build-bootloader
+      - build-rauc
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clone signing material
+        uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/rauc-secrets
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
+          path: components/rauc-secrets
+
+      - name: Download bootloader artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bootloader
+          path: components/bootloader/build
+
+      - name: Download RAUC artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rauc
+          path: components/rauc/build
+
+      - name: Install matched RAUC package
+        run: sudo apt install --reinstall ./components/rauc/build/rauc_*_amd64.deb
+
+      - name: Build beta-signed bootloader bundle
+        run: >-
+          ./make-bootloader-ota.sh
+          --variant sw122-lab
+          --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem
+          --key components/rauc-secrets/keys/beta.rsa4096.key.pem
+
+      - name: Upload signed bootloader bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sw122-bootloader-bundle.raucb
+          path: rauc_meticulous_boot_sw122-lab-*.raucb
+          if-no-files-found: error
