@@ -29,6 +29,11 @@ good and restores the normal three-attempt allowance. If that first boot fails,
 the following restart falls back to the previous slot instead of entering a
 multi-reboot loop.
 
+The script records the slot selected for each boot as `rauc_last_booted`. On the
+first boot after upgrading an older environment, it infers the running slot from
+the first entry in `BOOT_ORDER` that still has attempts. This prevents an
+exhausted former primary from being mistaken for the currently running slot.
+
 ## Hardware and release coupling
 
 On I2C Expansion Board Rev E, SW1 drives `SOM_INTn` low through J4. The main board
@@ -37,5 +42,9 @@ and supplies its pull-up. The U-Boot device tree must mux that pad as GPIO and
 the U-Boot environment must set the volatile `rauc_switch_requested` flag; the
 RAUC boot script consumes and clears the flag before saving the environment.
 
-Deploy the matching U-Boot and `u-boot.scr` changes together. The initial release
-target for this workflow is the `beta` image channel.
+Deploy the matching U-Boot and `u-boot.scr` changes together. New SD-card and
+fastboot images already carry both. For existing machines, use the bootloader OTA
+bundle produced by `make-bootloader-ota.sh`; it now includes the compiled script,
+and its post-install hook stages both script filenames before activating
+`boot.scr`. Do not deploy the script by itself. The initial release target for
+this workflow is the `beta` image channel.

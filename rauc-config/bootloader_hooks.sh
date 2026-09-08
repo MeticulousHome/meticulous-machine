@@ -2,7 +2,7 @@
 
 function preserve_uboot() {
     declare -A env_map
-    PRESERVE_PARAMS="mmcdev mmcpart BOOT_A_LEFT BOOT_B_LEFT BOOT_ORDER emmc_dev"
+    PRESERVE_PARAMS="mmcdev mmcpart BOOT_A_LEFT BOOT_B_LEFT BOOT_ORDER rauc_last_booted emmc_dev"
 
     # Preserve what we care about
     for param in $PRESERVE_PARAMS; do
@@ -30,12 +30,37 @@ function preserve_uboot() {
     fw_setenv bootcmd "run bsp_bootcmd"
 }
 
+function install_boot_script() {
+    local source="${RAUC_BUNDLE_MOUNT_POINT}/u-boot.scr"
+    local target_dir="${BOOT_SCRIPT_TARGET_DIR:-/boot/env}"
+
+    if [ ! -f "$source" ]; then
+        echo "Matching u-boot.scr is missing from bootloader bundle" >&2
+        return 1
+    fi
+    if [ ! -d "$target_dir" ]; then
+        echo "U-Boot environment partition is not mounted at $target_dir" >&2
+        return 1
+    fi
+
+    # Stage both copies before replacing either. boot.scr is the authoritative
+    # bsp_script and is renamed last, so an interrupted copy keeps the old pair
+    # bootable rather than activating a partial update.
+    cp "$source" "$target_dir/.u-boot.scr.new"
+    cp "$source" "$target_dir/.boot.scr.new"
+    sync
+    mv -f "$target_dir/.u-boot.scr.new" "$target_dir/u-boot.scr"
+    mv -f "$target_dir/.boot.scr.new" "$target_dir/boot.scr"
+    sync
+}
+
 case "$1" in
     slot-post-install)
         #Ensure the hook is for the bootloader slot
         if [ "$RAUC_SLOT_CLASS" = "bootloader" ]; then
-            echo "Cleaning Env files after bootloader update"
-            preserve_uboot
+            echo "Installing matching boot script and cleaning Env files after bootloader update"
+            install_boot_script || exit 1
+            preserve_uboot || exit 1
         fi
         ;;
     *)
