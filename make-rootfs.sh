@@ -52,6 +52,17 @@ function install_lab_certification_tools() {
         exit 1
     fi
 
+    lab_runner="scripts/met-sgs-rf-test"
+    private_lab_runner="${LAB_CERTIFICATION_TOOLS_SRC_DIR}/sgs/met-sgs-rf-test"
+    if [ ! -f "${private_lab_runner}" ]; then
+        echo "The private lab tools checkout is missing ${private_lab_runner}."
+        exit 1
+    fi
+    if ! cmp -s "${lab_runner}" "${private_lab_runner}"; then
+        echo "The SGS RF test runner differs between meticulous-machine and lab-certification-tools."
+        exit 1
+    fi
+
     target_dir="${ROOTFS_DIR}/opt/meticulous-lab-tools"
     mkdir -p "${target_dir}"
     cp -Rv "${LAB_CERTIFICATION_TOOLS_SRC_DIR}/sgs" "${target_dir}/"
