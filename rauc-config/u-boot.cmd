@@ -3,6 +3,58 @@ test -n "${BOOT_ORDER}" || setenv BOOT_ORDER "A B"
 test -n "${BOOT_A_LEFT}" || setenv BOOT_A_LEFT 3
 test -n "${BOOT_B_LEFT}" || setenv BOOT_B_LEFT 3
 
+# The rear button request is volatile and is set by U-Boot only after two
+# active-low samples. Validate the alternate slot before changing RAUC state.
+if test "x${rauc_switch_requested}" = "x1"; then
+  setenv rauc_switch_requested
+  setenv rauc_switch_from
+  setenv rauc_switch_to
+
+  for BOOT_SLOT in "${BOOT_ORDER}"; do
+    if test "x${rauc_switch_from}" = "x"; then
+      setenv rauc_switch_from "${BOOT_SLOT}"
+    fi
+  done
+
+  if test "x${rauc_switch_from}" = "xA"; then
+    if test 0x${BOOT_B_LEFT} -gt 0; then
+      setenv rauc_switch_to B
+      setenv mmcpart 4
+      setenv rauc_slot "rauc.slot=B"
+    fi
+  elif test "x${rauc_switch_from}" = "xB"; then
+    if test 0x${BOOT_A_LEFT} -gt 0; then
+      setenv rauc_switch_to A
+      setenv mmcpart 3
+      setenv rauc_slot "rauc.slot=A"
+    fi
+  fi
+
+  if test -n "${rauc_switch_to}"; then
+    echo "Checking alternate slot ${rauc_switch_to} before switching"
+    if run loadimage; then
+      if run loadfdt; then
+        setenv BOOT_ORDER "${rauc_switch_to} ${rauc_switch_from}"
+        if test "x${rauc_switch_to}" = "xA"; then
+          setenv BOOT_A_LEFT 1
+        else
+          setenv BOOT_B_LEFT 1
+        fi
+        echo "Alternate slot ${rauc_switch_to} validated; switching now"
+      else
+        echo "Rear-button switch refused: alternate slot has no usable device tree"
+      fi
+    else
+      echo "Rear-button switch refused: alternate slot has no usable kernel"
+    fi
+  else
+    echo "Rear-button switch refused: alternate slot is marked unbootable"
+  fi
+
+  setenv rauc_switch_from
+  setenv rauc_switch_to
+fi
+
 setenv rauc_active
 for BOOT_SLOT in "${BOOT_ORDER}"; do
 if test "x${rauc_active}" != "x"; then
