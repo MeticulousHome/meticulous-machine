@@ -1,0 +1,23 @@
+name: SW-122 integration bootloader build
+
+on:
+  push:
+    branches:
+      - codex/sw-122-integration-build
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-component.yml
+    with:
+      build-option: bootloader
+      build-path: components/bootloader/build
+      image: beta
+      runner: ubuntu-24.04
+      no-cache: true
+      machine-ref: codex/sw-122-integration-build
+    secrets: inherit

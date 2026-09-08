@@ -2,7 +2,7 @@
 export LINUX_BRANCH="beta"
 export LINUX_REV="HEAD" # set the usbotg1 node as host only on meticulous DT
 export UBOOT_BRANCH="codex/sw-122-one-shot-boot-switch"
-export UBOOT_REV="012ea1c0c0007202c09628be49e5a265b521217e" # SW-122 matched U-Boot candidate
+export UBOOT_REV="64613439db4de6a66ea69b8c808991a07f6d0918" # SW-122 matched U-Boot candidate
 export ATF_REV="bed39c167c883b335d5fc1046ce16e10a611b4c4" # plat: imx8m: Fix compile errors with active VAR_ENABLE_IMX_UART
 export IMX_MKIMAGE_REV="71b8c18af93a5eb972d80fbec290006066cff24f" # Add flash_all_ap target for non-Linux ap image.
 export DEBIAN_BRANCH="beta"
