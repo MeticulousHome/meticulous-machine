@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly tool_dir="${MET_SGS_RF_TOOL_DIR:-/opt/meticulous-lab-tools/sgs/Murata_NXP_RF_Test_Tool_1.29}"
+readonly tool_script="${tool_dir}/Murata_NXP_RF_Test_Tool.py"
+readonly wifi_interface="${MET_SGS_RF_WIFI_INTERFACE:-wlan0}"
+
+readonly services=(
+    NetworkManager.service
+    wpa_supplicant.service
+    meticulous-backend.service
+    meticulous-watcher.service
+    rauc-hawkbit-updater.service
+)
+
+fail() {
+    printf 'ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+step() {
+    printf '\n== %s ==\n' "$*"
+}
+
+if [ "${EUID}" -ne 0 ]; then
+    fail "Run this command as root."
+fi
+
+[ -r "${tool_script}" ] || fail "Murata RF Test Tool v1.29 was not found at ${tool_script}."
+command -v python3 >/dev/null 2>&1 || fail "python3 is not installed."
+command -v systemctl >/dev/null 2>&1 || fail "systemctl is not available."
+command -v ip >/dev/null 2>&1 || fail "The ip command is not available."
+
+step "Preparing the machine for conducted RF testing"
+printf 'This stops normal Wi-Fi management. Run it from the FTDI serial console, not over SSH.\n'
+
+for service in "${services[@]}"; do
+    printf 'Stopping %s... ' "${service}"
+    if systemctl stop "${service}" 2>/dev/null; then
+        printf 'done\n'
+    else
+        printf 'not running or not installed\n'
+    fi
+done
+
+if command -v rfkill >/dev/null 2>&1; then
+    printf 'Unblocking the Wi-Fi radio... '
+    if rfkill unblock wifi 2>/dev/null; then
+        printf 'done\n'
+    else
+        printf 'not required\n'
+    fi
+fi
+
+ip link show "${wifi_interface}" >/dev/null 2>&1 || fail "Wi-Fi interface ${wifi_interface} was not found."
+printf 'Taking %s down... ' "${wifi_interface}"
+ip link set "${wifi_interface}" down
+printf 'done\n'
+
+step "Starting Murata NXP RF Test Tool v1.29"
+printf 'Tool directory: %s\n' "${tool_dir}"
+printf 'After the test, use the tool stop/exit flow and then reboot the machine.\n\n'
+
+cd "${tool_dir}"
+set +e
+python3 "${tool_script}"
+status=$?
+set -e
+
+printf '\nMurata RF Test Tool exited with status %s.\n' "${status}"
+printf 'Reboot the machine before returning it to normal operation.\n'
+exit "${status}"
