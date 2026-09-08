@@ -45,6 +45,10 @@ RAUC boot script consumes and clears the flag before saving the environment.
 Deploy the matching U-Boot and `u-boot.scr` changes together. New SD-card and
 fastboot images already carry both. For existing machines, use the bootloader OTA
 bundle produced by `make-bootloader-ota.sh`; it now includes the compiled script,
-and its post-install hook stages both script filenames before activating
-`boot.scr`. Do not deploy the script by itself. The initial release target for
-this workflow is the `beta` image channel.
+and its post-install hook stages both script filenames before activating the
+authoritative `boot.scr` last. Any staging, activation, sync, or U-Boot
+environment failure makes RAUC report the update as failed. The hook cannot roll
+back a bootloader slot that RAUC has already written, so this is ordered
+fail-safe activation, not a transactional replacement of the bootloader and
+both script names. Do not deploy the script by itself. The initial release
+target for this workflow is the `beta` image channel.

@@ -181,7 +181,7 @@ class RearButtonBootSwitchTests(unittest.TestCase):
         self.assertEqual(state["rauc_last_booted"], "B")
         self.assertEqual(state["UNZIP_PARTS"].split(), ["4", "4"])
 
-    def test_bootloader_ota_carries_and_atomically_stages_matching_script(self):
+    def test_bootloader_ota_carries_and_orders_fail_safe_script_activation(self):
         self.assertIn('cp "$BOOT_SCRIPT_PATH" "$CONTENT_DIR/u-boot.scr"', OTA_BUILDER)
         self.assertIn('${RAUC_BUNDLE_MOUNT_POINT}/u-boot.scr', HOOK)
         stage_u_boot = HOOK.index('cp "$source" "$target_dir/.u-boot.scr.new"')
@@ -197,12 +197,13 @@ class RearButtonBootSwitchTests(unittest.TestCase):
         self.assertLess(stage_boot, activate_u_boot)
         self.assertLess(activate_u_boot, activate_boot)
 
-    def test_bootloader_hook_installs_matching_script_and_fails_closed(self):
+    def test_bootloader_hook_installs_matching_script_and_rejects_missing_source(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp = Path(temp_dir)
             bundle = temp / "bundle"
             target = temp / "env"
             stub_bin = temp / "bin"
+            fw_setenv_log = temp / "fw_setenv.log"
             bundle.mkdir()
             target.mkdir()
             stub_bin.mkdir()
@@ -212,16 +213,12 @@ class RearButtonBootSwitchTests(unittest.TestCase):
 
             stubs = {
                 "fw_printenv": """#!/bin/sh
-if [ "$#" -eq 0 ]; then
-  printf 'BOOT_ORDER=A B\\nBOOT_A_LEFT=3\\nBOOT_B_LEFT=3\\n'
-else
-  case "$1" in
-    BOOT_ORDER) printf 'BOOT_ORDER=A B\\n' ;;
-    BOOT_A_LEFT|BOOT_B_LEFT) printf '%s=3\\n' "$1" ;;
-  esac
-fi
+printf 'BOOT_ORDER=A B\\nBOOT_A_LEFT=3\\nBOOT_B_LEFT=3\\nemmc_dev=2=legacy\\n'
 """,
-                "fw_setenv": "#!/bin/sh\nexit 0\n",
+                "fw_setenv": """#!/bin/sh
+printf '%s\\t%s\\n' "$1" "${2-}" >> "$FW_SETENV_LOG"
+exit 0
+""",
                 "sync": "#!/bin/sh\nexit 0\n",
             }
             for name, contents in stubs.items():
@@ -235,6 +232,7 @@ fi
                 "RAUC_SLOT_CLASS": "bootloader",
                 "RAUC_BUNDLE_MOUNT_POINT": str(bundle),
                 "BOOT_SCRIPT_TARGET_DIR": str(target),
+                "FW_SETENV_LOG": str(fw_setenv_log),
             }
             subprocess.run(
                 ["bash", str(ROOT / "rauc-config" / "bootloader_hooks.sh"), "slot-post-install"],
@@ -247,6 +245,7 @@ fi
             self.assertEqual((target / "u-boot.scr").read_bytes(), b"matched-script")
             self.assertFalse((target / ".boot.scr.new").exists())
             self.assertFalse((target / ".u-boot.scr.new").exists())
+            self.assertIn("emmc_dev\t2=legacy", fw_setenv_log.read_text().splitlines())
 
             (bundle / "u-boot.scr").unlink()
             (target / "boot.scr").write_bytes(b"known-good")
@@ -260,6 +259,131 @@ fi
             self.assertNotEqual(failed.returncode, 0)
             self.assertEqual((target / "boot.scr").read_bytes(), b"known-good")
             self.assertEqual((target / "u-boot.scr").read_bytes(), b"known-good")
+
+    def test_bootloader_hook_propagates_staging_and_activation_failures(self):
+        scenarios = {
+            "first staging copy": {"FAIL_CP_CALL": "1"},
+            "second staging copy": {"FAIL_CP_CALL": "2"},
+            "authoritative activation": {"FAIL_MV_CALL": "2"},
+            "pre-activation sync": {"FAIL_SYNC_CALL": "1"},
+            "post-activation sync": {"FAIL_SYNC_CALL": "2"},
+        }
+        for scenario, injected_environment in scenarios.items():
+            with (
+                self.subTest(scenario=scenario),
+                tempfile.TemporaryDirectory() as temp_dir,
+            ):
+                temp = Path(temp_dir)
+                bundle = temp / "bundle"
+                target = temp / "env"
+                stub_bin = temp / "bin"
+                bundle.mkdir()
+                target.mkdir()
+                stub_bin.mkdir()
+                (bundle / "u-boot.scr").write_bytes(b"matched-script")
+                (target / "boot.scr").write_bytes(b"known-good")
+                (target / "u-boot.scr").write_bytes(b"known-good")
+
+                stubs = {
+                    "cp": """#!/bin/sh
+count_file="$STUB_STATE/cp"
+count=$(($(cat "$count_file" 2>/dev/null || printf 0) + 1))
+printf '%s' "$count" > "$count_file"
+[ "${FAIL_CP_CALL-}" != "$count" ] || exit 71
+exec /bin/cp "$@"
+""",
+                    "mv": """#!/bin/sh
+count_file="$STUB_STATE/mv"
+count=$(($(cat "$count_file" 2>/dev/null || printf 0) + 1))
+printf '%s' "$count" > "$count_file"
+[ "${FAIL_MV_CALL-}" != "$count" ] || exit 72
+exec /bin/mv "$@"
+""",
+                    "sync": """#!/bin/sh
+count_file="$STUB_STATE/sync"
+count=$(($(cat "$count_file" 2>/dev/null || printf 0) + 1))
+printf '%s' "$count" > "$count_file"
+[ "${FAIL_SYNC_CALL-}" != "$count" ] || exit 73
+exec /bin/sync "$@"
+""",
+                    "fw_printenv": "#!/bin/sh\nprintf 'BOOT_ORDER=A B\\n'\n",
+                    "fw_setenv": "#!/bin/sh\nexit 0\n",
+                }
+                for name, contents in stubs.items():
+                    path = stub_bin / name
+                    path.write_text(contents)
+                    path.chmod(0o755)
+
+                hook_environment = {
+                    **os.environ,
+                    **injected_environment,
+                    "PATH": f"{stub_bin}:{os.environ['PATH']}",
+                    "RAUC_SLOT_CLASS": "bootloader",
+                    "RAUC_BUNDLE_MOUNT_POINT": str(bundle),
+                    "BOOT_SCRIPT_TARGET_DIR": str(target),
+                    "STUB_STATE": str(temp),
+                }
+                failed = subprocess.run(
+                    [
+                        "bash",
+                        str(ROOT / "rauc-config" / "bootloader_hooks.sh"),
+                        "slot-post-install",
+                    ],
+                    env=hook_environment,
+                    text=True,
+                    capture_output=True,
+                )
+                self.assertNotEqual(failed.returncode, 0)
+                if scenario in {
+                    "first staging copy",
+                    "second staging copy",
+                    "authoritative activation",
+                    "pre-activation sync",
+                }:
+                    self.assertEqual(
+                        (target / "boot.scr").read_bytes(), b"known-good"
+                    )
+
+    def test_bootloader_hook_propagates_fw_setenv_failure(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp = Path(temp_dir)
+            bundle = temp / "bundle"
+            target = temp / "env"
+            stub_bin = temp / "bin"
+            bundle.mkdir()
+            target.mkdir()
+            stub_bin.mkdir()
+            (bundle / "u-boot.scr").write_bytes(b"matched-script")
+            (target / "boot.scr").write_bytes(b"known-good")
+            (target / "u-boot.scr").write_bytes(b"known-good")
+
+            stubs = {
+                "fw_printenv": "#!/bin/sh\nprintf 'BOOT_ORDER=A B\\n'\n",
+                "fw_setenv": "#!/bin/sh\nexit 74\n",
+                "sync": "#!/bin/sh\nexit 0\n",
+            }
+            for name, contents in stubs.items():
+                path = stub_bin / name
+                path.write_text(contents)
+                path.chmod(0o755)
+
+            failed = subprocess.run(
+                [
+                    "bash",
+                    str(ROOT / "rauc-config" / "bootloader_hooks.sh"),
+                    "slot-post-install",
+                ],
+                env={
+                    **os.environ,
+                    "PATH": f"{stub_bin}:{os.environ['PATH']}",
+                    "RAUC_SLOT_CLASS": "bootloader",
+                    "RAUC_BUNDLE_MOUNT_POINT": str(bundle),
+                    "BOOT_SCRIPT_TARGET_DIR": str(target),
+                },
+                text=True,
+                capture_output=True,
+            )
+            self.assertNotEqual(failed.returncode, 0)
 
     def test_bootloader_ota_builder_passes_matched_artifacts_to_rauc(self):
         with tempfile.TemporaryDirectory() as temp_dir:
