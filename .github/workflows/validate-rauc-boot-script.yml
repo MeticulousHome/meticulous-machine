@@ -1,0 +1,42 @@
+name: Validate RAUC boot script
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/validate-rauc-boot-script.yml"
+      - "rauc-config/u-boot.cmd"
+      - "tests/test_rear_button_boot_switch.py"
+  push:
+    branches:
+      - beta
+      - nightly
+    paths:
+      - ".github/workflows/validate-rauc-boot-script.yml"
+      - "rauc-config/u-boot.cmd"
+      - "tests/test_rear_button_boot_switch.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout meticulous-machine
+        uses: actions/checkout@v4
+
+      - name: Install U-Boot tools
+        run: sudo apt-get update && sudo apt-get install -y u-boot-tools
+
+      - name: Run boot-script safety tests
+        run: python -m unittest -v tests/test_rear_button_boot_switch.py
+
+      - name: Compile boot script
+        run: >-
+          mkimage -A arm -O linux -T script -C none -a 0 -e 0
+          -n "Meticulous Boot Script"
+          -d rauc-config/u-boot.cmd /tmp/u-boot.scr
+
+      - name: Inspect compiled boot script
+        run: dumpimage -l /tmp/u-boot.scr
