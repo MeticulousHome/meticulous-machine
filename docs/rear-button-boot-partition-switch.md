@@ -34,6 +34,23 @@ first boot after upgrading an older environment, it infers the running slot from
 the first entry in `BOOT_ORDER` that still has attempts. This prevents an
 exhausted former primary from being mistaken for the currently running slot.
 
+## Automatic slot selection
+
+The same kernel and device-tree checks guard the normal selector that runs on
+every boot. A slot whose `BOOT_<slot>_LEFT` counter is above zero is only a
+candidate; before an attempt is spent on it, U-Boot must load and decompress its
+kernel and load the device tree for the installed SOM revision. A candidate
+that fails any check is skipped with a `Slot <slot> skipped:` message and its
+counter is left untouched, and the selector continues with the next entry in
+`BOOT_ORDER`.
+
+This closes the factory-fresh failure where slot B is formatted but empty: once
+slot A exhausts its attempts, the old selector committed to slot B purely on
+its counter and the machine stopped on a black screen. Now slot B is skipped,
+no slot remains, both counters reset to three, and the next start boots slot A
+again. The cost is one extra kernel load and decompression on every boot before
+the authoritative `loadimage`.
+
 ## Hardware and release coupling
 
 On I2C Expansion Board Rev E, SW1 drives `SOM_INTn` low through J4. The main board
