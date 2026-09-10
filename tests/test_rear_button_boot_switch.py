@@ -50,7 +50,10 @@ load() {
   fi
   return 0
 }
-unzip() { UNZIP_PARTS="${UNZIP_PARTS} ${mmcpart}"; return 0; }
+unzip() {
+  UNZIP_PARTS="${UNZIP_PARTS} ${mmcpart}"
+  [ "${mmcpart}" != "${CORRUPT_KERNEL_PART}" ]
+}
 run() {
   case "$1" in
     loadimage)
@@ -73,7 +76,7 @@ source "$1"
 script_status=$?
 [ "$script_status" -eq 0 ] || exit "$script_status"
 printf '\n__STATE__\n'
-for name in BOOT_ORDER BOOT_A_LEFT BOOT_B_LEFT rauc_last_booted rauc_switch_requested LOAD_PARTS UNZIP_PARTS SAVEENV_CALLS; do
+for name in BOOT_ORDER BOOT_A_LEFT BOOT_B_LEFT rauc_last_booted rauc_switch_requested rauc_active mmcpart LOAD_PARTS UNZIP_PARTS SAVEENV_CALLS; do
   printf '%s=%s\n' "$name" "${!name-}"
 done
 '''
@@ -85,6 +88,7 @@ done
         "bootdir": "/boot",
         "image": "Image.gz",
         "MISSING_KERNEL_PART": "none",
+        "CORRUPT_KERNEL_PART": "none",
     }
     with tempfile.NamedTemporaryFile("w", delete=False) as script_file:
         script_file.write(bash_script)
@@ -150,9 +154,10 @@ class RearButtonBootSwitchTests(unittest.TestCase):
 
         self.assertEqual(state["BOOT_ORDER"], "A B")
         self.assertEqual(state["BOOT_B_LEFT"], "3")
-        # The normal A boot decompresses once. The missing B preflight must not
-        # call unzip even though the harness models stale compressed RAM.
-        self.assertEqual(state["UNZIP_PARTS"].split(), ["3"])
+        # The normal A boot decompresses twice (selector preflight, then the
+        # authoritative loadimage). The missing B preflight must not call unzip
+        # even though the harness models stale compressed RAM.
+        self.assertEqual(state["UNZIP_PARTS"].split(), ["3", "3"])
         self.assertIn("no usable kernel", state["OUTPUT"])
 
     def test_legacy_environment_infers_live_fallback_slot(self):
@@ -179,7 +184,8 @@ class RearButtonBootSwitchTests(unittest.TestCase):
         self.assertEqual(state["BOOT_ORDER"], "B A")
         self.assertEqual(state["BOOT_B_LEFT"], "0")
         self.assertEqual(state["rauc_last_booted"], "B")
-        self.assertEqual(state["UNZIP_PARTS"].split(), ["4", "4"])
+        # Rear-button preflight, selector preflight, then loadimage.
+        self.assertEqual(state["UNZIP_PARTS"].split(), ["4", "4", "4"])
 
     def test_bootloader_ota_carries_and_orders_fail_safe_script_activation(self):
         self.assertIn('cp "$BOOT_SCRIPT_PATH" "$CONTENT_DIR/u-boot.scr"', OTA_BUILDER)
@@ -433,6 +439,96 @@ printf 'bundle' > "$5"
             bundles = list(temp.glob("rauc_meticulous_boot_sw122-test-*.raucb"))
             self.assertEqual(len(bundles), 1)
             self.assertEqual(bundles[0].read_bytes(), b"bundle")
+
+
+class AutomaticFallbackPreflightTests(unittest.TestCase):
+    def test_exhausted_primary_never_falls_back_onto_an_empty_slot(self):
+        # Factory-fresh machine after the repeated-restart rollback: slot A has
+        # exhausted its attempts and slot B is a formatted but empty filesystem.
+        state = run_boot_script(
+            BOOT_ORDER="A B",
+            BOOT_A_LEFT="0",
+            BOOT_B_LEFT="3",
+            rauc_last_booted="A",
+            MISSING_KERNEL_PART="4",
+        )
+
+        self.assertIn("Slot B skipped: no usable kernel", state["OUTPUT"])
+        self.assertIn("No valid slot found", state["OUTPUT"])
+        self.assertEqual(state["rauc_active"], "")
+        self.assertEqual(state["rauc_last_booted"], "A")
+        self.assertEqual(state["BOOT_ORDER"], "A B")
+        # Counters are reset so the next start retries the populated slot A
+        # instead of committing to a slot that cannot boot.
+        self.assertEqual(state["BOOT_A_LEFT"], "3")
+        self.assertEqual(state["BOOT_B_LEFT"], "3")
+        self.assertEqual(state["UNZIP_PARTS"].split(), [])
+
+    def test_exhausted_primary_falls_back_onto_a_validated_slot(self):
+        state = run_boot_script(
+            BOOT_ORDER="A B",
+            BOOT_A_LEFT="0",
+            BOOT_B_LEFT="3",
+            rauc_last_booted="A",
+        )
+
+        self.assertIn("Found valid slot B, 3 attempts remaining", state["OUTPUT"])
+        self.assertEqual(state["rauc_active"], "1")
+        self.assertEqual(state["rauc_last_booted"], "B")
+        self.assertEqual(state["mmcpart"], "4")
+        self.assertEqual(state["BOOT_A_LEFT"], "0")
+        self.assertEqual(state["BOOT_B_LEFT"], "2")
+        self.assertEqual(state["LOAD_PARTS"].split(), ["4", "4", "4"])
+        self.assertEqual(state["UNZIP_PARTS"].split(), ["4", "4"])
+
+    def test_missing_kernel_on_primary_skips_it_without_spending_an_attempt(self):
+        state = run_boot_script(
+            BOOT_ORDER="A B",
+            BOOT_A_LEFT="3",
+            BOOT_B_LEFT="3",
+            rauc_last_booted="B",
+            MISSING_KERNEL_PART="3",
+        )
+
+        self.assertIn("Slot A skipped: no usable kernel", state["OUTPUT"])
+        self.assertIn("Found valid slot B, 3 attempts remaining", state["OUTPUT"])
+        self.assertEqual(state["BOOT_A_LEFT"], "3")
+        self.assertEqual(state["BOOT_B_LEFT"], "2")
+        self.assertEqual(state["rauc_last_booted"], "B")
+        self.assertEqual(state["mmcpart"], "4")
+        # The failed slot A load must not be followed by a decompression.
+        self.assertEqual(state["UNZIP_PARTS"].split(), ["4", "4"])
+
+    def test_corrupt_kernel_on_primary_skips_it_without_spending_an_attempt(self):
+        state = run_boot_script(
+            BOOT_ORDER="A B",
+            BOOT_A_LEFT="3",
+            BOOT_B_LEFT="3",
+            rauc_last_booted="A",
+            CORRUPT_KERNEL_PART="3",
+        )
+
+        self.assertIn("Slot A skipped: kernel is corrupt", state["OUTPUT"])
+        self.assertEqual(state["BOOT_A_LEFT"], "3")
+        self.assertEqual(state["BOOT_B_LEFT"], "2")
+        self.assertEqual(state["rauc_last_booted"], "B")
+        self.assertEqual(state["UNZIP_PARTS"].split(), ["3", "4", "4"])
+
+    def test_healthy_primary_boot_is_unchanged_apart_from_the_preflight(self):
+        state = run_boot_script(
+            BOOT_ORDER="A B",
+            BOOT_A_LEFT="3",
+            BOOT_B_LEFT="3",
+            rauc_last_booted="A",
+        )
+
+        self.assertIn("Found valid slot A, 3 attempts remaining", state["OUTPUT"])
+        self.assertEqual(state["BOOT_A_LEFT"], "2")
+        self.assertEqual(state["BOOT_B_LEFT"], "3")
+        self.assertEqual(state["rauc_last_booted"], "A")
+        self.assertEqual(state["mmcpart"], "3")
+        self.assertEqual(state["SAVEENV_CALLS"], "1")
+        self.assertEqual(state["LOAD_PARTS"].split(), ["3", "3", "3"])
 
 
 if __name__ == "__main__":

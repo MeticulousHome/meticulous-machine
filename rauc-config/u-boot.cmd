@@ -80,28 +80,54 @@ if test "x${rauc_switch_requested}" = "x1"; then
 fi
 
 setenv rauc_active
+setenv rauc_candidate
 for BOOT_SLOT in "${BOOT_ORDER}"; do
 if test "x${rauc_active}" != "x"; then
     # skip remaining slots
   elif test "x${BOOT_SLOT}" = "xA"; then
     if test 0x${BOOT_A_LEFT} -gt 0; then
-      echo "Found valid slot A, ${BOOT_A_LEFT} attempts remaining"
-      setexpr BOOT_A_LEFT ${BOOT_A_LEFT} - 1
       setenv mmcpart 3
-      setenv load_kernel "nand read ${kernel_loadaddr} ${kernel_a_nandoffset} ${kernel_size}"
-      setenv rauc_slot "rauc.slot=A"
-      setenv rauc_last_booted A
-      setenv rauc_active "1"
+      setenv rauc_candidate A
     fi
   elif test "x${BOOT_SLOT}" = "xB"; then
     if test 0x${BOOT_B_LEFT} -gt 0; then
-      echo "Found valid slot B, ${BOOT_B_LEFT} attempts remaining"
-      setexpr BOOT_B_LEFT ${BOOT_B_LEFT} - 1
       setenv mmcpart 4
-      setenv rauc_slot "rauc.slot=B"
-      setenv rauc_last_booted B
-      setenv rauc_active "1"
+      setenv rauc_candidate B
     fi
+  fi
+
+  # An attempt counter above zero only means RAUC has not marked the slot bad.
+  # Factory machines ship with an empty slot B, so validate that the candidate
+  # actually holds a loadable kernel and device tree before spending an attempt
+  # on it. A slot that fails here is skipped without touching its counter, so
+  # the selector moves on to the next slot instead of booting into nothing.
+  if test -n "${rauc_candidate}"; then
+    if load mmc ${mmcdev}:${mmcpart} ${img_addr} ${bootdir}/${image}; then
+      if unzip ${img_addr} ${loadaddr}; then
+        if run loadfdt; then
+          if test "x${rauc_candidate}" = "xA"; then
+            echo "Found valid slot A, ${BOOT_A_LEFT} attempts remaining"
+            setexpr BOOT_A_LEFT ${BOOT_A_LEFT} - 1
+            setenv load_kernel "nand read ${kernel_loadaddr} ${kernel_a_nandoffset} ${kernel_size}"
+            setenv rauc_slot "rauc.slot=A"
+            setenv rauc_last_booted A
+          else
+            echo "Found valid slot B, ${BOOT_B_LEFT} attempts remaining"
+            setexpr BOOT_B_LEFT ${BOOT_B_LEFT} - 1
+            setenv rauc_slot "rauc.slot=B"
+            setenv rauc_last_booted B
+          fi
+          setenv rauc_active "1"
+        else
+          echo "Slot ${rauc_candidate} skipped: no usable device tree"
+        fi
+      else
+        echo "Slot ${rauc_candidate} skipped: kernel is corrupt"
+      fi
+    else
+      echo "Slot ${rauc_candidate} skipped: no usable kernel"
+    fi
+    setenv rauc_candidate
   fi
 done
 
