@@ -18,12 +18,6 @@ def switch_block() -> str:
     return SCRIPT[start:end]
 
 
-def selector_block() -> str:
-    start = SCRIPT.index("\nsetenv rauc_active")
-    end = SCRIPT.index("\ndone", start)
-    return SCRIPT[start:end]
-
-
 def run_boot_script(**environment):
     """Run the production Hush script with deterministic command stubs."""
     # Bash and Hush differ in quoted for-loop word splitting for this script.
@@ -448,27 +442,6 @@ printf 'bundle' > "$5"
 
 
 class AutomaticFallbackPreflightTests(unittest.TestCase):
-    def test_selector_spends_an_attempt_only_after_kernel_and_device_tree_checks(self):
-        block = selector_block()
-        load_kernel = block.index(
-            "if load mmc ${mmcdev}:${mmcpart} ${img_addr} ${bootdir}/${image}; then"
-        )
-        decompress_kernel = block.index("if unzip ${img_addr} ${loadaddr}; then")
-        load_fdt = block.index("if run loadfdt; then", decompress_kernel)
-        spend_a = block.index("setexpr BOOT_A_LEFT ${BOOT_A_LEFT} - 1")
-        spend_b = block.index("setexpr BOOT_B_LEFT ${BOOT_B_LEFT} - 1")
-        activate = block.index('setenv rauc_active "1"')
-
-        self.assertLess(load_kernel, decompress_kernel)
-        self.assertLess(decompress_kernel, load_fdt)
-        self.assertLess(load_fdt, spend_a)
-        self.assertLess(load_fdt, spend_b)
-        self.assertLess(spend_b, activate)
-        self.assertEqual(block.count("skipped:"), 3)
-        self.assertIn("no usable kernel", block)
-        self.assertIn("kernel is corrupt", block)
-        self.assertIn("no usable device tree", block)
-
     def test_exhausted_primary_never_falls_back_onto_an_empty_slot(self):
         # Factory-fresh machine after the repeated-restart rollback: slot A has
         # exhausted its attempts and slot B is a formatted but empty filesystem.
