@@ -3,6 +3,8 @@
 CONFIG_LOCK_FILE="/run/meticulous-hawkbit-config.lock"
 ATTRIBUTE_CACHE="/run/meticulous-hawkbit-attributes.json"
 
+source /etc/hawkbit/device_identity.sh
+
 # meticulous-smoke-report regenerates the config when it finds it missing, so
 # this script can run concurrently with rauc-hawkbit-updater's ExecStartPre.
 # Both writers edit /etc/hawkbit/config.conf in place; serialise them.
@@ -43,6 +45,7 @@ write_attribute_cache() {
   emit_attribute "som"                  "${som}"
   emit_attribute "installed_version"    "${installed_version}"
   emit_attribute "backup_version"       "${backup_version}"
+  emit_attribute "next_controller_id"   "${device_uuid}"
   emit_attribute "memory"               "${memory}"
   emit_attribute "uboot_active_version" "${uboot_active_ref}"
   emit_attribute "uboot_active_slot"    "${uboot_active}"
@@ -218,7 +221,6 @@ fi
 
 installed_version=$(get_installed_sw_version)
 backup_version=$(get_backup_sw_version)
-
 memory=$(cat /proc/meminfo | grep MemTotal | grep "[0-9]* [a-zA-Z]B" -o)
 som=$(get_somrev)
 
@@ -240,7 +242,8 @@ if [[ "$identifier" != *"$serial"* ]]; then
   identifier="${identifier}-${serial}"
 fi
 
-sed -i "s/__TARGET_NAME__/${identifier}/" /etc/hawkbit/config.conf
+device_uuid=$(resolve_hawkbit_device_uuid)
+render_hawkbit_device_identity /etc/hawkbit/config.conf "$identifier" "$device_uuid"
 sed -i "s/__BOOT_MODE__/${boot_mode}/" /etc/hawkbit/config.conf
 sed -i "s/__SERIAL__/${serial}/" /etc/hawkbit/config.conf
 sed -i "s/__BOOTED__/${boot_partition}/" /etc/hawkbit/config.conf
@@ -250,7 +253,6 @@ sed -i "s/__SOM__/${som}/" /etc/hawkbit/config.conf
 sed -i "s/__MEMORY__/${memory}/" /etc/hawkbit/config.conf
 sed -i "s/__INSTALLED_VERSION__/${installed_version}/" /etc/hawkbit/config.conf
 sed -i "s/__BACKUP_VERSION__/${backup_version}/" /etc/hawkbit/config.conf
-
 sed -i "s/__UBOOT_DISK_REV__/${uboot_disk_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT1_REV__/${uboot_boot1_rev}/" /etc/hawkbit/config.conf

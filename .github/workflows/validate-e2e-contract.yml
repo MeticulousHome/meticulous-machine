@@ -8,12 +8,15 @@ on:
       - "e2e/contracts/**"
       - "scripts/validate_e2e_contract.py"
       - "tests/test_e2e_contract.py"
+      - "tests/test_hawkbit_device_identity.sh"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
+      - "config/etc/hawkbit/**"
       - "config/etc/nginx/sites-available/default"
   push:
     branches:
+      - beta
       - nightly
     paths:
       - ".github/workflows/validate-e2e-contract.yml"
@@ -21,9 +24,11 @@ on:
       - "e2e/contracts/**"
       - "scripts/validate_e2e_contract.py"
       - "tests/test_e2e_contract.py"
+      - "tests/test_hawkbit_device_identity.sh"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
+      - "config/etc/hawkbit/**"
       - "config/etc/nginx/sites-available/default"
   schedule:
     - cron: "23 5 * * *"
@@ -41,27 +46,35 @@ jobs:
         with:
           path: meticulous-machine
 
-      - name: Checkout Dial nightly
+      - name: Validate Hawkbit device identity
+        working-directory: meticulous-machine
+        run: |
+          bash -n config/etc/hawkbit/create_config.sh
+          bash -n config/etc/hawkbit/device_identity.sh
+          bash -n tests/test_hawkbit_device_identity.sh
+          bash tests/test_hawkbit_device_identity.sh
+
+      - name: Checkout Dial beta
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/meticulous-dial
-          ref: nightly
+          ref: beta
           path: meticulous-dial
           token: ${{ secrets.GH_ORG_WORKFLOW }}
 
-      - name: Checkout backend nightly
+      - name: Checkout backend beta
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/meticulous-backend
-          ref: nightly
+          ref: beta
           path: meticulous-backend
           token: ${{ secrets.GH_ORG_WORKFLOW }}
 
-      - name: Checkout firmware nightly
+      - name: Checkout firmware beta
         uses: actions/checkout@v4
         with:
           repository: MeticulousHome/EspressoFirmware
-          ref: nightly
+          ref: beta
           path: EspressoFirmware
           token: ${{ secrets.GH_ORG_WORKFLOW }}
 
