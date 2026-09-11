@@ -28,13 +28,14 @@ component requires an explicit inventory update.
 
 ## Current inventory
 
-The captured contract contains:
+The captured contract was extended for the beta integration on 2026-09-10. It
+now contains:
 
-- 60 registered Dial screens, grouped by brew lifecycle, profile authoring,
+- 65 registered Dial screens, grouped by brew lifecycle, profile authoring,
   settings, Wi-Fi, advanced settings and diagnostics.
-- 36 API-client methods called by Dial.
-- 9 Socket.IO events consumed by Dial and 3 emitted by Dial.
-- 57 backend API route patterns, 4 inbound Socket.IO events and 9 outbound
+- 37 API-client methods called by Dial.
+- 10 Socket.IO events consumed by Dial and 3 emitted by Dial.
+- 67 backend API route patterns, 4 inbound Socket.IO events and 9 outbound
   Socket.IO events.
 - 4 existing backend emulation scenarios: idle, home, purge and espresso.
 - 6 firmware UART command families, 13 actions and 11 outbound message

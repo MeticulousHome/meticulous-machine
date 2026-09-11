@@ -47,6 +47,7 @@ assert_invalid_cache "${first_uuid}\n\n" "extra-empty-line"
 
 printf '%s\n' "$second_uuid" > "$HAWKBIT_DEVICE_UUID_FILE"
 test "$(get_cached_device_uuid)" = "$second_uuid"
+test "$(resolve_hawkbit_device_uuid)" = "$second_uuid"
 
 render_config() {
   local output_file="$1"
@@ -71,9 +72,11 @@ assert_rendered_identity() {
 assert_rendered_identity "$second_uuid"
 
 rm "$HAWKBIT_DEVICE_UUID_FILE"
+test "$(resolve_hawkbit_device_uuid)" = "UNKNOWN"
 assert_rendered_identity "UNKNOWN"
 
 printf '%s\n' "invalid" > "$HAWKBIT_DEVICE_UUID_FILE"
+test "$(resolve_hawkbit_device_uuid)" = "UNKNOWN"
 assert_rendered_identity "UNKNOWN"
 
 echo "Hawkbit device identity tests passed"

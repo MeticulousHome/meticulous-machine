@@ -1,6 +1,63 @@
 #!/bin/bash
 
+CONFIG_LOCK_FILE="/run/meticulous-hawkbit-config.lock"
+ATTRIBUTE_CACHE="/run/meticulous-hawkbit-attributes.json"
+
 source /etc/hawkbit/device_identity.sh
+
+# meticulous-smoke-report regenerates the config when it finds it missing, so
+# this script can run concurrently with rauc-hawkbit-updater's ExecStartPre.
+# Both writers edit /etc/hawkbit/config.conf in place; serialise them.
+exec 9>"$CONFIG_LOCK_FILE"
+if ! flock -w 120 9; then
+  echo "WARNING: timed out waiting for ${CONFIG_LOCK_FILE}, continuing unlocked"
+fi
+
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/\\t/g' | tr -d '\n\r'
+}
+
+emit_attribute() {
+  if [ "${ATTR_FIRST}" -eq 1 ]; then
+    ATTR_FIRST=0
+  else
+    printf ',\n' >> "$ATTR_TMP"
+  fi
+  printf '  "%s": "%s"' "$(json_escape "$1")" "$(json_escape "$2")" >> "$ATTR_TMP"
+}
+
+# Cache the boot-invariant device attributes so meticulous-smoke-report can
+# publish them without re-deriving anything. update_channel is deliberately
+# absent: it is the one attribute that changes at runtime, so the publisher
+# reads /etc/hawkbit/channel directly instead of trusting a boot-time copy.
+write_attribute_cache() {
+  ATTR_TMP="$(mktemp "${ATTRIBUTE_CACHE}.XXXXXX")" || return 1
+  ATTR_FIRST=1
+
+  printf '{\n' > "$ATTR_TMP"
+  emit_attribute "product"              "Meticulous-Machine"
+  emit_attribute "model"                "M-1"
+  emit_attribute "boot_mode"            "${boot_mode}"
+  emit_attribute "serial"               "${serial}"
+  emit_attribute "boot_partition"       "${boot_partition}"
+  emit_attribute "build_date"           "${build_date}"
+  emit_attribute "build_channel"        "${build_channel}"
+  emit_attribute "som"                  "${som}"
+  emit_attribute "installed_version"    "${installed_version}"
+  emit_attribute "backup_version"       "${backup_version}"
+  emit_attribute "next_controller_id"   "${device_uuid}"
+  emit_attribute "memory"               "${memory}"
+  emit_attribute "uboot_active_version" "${uboot_active_ref}"
+  emit_attribute "uboot_active_slot"    "${uboot_active}"
+  emit_attribute "uboot_disk_version"   "${uboot_disk_rev}"
+  emit_attribute "uboot_boot0_version"  "${uboot_boot0_rev}"
+  emit_attribute "uboot_boot1_version"  "${uboot_boot1_rev}"
+  printf '\n}\n' >> "$ATTR_TMP"
+
+  # Published atomically: a killed generator must leave no half-written cache.
+  chmod 0644 "$ATTR_TMP"
+  mv -f "$ATTR_TMP" "$ATTRIBUTE_CACHE"
+}
 
 get_somrev() {
         # Get the raw output
@@ -65,8 +122,9 @@ get_mmc_boot_config() {
 sync_update_channel_to_image() {
   image_channel="$1"
   image_build_date="$2"
-  image_state_file="/meticulous-user/hawkbit-image-id" #kept just to track the image id
-  hawkbit_channel_file="/etc/hawkbit/channel"
+  # Paths are overridable so the reconciliation can be exercised by tests.
+  image_state_file="${HAWKBIT_IMAGE_STATE_FILE:-/meticulous-user/hawkbit-image-id}" #kept just to track the image id
+  hawkbit_channel_file="${HAWKBIT_CHANNEL_FILE:-/etc/hawkbit/channel}"
 
   if [ -z "$image_channel" ] || [ "$image_channel" = "UNKNOWN" ]; then
     echo "Image build channel is unknown, keeping existing update channel"
@@ -88,9 +146,15 @@ sync_update_channel_to_image() {
     echo "${current_channel} (current) -> ${image_channel} (image)"
     echo "updating Hawkbit channel"
     echo "$image_channel" > "$hawkbit_channel_file"
-    mkdir -p "$(dirname "$image_state_file")"
-    echo "$image_id" > "$image_state_file"
   fi
+
+  # Record the image even when the channel already matched it. Leaving the
+  # state file unwritten makes every later run re-detect this same image as
+  # new, so the first channel the user picks is reverted the next time this
+  # script runs -- which is immediately, because changing the channel
+  # restarts rauc-hawkbit-updater.
+  mkdir -p "$(dirname "$image_state_file")"
+  echo "$image_id" > "$image_state_file"
 
 }
 
@@ -178,9 +242,9 @@ if [[ "$identifier" != *"$serial"* ]]; then
   identifier="${identifier}-${serial}"
 fi
 
-render_hawkbit_device_identity /etc/hawkbit/config.conf "$identifier"
+device_uuid=$(resolve_hawkbit_device_uuid)
+render_hawkbit_device_identity /etc/hawkbit/config.conf "$identifier" "$device_uuid"
 sed -i "s/__BOOT_MODE__/${boot_mode}/" /etc/hawkbit/config.conf
-sed -i "s/__UPDATE_CHANNEL__/${update_channel}/" /etc/hawkbit/config.conf
 sed -i "s/__SERIAL__/${serial}/" /etc/hawkbit/config.conf
 sed -i "s/__BOOTED__/${boot_partition}/" /etc/hawkbit/config.conf
 sed -i "s/__BUILD_DATE__/${build_date}/" /etc/hawkbit/config.conf
@@ -194,3 +258,5 @@ sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_BOOT1_REV__/${uboot_boot1_rev}/" /etc/hawkbit/config.conf
 sed -i "s|__UBOOT_ACTIVE__|${uboot_active}|" /etc/hawkbit/config.conf
 sed -i "s/__UBOOT_ACTIVE_REV__/${uboot_active_ref}/" /etc/hawkbit/config.conf
+
+write_attribute_cache

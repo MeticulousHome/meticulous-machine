@@ -18,7 +18,10 @@
         "heat_timeout_after_shot",
         "brewComplete",
         "idle",
-        "shot_history"
+        "shot_history",
+        "freePour",
+        "freePourHistory",
+        "guidedPourOver"
       ],
       "profile_authoring": [
         "pressetSettings",
@@ -40,7 +43,9 @@
         "settings",
         "quick-settings",
         "brewSettings",
-        "scrollDirections"
+        "scrollDirections",
+        "community",
+        "tare_behavior"
       ],
       "wifi": [
         "wifiSettings",
@@ -86,6 +91,7 @@
       "acknowledgeNotification",
       "connectToWiFi",
       "createReport",
+      "deleteDraftReport",
       "deleteProfile",
       "deleteWifi",
       "executeAction",
@@ -123,6 +129,7 @@
     "socket_receives": [
       "OSUpdate",
       "button",
+      "connect",
       "heater_status",
       "notification",
       "profile",
@@ -149,9 +156,14 @@
       "/history/files/(.*)",
       "/history/last",
       "/history/last-debug-file",
+      "/history/pour-over",
+      "/history/pour-over/files",
+      "/history/pour-over/files/(.*)",
+      "/history/pour-over/last",
       "/history/rating/(.*)",
       "/history/search",
       "/history/stats",
+      "/history/upload-index",
       "/machine",
       "/machine/OS_update_status",
       "/machine/backlight",
@@ -174,6 +186,11 @@
       "/profile/load/([0-9a-fA-F-]+)",
       "/profile/save",
       "/profile/selected",
+      "/pour-over/profile/delete/([0-9a-fA-F-]+)",
+      "/pour-over/profile/get/([0-9a-fA-F-]+)",
+      "/pour-over/profile/image/([0-9a-fA-F-]+)",
+      "/pour-over/profile/list",
+      "/pour-over/profile/schema",
       "/reports/create",
       "/reports/draft/([^/]+)",
       "/reports/list",
