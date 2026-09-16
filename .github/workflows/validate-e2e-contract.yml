@@ -7,8 +7,10 @@ on:
       - "docs/testing/e2e-contract-inventory.md"
       - "e2e/contracts/**"
       - "scripts/validate_e2e_contract.py"
+      - "scripts/meticulous-smoke-report"
       - "tests/test_e2e_contract.py"
       - "tests/test_hawkbit_device_identity.sh"
+      - "tests/test_hawkbit_config_atomicity.py"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
@@ -23,8 +25,10 @@ on:
       - "docs/testing/e2e-contract-inventory.md"
       - "e2e/contracts/**"
       - "scripts/validate_e2e_contract.py"
+      - "scripts/meticulous-smoke-report"
       - "tests/test_e2e_contract.py"
       - "tests/test_hawkbit_device_identity.sh"
+      - "tests/test_hawkbit_config_atomicity.py"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
@@ -46,13 +50,15 @@ jobs:
         with:
           path: meticulous-machine
 
-      - name: Validate Hawkbit device identity
+      - name: Validate Hawkbit config generation
         working-directory: meticulous-machine
         run: |
           bash -n config/etc/hawkbit/create_config.sh
+          bash -n config/etc/hawkbit/config_writer.sh
           bash -n config/etc/hawkbit/device_identity.sh
           bash -n tests/test_hawkbit_device_identity.sh
           bash tests/test_hawkbit_device_identity.sh
+          python -m unittest -v tests/test_hawkbit_config_atomicity.py
 
       - name: Checkout Dial beta
         uses: actions/checkout@v4
