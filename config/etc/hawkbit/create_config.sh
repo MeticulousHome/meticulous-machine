@@ -2,16 +2,36 @@
 
 CONFIG_LOCK_FILE="/run/meticulous-hawkbit-config.lock"
 ATTRIBUTE_CACHE="/run/meticulous-hawkbit-attributes.json"
+CONFIG_FILE="/etc/hawkbit/config.conf"
+CONFIG_TEMPLATE="/etc/hawkbit/config.conf.template"
+CONFIG_TMP=""
+ATTR_TMP=""
 
 source /etc/hawkbit/device_identity.sh
+source /etc/hawkbit/config_writer.sh
 
 # meticulous-smoke-report regenerates the config when it finds it missing, so
 # this script can run concurrently with rauc-hawkbit-updater's ExecStartPre.
-# Both writers edit /etc/hawkbit/config.conf in place; serialise them.
+# Serialise writers and fail closed if the lock cannot be acquired.
 exec 9>"$CONFIG_LOCK_FILE"
 if ! flock -w 120 9; then
-  echo "WARNING: timed out waiting for ${CONFIG_LOCK_FILE}, continuing unlocked"
+  echo "ERROR: timed out waiting for ${CONFIG_LOCK_FILE}" >&2
+  exit 1
 fi
+
+cleanup_config_tmp() {
+  if [ -n "$CONFIG_TMP" ]; then
+    rm -f "$CONFIG_TMP"
+  fi
+  if [ -n "$ATTR_TMP" ]; then
+    rm -f "$ATTR_TMP"
+  fi
+}
+
+trap cleanup_config_tmp EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/\\t/g' | tr -d '\n\r'
@@ -57,6 +77,7 @@ write_attribute_cache() {
   # Published atomically: a killed generator must leave no half-written cache.
   chmod 0644 "$ATTR_TMP"
   mv -f "$ATTR_TMP" "$ATTRIBUTE_CACHE"
+  ATTR_TMP=""
 }
 
 get_somrev() {
@@ -211,7 +232,7 @@ get_installed_sw_version(){
   echo "$installed_version"
 }
 
-cp  /etc/hawkbit/config.conf.template /etc/hawkbit/config.conf
+CONFIG_TMP=$(create_hawkbit_config_work_file "$CONFIG_FILE" "$CONFIG_TEMPLATE") || exit 1
 
 serial="UNSET"
 
@@ -243,20 +264,25 @@ if [[ "$identifier" != *"$serial"* ]]; then
 fi
 
 device_uuid=$(resolve_hawkbit_device_uuid)
-render_hawkbit_device_identity /etc/hawkbit/config.conf "$identifier" "$device_uuid"
-sed -i "s/__BOOT_MODE__/${boot_mode}/" /etc/hawkbit/config.conf
-sed -i "s/__SERIAL__/${serial}/" /etc/hawkbit/config.conf
-sed -i "s/__BOOTED__/${boot_partition}/" /etc/hawkbit/config.conf
-sed -i "s/__BUILD_DATE__/${build_date}/" /etc/hawkbit/config.conf
-sed -i "s/__BUILD_CHANNEL__/${build_channel}/" /etc/hawkbit/config.conf
-sed -i "s/__SOM__/${som}/" /etc/hawkbit/config.conf
-sed -i "s/__MEMORY__/${memory}/" /etc/hawkbit/config.conf
-sed -i "s/__INSTALLED_VERSION__/${installed_version}/" /etc/hawkbit/config.conf
-sed -i "s/__BACKUP_VERSION__/${backup_version}/" /etc/hawkbit/config.conf
-sed -i "s/__UBOOT_DISK_REV__/${uboot_disk_rev}/" /etc/hawkbit/config.conf
-sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" /etc/hawkbit/config.conf
-sed -i "s/__UBOOT_BOOT1_REV__/${uboot_boot1_rev}/" /etc/hawkbit/config.conf
-sed -i "s|__UBOOT_ACTIVE__|${uboot_active}|" /etc/hawkbit/config.conf
-sed -i "s/__UBOOT_ACTIVE_REV__/${uboot_active_ref}/" /etc/hawkbit/config.conf
+render_hawkbit_device_identity "$CONFIG_TMP" "$identifier" "$device_uuid"
+sed -i "s/__BOOT_MODE__/${boot_mode}/" "$CONFIG_TMP"
+sed -i "s/__SERIAL__/${serial}/" "$CONFIG_TMP"
+sed -i "s/__BOOTED__/${boot_partition}/" "$CONFIG_TMP"
+sed -i "s/__BUILD_DATE__/${build_date}/" "$CONFIG_TMP"
+sed -i "s/__BUILD_CHANNEL__/${build_channel}/" "$CONFIG_TMP"
+sed -i "s/__SOM__/${som}/" "$CONFIG_TMP"
+sed -i "s/__MEMORY__/${memory}/" "$CONFIG_TMP"
+sed -i "s/__INSTALLED_VERSION__/${installed_version}/" "$CONFIG_TMP"
+sed -i "s/__BACKUP_VERSION__/${backup_version}/" "$CONFIG_TMP"
+sed -i "s/__UBOOT_DISK_REV__/${uboot_disk_rev}/" "$CONFIG_TMP"
+sed -i "s/__UBOOT_BOOT0_REV__/${uboot_boot0_rev}/" "$CONFIG_TMP"
+sed -i "s/__UBOOT_BOOT1_REV__/${uboot_boot1_rev}/" "$CONFIG_TMP"
+sed -i "s|__UBOOT_ACTIVE__|${uboot_active}|" "$CONFIG_TMP"
+sed -i "s/__UBOOT_ACTIVE_REV__/${uboot_active_ref}/" "$CONFIG_TMP"
+
+if ! publish_hawkbit_config "$CONFIG_TMP" "$CONFIG_FILE"; then
+  exit 1
+fi
+CONFIG_TMP=""
 
 write_attribute_cache
