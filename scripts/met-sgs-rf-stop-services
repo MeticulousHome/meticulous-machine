@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly services=(
+    NetworkManager.service
+    wpa_supplicant.service
+    meticulous-backend.service
+    meticulous-watcher.service
+    rauc-hawkbit-updater.service
+)
+
+fail() {
+    printf 'ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+if [ "${EUID}" -ne 0 ]; then
+    fail "Run this command as root."
+fi
+
+command -v systemctl >/dev/null 2>&1 || fail "systemctl is not available."
+
+printf '\n== Stopping services for conducted RF testing ==\n'
+for service in "${services[@]}"; do
+    printf 'Stopping %s... ' "${service}"
+    if systemctl stop "${service}" 2>/dev/null; then
+        printf 'done\n'
+    else
+        printf 'not running or not installed\n'
+    fi
+done
+
+printf 'Service stop phase complete.\n'

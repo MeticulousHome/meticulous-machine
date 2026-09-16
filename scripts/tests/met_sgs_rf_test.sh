@@ -3,6 +3,8 @@ set -euo pipefail
 
 readonly repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly runner="${repo_root}/scripts/met-sgs-rf-test"
+readonly stop_services="${repo_root}/scripts/met-sgs-rf-stop-services"
+readonly run_tool="${repo_root}/scripts/met-sgs-rf-run-tool"
 readonly temp_dir="$(mktemp -d)"
 trap 'rm -rf "${temp_dir}"' EXIT
 
@@ -22,6 +24,30 @@ export MET_SGS_RF_TEST_LOG="${temp_dir}/commands.log"
 export MET_SGS_RF_TOOL_DIR="${temp_dir}/tool"
 export MET_SGS_RF_WIFI_INTERFACE="test-wlan0"
 
+PATH="${temp_dir}/bin:/usr/bin:/bin" "${stop_services}" > "${temp_dir}/stop-services.log"
+
+grep -Fx 'systemctl stop NetworkManager.service' "${MET_SGS_RF_TEST_LOG}"
+grep -Fx 'systemctl stop wpa_supplicant.service' "${MET_SGS_RF_TEST_LOG}"
+grep -Fx 'systemctl stop meticulous-backend.service' "${MET_SGS_RF_TEST_LOG}"
+grep -Fx 'systemctl stop meticulous-watcher.service' "${MET_SGS_RF_TEST_LOG}"
+grep -Fx 'systemctl stop rauc-hawkbit-updater.service' "${MET_SGS_RF_TEST_LOG}"
+if grep -Eq '^(rfkill|ip|python3) ' "${MET_SGS_RF_TEST_LOG}"; then
+    printf 'Service-stop command invoked a non-service command.\n' >&2
+    exit 1
+fi
+grep -F 'Service stop phase complete.' "${temp_dir}/stop-services.log"
+
+: > "${MET_SGS_RF_TEST_LOG}"
+PATH="${temp_dir}/bin:/usr/bin:/bin" "${run_tool}" > "${temp_dir}/run-tool.log"
+
+grep -Fx "python3 ${temp_dir}/tool/Murata_NXP_RF_Test_Tool.py" "${MET_SGS_RF_TEST_LOG}"
+if grep -Eq '^(systemctl|rfkill|ip) ' "${MET_SGS_RF_TEST_LOG}"; then
+    printf 'Tool-only command changed service or interface state.\n' >&2
+    exit 1
+fi
+grep -F 'This command does not stop services or change the Wi-Fi interface state.' "${temp_dir}/run-tool.log"
+
+: > "${MET_SGS_RF_TEST_LOG}"
 PATH="${temp_dir}/bin:/usr/bin:/bin" "${runner}" > "${temp_dir}/output.log"
 
 grep -Fx 'systemctl stop NetworkManager.service' "${MET_SGS_RF_TEST_LOG}"
