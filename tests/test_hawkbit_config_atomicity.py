@@ -196,12 +196,12 @@ class SmokeReportConfigReadTests(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def write_config(self, target):
+    def write_config(self, target, gateway_token="token"):
         self.config.write_text(
             "[client]\n"
             "hawkbit_server = hawkbit.example.com\n"
             f"target_name = {target}\n"
-            "gateway_token = token\n",
+            f"gateway_token = {gateway_token}\n",
             encoding="utf-8",
         )
 
@@ -241,6 +241,14 @@ class SmokeReportConfigReadTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "unresolved client placeholder"):
             self.reporter.load_hawkbit_config()
+
+    def test_reader_accepts_double_underscores_outside_placeholder_syntax(self):
+        self.write_config("valid-target", gateway_token="token__suffix")
+
+        config = self.reporter.load_hawkbit_config()
+
+        self.assertEqual(config[3], "valid-target")
+        self.assertEqual(config[6], "token__suffix")
 
 
 if __name__ == "__main__":

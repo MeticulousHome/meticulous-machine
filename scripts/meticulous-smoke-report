@@ -4,6 +4,7 @@ import configparser
 import fcntl
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -31,6 +32,7 @@ DEFAULT_DIAL_SENTRY_DSN = (
     "o4506723336060928.ingest.us.sentry.io/4511430165921792"
 )
 DIAL_CHECKS = ("dial_service", "dial_ready", "dial_home_ready")
+UNRESOLVED_PLACEHOLDER = re.compile(r"__[A-Z0-9_]+__")
 
 # Marks a machine as reporting its own attributes. The server-side
 # hawkbit-attribute-refresher is retired per channel once every online
@@ -260,7 +262,10 @@ def load_hawkbit_config():
 
     if not server or not target:
         raise RuntimeError("Hawkbit config is missing hawkbit_server or target_name")
-    if any("__" in value for value in (server, target, auth_token, gateway_token)):
+    if any(
+        UNRESOLVED_PLACEHOLDER.search(value)
+        for value in (server, target, auth_token, gateway_token)
+    ):
         raise RuntimeError("Hawkbit config contains an unresolved client placeholder")
     if not auth_token and not gateway_token:
         raise RuntimeError("Hawkbit config is missing auth_token/gateway_token")
