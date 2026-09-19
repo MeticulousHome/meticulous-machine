@@ -61,6 +61,47 @@ jobs:
 
           echo "Building image '${image}' from machine config branch '${machine_ref}'." >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Set up Git authentication for stable contract validation
+        if: ${{ inputs.image == 'stable' }}
+        run: |
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+
+      - name: Check out exact stable Dial and backend revisions
+        if: ${{ inputs.image == 'stable' }}
+        run: |
+          source config.sh
+          source images/stable.versions.sh
+
+          if [[ ! "$DIAL_REV" =~ ^[0-9a-f]{40}$ || ! "$BACKEND_REV" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Stable Dial and backend revisions must be exact 40-character SHAs."
+            exit 1
+          fi
+
+          for component in dial backend; do
+            if [[ "$component" == "dial" ]]; then
+              repo="$DIAL_GIT"
+              revision="$DIAL_REV"
+              destination="components/release-contract-dial"
+            else
+              repo="$BACKEND_GIT"
+              revision="$BACKEND_REV"
+              destination="components/release-contract-backend"
+            fi
+
+            mkdir -p "$destination"
+            git -C "$destination" init
+            git -C "$destination" remote add origin "$repo"
+            git -C "$destination" fetch --depth=1 origin "$revision"
+            git -C "$destination" checkout --detach FETCH_HEAD
+          done
+
+      - name: Validate exact stable component contract
+        if: ${{ inputs.image == 'stable' }}
+        run: |
+          python3 scripts/validate_component_contracts.py \
+            --dial components/release-contract-dial \
+            --backend components/release-contract-backend
+
   build-components:
     name: Build all image components
     needs: preflight
