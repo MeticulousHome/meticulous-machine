@@ -145,9 +145,7 @@ function update_dial() {
     get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
         ${DIAL_SRC_DIR} ${DIAL_REV}
 
-    if [ ${no_deps_selected} -eq 1 ]; then
-        echo "--no-deps given. Not installing Dial App dependencies."
-    elif [ -z "$(which npm)" ]; then
+    if [ -z "$(which npm)" ]; then
         echo "node / npm not found. Not checking out Dial App dependencies."
     else
         echo "Installing Dial App dependencies"
@@ -185,10 +183,6 @@ function update_mobile() {
     echo "Cloning / Updating Mobile App Repository"
     get_git_src ${MOBILE_GIT} ${MOBILE_BRANCH} \
         ${MOBILE_SRC_DIR} ${MOBILE_REV}
-    if [ ${no_deps_selected} -eq 1 ]; then
-        echo "--no-deps given. Not installing Mobile App dependencies."
-        return
-    fi
     pushd $MOBILE_SRC_DIR
     npm ci
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -258,7 +252,6 @@ Specific components can be fetched and updated by passing their names as options
 Available options:
     --all                           Checkout / Update All repositories except for the firmware
     --image [IMAGE]                 Checkout a specific image version / pinning
-    --no-deps                       Only checkout sources, skip installing component dependencies (npm install etc.)
 
     --install_ubuntu_dependencies   Install dependencies for Ubuntu
 
@@ -286,7 +279,6 @@ all_selected=0
 firmware_selected=0
 mobile_selected=0
 install_ubuntu_dependencies_selected=0
-no_deps_selected=0
 plotter_ui_selected=0
 declare -A steps
 steps=(
@@ -317,7 +309,6 @@ while [[ $# -gt 0 ]]; do
             fi
             ;;
         --install_ubuntu_dependencies) install_ubuntu_dependencies_selected=1 ;;
-        --no-deps) no_deps_selected=1 ;;
         --debian) steps[update_debian]=1 ;;
         --backend) steps[update_backend]=1 ;;
         --watcher) steps[update_watcher]=1 ;;

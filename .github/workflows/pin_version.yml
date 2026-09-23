@@ -104,10 +104,7 @@ jobs:
 
       - name: Checkout source image component refs
         run: |
-          # Only the git revisions are needed to pin/promote. Skip installing
-          # component dependencies (e.g. the dial app's npm install) so a broken
-          # lockfile in a component cannot block the promotion.
-          ./update-sources.sh --all --no-deps --image "${{ steps.validate.outputs.source }}" --firmware --plotter
+          ./update-sources.sh --all --image "${{ steps.validate.outputs.source }}" --firmware --plotter
 
       - name: Promote branches or pin custom image
         run: |
