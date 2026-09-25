@@ -20,32 +20,59 @@ permissions:
   id-token: write
   pages: write
 
-run-name: "Build ${{ github.ref_name }} image"
+run-name: "Build ${{ github.event_name == 'schedule' && 'nightly' || github.ref_name }} image"
 
 jobs:
+  resolve-build-context:
+    name: Resolve build context
+    runs-on: ubuntu-24.04
+    outputs:
+      image: ${{ steps.resolve.outputs.image }}
+      machine_ref: ${{ steps.resolve.outputs.machine_ref }}
+    steps:
+      - name: Select image and machine configuration
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            image="nightly"
+            machine_ref="nightly"
+          else
+            image="$REF_NAME"
+            machine_ref="$REF_NAME"
+          fi
+
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "machine_ref=$machine_ref" >> "$GITHUB_OUTPUT"
+
   build-image:
     name: Build via selected branch
+    needs: resolve-build-context
     uses: ./.github/workflows/build-image-channel.yml
     with:
-      image: ${{ github.ref_name }}
-      machine-ref: ${{ github.ref_name }}
+      image: ${{ needs.resolve-build-context.outputs.image }}
+      machine-ref: ${{ needs.resolve-build-context.outputs.machine_ref }}
       upload_emmc_to_hawkbit: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
       no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache || false }}
     secrets: inherit
 
   tag-controlled-repos:
     name: Tag controlled component repos
-    needs: build-image
+    needs:
+      - resolve-build-context
+      - build-image
     runs-on: ubuntu-24.04
     env:
-      IMAGE: ${{ github.ref_name }}
+      IMAGE: ${{ needs.resolve-build-context.outputs.image }}
       BUILD_VERSION_NUMBER: ${{ needs.build-image.outputs.build_version_number }}
-      BUILD_TAG: ${{ github.ref_name }}/${{ needs.build-image.outputs.build_version_number }}
+      BUILD_TAG: ${{ needs.resolve-build-context.outputs.image }}/${{ needs.build-image.outputs.build_version_number }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ needs.resolve-build-context.outputs.machine_ref }}
 
       - name: Set up Git authentication
         run: |
@@ -60,7 +87,9 @@ jobs:
 
   commit-changelog:
     name: Commit changelog to main
-    needs: build-image
+    needs:
+      - resolve-build-context
+      - build-image
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
     runs-on: ubuntu-24.04
     steps:
@@ -84,12 +113,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add "images/changes/${{ github.ref_name }}/"
+          git add "images/changes/${{ needs.resolve-build-context.outputs.image }}/"
 
           if git diff --cached --quiet; then
             echo "No changelog changes to commit."
           else
-            git commit -m "changelog: ${{ github.ref_name }} build #${{ github.run_number }}"
+            git commit -m "changelog: ${{ needs.resolve-build-context.outputs.image }} build #${{ github.run_number }}"
             git push origin HEAD:main
           fi
 

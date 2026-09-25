@@ -1,10 +1,10 @@
 # Future Codex Sessions: Image Build Workflows
 
-This repo builds Meticulous machine images with GitHub Actions. Image builds now use the workflow branch as the selected image/config channel:
+This repo builds Meticulous machine images with GitHub Actions. Image builds resolve an explicit image/config channel:
 
-- `github.ref_name`: selected branch and image name for `.github/workflows/build-nightly-image.yml`.
-- `image`: internal reusable-workflow input; passed as `github.ref_name`.
-- `machine-ref`: internal reusable-workflow input that selects this repo branch for machine config, scripts, services, RAUC config, and workflow implementation; passed as `github.ref_name`.
+- Scheduled builds always resolve `image=nightly` and `machine-ref=nightly`, regardless of the repository default branch.
+- Manual builds resolve both values from `github.ref_name`, which is the branch selected in the workflow dispatch UI.
+- `machine-ref` selects this repo branch for machine config, scripts, services, and RAUC config.
 
 ## Branch Model
 
@@ -13,15 +13,15 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - `main` remains the central changelog and GitHub Pages branch, but it is no longer the manual image launcher.
 - Manual image builds are dispatched from the branch to build. The branch name must be the image name.
 - Custom images require their own branch with the same name as the image and a matching `images/<image>.versions.sh`.
-- Scheduled builds assume the repository default branch is `nightly`, because GitHub Actions schedules run from the default branch.
+- Scheduled builds run from the repository default branch but explicitly build the `nightly` image from the `nightly` machine config branch.
 - Manual builds can set only `no-cache` and `upload_emmc_to_hawkbit`.
 
 ## Workflow Roles
 
 - `.github/workflows/build-nightly-image.yml` is the user-facing image build workflow on each build branch.
-- `.github/workflows/build-nightly-image.yml` passes `github.ref_name` directly to `.github/workflows/build-image-channel.yml` through a local reusable workflow call.
+- `.github/workflows/build-nightly-image.yml` resolves the scheduled or manually selected build context and passes it to `.github/workflows/build-image-channel.yml` through a local reusable workflow call.
 - `.github/workflows/build-image-channel.yml` contains the real image build and accepts `image`, `machine-ref`, `no-cache`, and `upload_emmc_to_hawkbit`.
-- `.github/workflows/build-all-components.yml` calls `.github/workflows/build-component.yml` by local reusable workflow path so the channel branch supplies the component workflow implementation.
+- Local reusable workflow calls use the workflow revision selected by GitHub Actions, while repository checkouts use the resolved `machine-ref`.
 - All checkouts of this repository inside the image build path must use `machine-ref`. Private repo checkouts, such as `rauc-secrets`, are separate and should not use `machine-ref`.
 - Component builds receive `machine-ref` through `build-all-components.yml` and `build-component.yml`; `build-component.yml` falls back to `github.ref_name` only for direct/manual component runs.
 
