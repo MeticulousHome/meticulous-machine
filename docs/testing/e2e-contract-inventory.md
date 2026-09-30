@@ -13,14 +13,15 @@ cross-repository contract and complete-machine journeys.
 
 ## Captured baseline
 
-The first baseline was captured from the `nightly` branches on 2026-08-10:
+The first baseline was captured from the `nightly` branches on 2026-08-10 and
+last refreshed from the `beta` branches on 2026-09-30:
 
 | Repository | Captured commit | Authority inspected |
 | --- | --- | --- |
-| meticulous-machine | `220dbcbc41d64069c85f98f46b7c2808c86ee20d` | `config.sh`, image channel manifests, Nginx and systemd units |
-| meticulous-dial | `7f4482871d4feb73a5518f26954f33256c3c3d19` | `ScreenType`, route registry, API calls and Socket.IO usage |
-| meticulous-backend | `69086ade492fffdb4d304b47281239ca560bb485` | API registration, Socket.IO, allowed actions and emulator traces |
-| EspressoFirmware | `f201fbbd4a85cc7c47127f900268700e21468a03` | `FikaUart` incoming keys/actions and backend-consumed messages |
+| meticulous-machine | `84b1ae63f0956896e3e25f37e9bfa46cf5141946` | `config.sh`, image channel manifests, Nginx and systemd units |
+| meticulous-dial | `74ca42cb33a64e7ee5df377a06a21453699fd885` | `ScreenType`, route registry, API calls and Socket.IO usage |
+| meticulous-backend | `e37dcf3539eef2bf43f0e83e62a7e5b8f982d8bc` | API registration, Socket.IO, allowed actions and emulator traces |
+| EspressoFirmware | `63a967c8269650791f17bdc88bdcc1ccd717eda9` | `FikaUart` incoming keys/actions and backend-consumed messages |
 
 The validator intentionally compares discovered source surfaces with the
 manifest. Adding or removing an API, route, screen, event, action or image
@@ -28,17 +29,18 @@ component requires an explicit inventory update.
 
 ## Current inventory
 
-The captured contract was extended for the beta integration on 2026-09-10. It
-now contains:
+The captured contract was extended for the beta integration on 2026-09-10 and
+refreshed on 2026-09-30 (manual mode setup, experimental settings, machine
+unlock, report preflight and the `finish` action). It now contains:
 
 - 65 registered Dial screens, grouped by brew lifecycle, profile authoring,
   settings, Wi-Fi, advanced settings and diagnostics.
-- 37 API-client methods called by Dial.
+- 40 API-client methods called by Dial.
 - 10 Socket.IO events consumed by Dial and 3 emitted by Dial.
-- 67 backend API route patterns, 4 inbound Socket.IO events and 9 outbound
+- 70 backend API route patterns, 4 inbound Socket.IO events and 9 outbound
   Socket.IO events.
 - 4 existing backend emulation scenarios: idle, home, purge and espresso.
-- 6 firmware UART command families, 13 actions and 11 outbound message
+- 6 firmware UART command families, 14 actions and 11 outbound message
   families.
 - 19 component repositories declared by the image integrator.
 - 10 product journeys targeted for future automated execution.
