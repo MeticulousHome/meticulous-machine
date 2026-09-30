@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "captured_at": "2026-08-10",
+  "captured_at": "2026-09-30",
   "source_snapshot": {
-    "meticulous-machine": "220dbcbc41d64069c85f98f46b7c2808c86ee20d",
-    "meticulous-dial": "7f4482871d4feb73a5518f26954f33256c3c3d19",
-    "meticulous-backend": "69086ade492fffdb4d304b47281239ca560bb485",
-    "EspressoFirmware": "f201fbbd4a85cc7c47127f900268700e21468a03"
+    "meticulous-machine": "84b1ae63f0956896e3e25f37e9bfa46cf5141946",
+    "meticulous-dial": "74ca42cb33a64e7ee5df377a06a21453699fd885",
+    "meticulous-backend": "e37dcf3539eef2bf43f0e83e62a7e5b8f982d8bc",
+    "EspressoFirmware": "63a967c8269650791f17bdc88bdcc1ccd717eda9"
   },
   "dial": {
     "screen_groups": {
@@ -18,7 +18,10 @@
         "heat_timeout_after_shot",
         "brewComplete",
         "idle",
-        "shot_history"
+        "shot_history",
+        "freePour",
+        "freePourHistory",
+        "guidedPourOver"
       ],
       "profile_authoring": [
         "pressetSettings",
@@ -33,14 +36,16 @@
         "dose",
         "output",
         "pressetProfileImage",
-        "defaultProfiles",
-        "defaultProfileDetails"
+        "manualSetup"
       ],
       "settings": [
         "settings",
         "quick-settings",
         "brewSettings",
-        "scrollDirections"
+        "scrollDirections",
+        "community",
+        "tare_behavior",
+        "experimentalSettings"
       ],
       "wifi": [
         "wifiSettings",
@@ -86,6 +91,7 @@
       "acknowledgeNotification",
       "connectToWiFi",
       "createReport",
+      "deleteDraftReport",
       "deleteProfile",
       "deleteWifi",
       "executeAction",
@@ -99,9 +105,11 @@
       "getMeticulousReportTracking",
       "getNotifications",
       "getOSStatus",
+      "getProfile",
       "getProfileDefaultImages",
       "getProfileImage",
       "getProfileImageUrl",
+      "getReportPreflight",
       "getRootPassword",
       "getSettings",
       "getTimezoneRegion",
@@ -116,6 +124,7 @@
       "setBrightness",
       "setTime",
       "setWiFiConfig",
+      "unlockMachine",
       "updateManufacturingSettings",
       "updateReport",
       "updateSetting"
@@ -123,6 +132,7 @@
     "socket_receives": [
       "OSUpdate",
       "button",
+      "connect",
       "heater_status",
       "notification",
       "profile",
@@ -149,21 +159,28 @@
       "/history/files/(.*)",
       "/history/last",
       "/history/last-debug-file",
+      "/history/pour-over",
+      "/history/pour-over/files",
+      "/history/pour-over/files/(.*)",
+      "/history/pour-over/last",
       "/history/rating/(.*)",
       "/history/search",
       "/history/stats",
+      "/history/upload-index",
       "/machine",
       "/machine/OS_update_status",
       "/machine/backlight",
       "/machine/factory_reset",
       "/machine/root-password",
       "/machine/time",
+      "/machine/unlock",
       "/manufacturing[/]*",
       "/notifications",
       "/notifications/acknowledge",
       "/profile/changes",
       "/profile/defaults",
       "/profile/delete/([0-9a-fA-F-]+)",
+      "/profile/from_manual",
       "/profile/get/([0-9a-fA-F-]+)",
       "/profile/image([/]*)",
       "/profile/image/(.*)",
@@ -174,9 +191,15 @@
       "/profile/load/([0-9a-fA-F-]+)",
       "/profile/save",
       "/profile/selected",
+      "/pour-over/profile/delete/([0-9a-fA-F-]+)",
+      "/pour-over/profile/get/([0-9a-fA-F-]+)",
+      "/pour-over/profile/image/([0-9a-fA-F-]+)",
+      "/pour-over/profile/list",
+      "/pour-over/profile/schema",
       "/reports/create",
       "/reports/draft/([^/]+)",
       "/reports/list",
+      "/reports/preflight",
       "/reports/submit",
       "/scaleCalibrate",
       "/serial",
@@ -223,6 +246,7 @@
     "allowed_actions": [
       "abort",
       "continue",
+      "finish",
       "home",
       "preheat",
       "purge",
@@ -236,6 +260,7 @@
   "firmware": {
     "uart_incoming_keys": [
       "action",
+      "device_uuid",
       "hash",
       "heater_timeout",
       "json",
@@ -244,6 +269,7 @@
     "uart_actions": [
       "calibration",
       "continue",
+      "finish",
       "home",
       "idle",
       "info",
