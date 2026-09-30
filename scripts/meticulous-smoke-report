@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import configparser
+import fcntl
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -14,6 +16,7 @@ from pathlib import Path
 
 HAWKBIT_CONFIG = Path("/etc/hawkbit/config.conf")
 HAWKBIT_CONFIG_GENERATOR = Path("/etc/hawkbit/create_config.sh")
+HAWKBIT_CONFIG_LOCK = Path("/run/meticulous-hawkbit-config.lock")
 HAWKBIT_ATTRIBUTE_CACHE = Path("/run/meticulous-hawkbit-attributes.json")
 HAWKBIT_CHANNEL_FILE = Path("/etc/hawkbit/channel")
 BACKEND_URL = "http://127.0.0.1:8080/api/v1/smoke-validation"
@@ -29,6 +32,7 @@ DEFAULT_DIAL_SENTRY_DSN = (
     "o4506723336060928.ingest.us.sentry.io/4511430165921792"
 )
 DIAL_CHECKS = ("dial_service", "dial_ready", "dial_home_ready")
+UNRESOLVED_PLACEHOLDER = re.compile(r"__[A-Z0-9_]+__")
 
 # Marks a machine as reporting its own attributes. The server-side
 # hawkbit-attribute-refresher is retired per channel once every online
@@ -238,20 +242,31 @@ def ensure_hawkbit_config():
 
 def load_hawkbit_config():
     ensure_hawkbit_config()
-    parser = configparser.ConfigParser()
-    parser.read(HAWKBIT_CONFIG)
-    client = parser["client"]
+    HAWKBIT_CONFIG_LOCK.parent.mkdir(parents=True, exist_ok=True)
+    with HAWKBIT_CONFIG_LOCK.open("a", encoding="utf-8") as lock_file:
+        # create_config.sh holds an exclusive lock until its atomic rename and
+        # attribute-cache publication are complete. A shared reader lock waits
+        # for an active updater restart instead of reading its intermediate state.
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_SH)
+        parser = configparser.ConfigParser()
+        parser.read(HAWKBIT_CONFIG)
+        client = parser["client"]
 
-    scheme = "https" if client.getboolean("ssl", fallback=True) else "http"
-    server = client.get("hawkbit_server")
-    tenant = client.get("tenant_id", fallback="DEFAULT")
-    target = client.get("target_name")
-    ssl_verify = client.getboolean("ssl_verify", fallback=True)
-    auth_token = client.get("auth_token", fallback="").strip()
-    gateway_token = client.get("gateway_token", fallback="").strip()
+        scheme = "https" if client.getboolean("ssl", fallback=True) else "http"
+        server = client.get("hawkbit_server")
+        tenant = client.get("tenant_id", fallback="DEFAULT")
+        target = client.get("target_name")
+        ssl_verify = client.getboolean("ssl_verify", fallback=True)
+        auth_token = client.get("auth_token", fallback="").strip()
+        gateway_token = client.get("gateway_token", fallback="").strip()
 
     if not server or not target:
         raise RuntimeError("Hawkbit config is missing hawkbit_server or target_name")
+    if any(
+        UNRESOLVED_PLACEHOLDER.search(value)
+        for value in (server, target, auth_token, gateway_token)
+    ):
+        raise RuntimeError("Hawkbit config contains an unresolved client placeholder")
     if not auth_token and not gateway_token:
         raise RuntimeError("Hawkbit config is missing auth_token/gateway_token")
 
