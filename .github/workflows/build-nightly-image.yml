@@ -1,99 +1,118 @@
 name: Build image
-
+run-name: Build LAB image with only the legacy NAT fix
 on:
-  schedule:
-    - cron: '0 0 * * *'  # Nightly at midnight
   workflow_dispatch:
-    inputs:
-      upload_emmc_to_hawkbit:
-        description: Upload EMMC bundle to hawkBit
-        type: boolean
-        default: false
-      no-cache:
-        description: Force rebuild all components, ignoring cache
-        type: boolean
-        default: false
-
 permissions:
-  contents: write
+  contents: read
   actions: read
-  id-token: write
-  pages: write
-
-run-name: "Build ${{ github.ref_name }} image"
-
 jobs:
-  build-image:
-    name: Build via selected branch
-    uses: ./.github/workflows/build-image-channel.yml
-    with:
-      image: ${{ github.ref_name }}
-      machine-ref: ${{ github.ref_name }}
-      upload_emmc_to_hawkbit: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
-      no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache || false }}
-    secrets: inherit
-
-  tag-controlled-repos:
-    name: Tag controlled component repos
-    needs: build-image
+  rebuild:
+    name: Rebuild and verify NAT-only LAB bundle
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     env:
-      IMAGE: ${{ github.ref_name }}
-      BUILD_VERSION_NUMBER: ${{ needs.build-image.outputs.build_version_number }}
-      BUILD_TAG: ${{ github.ref_name }}/${{ needs.build-image.outputs.build_version_number }}
+      SOURCE_RUN: '35049430671'
+      SOURCE_SHA: 2b2d4cf8c0355fe5989262b95d961709baeece0c
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
-
-      - name: Set up Git authentication
+          fetch-depth: 0
+      - name: Check exact source change
         run: |
-          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
-          git config --global --add url."https://${{ secrets.GH_ORG_WORKFLOW }}:@github.com/".insteadOf "https://github.com/"
-
-      - name: Checkout all component sources
-        run: ./update-sources.sh --all --image "$IMAGE" --firmware --plotter
-
-      - name: Push build tags
-        run: ./tag-controlled-repos.sh --tag "$BUILD_TAG"
-
-  commit-changelog:
-    name: Commit changelog to main
-    needs: build-image
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
+          set -euo pipefail
+          test "$(git diff --numstat 9c62a72e7bff188646d1baa6ade1cbb378d015d7 "$SOURCE_SHA")" = "$(printf '0\t2\tconfig/etc/iptables/rules.v4')"
+          git diff --exit-code 8691d6b67d35e8db5c28cece6132b5396491d9d4 "$SOURCE_SHA" -- config/etc/iptables/rules.v4
+          git diff --exit-code "$SOURCE_SHA" HEAD -- config/etc/iptables/rules.v4 make-ota.sh config.sh rauc-config
+          git show 9c62a72e7bff188646d1baa6ade1cbb378d015d7:config/etc/iptables/rules.v4 > /tmp/original-rules.v4
+      - uses: actions/download-artifact@v4
         with:
-          ref: main
-
-      - name: Set up Git authentication
-        run: |
-          git config --global url."https://${{ secrets.GH_REPO_WORKFLOW }}:@github.com/".insteadOf "git@github.com:"
-
-      - name: Download version-info artifact
-        uses: actions/download-artifact@v4
+          name: meticulous-rootfs.tar.gz
+          path: original
+          run-id: 35049430671
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: rauc
+          path: components/rauc/build
+          run-id: 35049430671
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
         with:
           name: version-info
-          path: .
-
-      - name: Commit and push changelog
+          path: original/version-info
+          run-id: 35049430671
+          github-token: ${{ github.token }}
+      - name: Install packaging and validation tools
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add "images/changes/${{ github.ref_name }}/"
-
-          if git diff --cached --quiet; then
-            echo "No changelog changes to commit."
+          sudo apt-get update -qq
+          sudo apt-get install -y pigz iptables squashfs-tools
+          sudo apt-get install -y ./components/rauc/build/rauc_*_amd64.deb
+          sudo iptables-restore --test < config/etc/iptables/rules.v4
+      - name: Generate image version
+        run: |
+          version="$(./generate_image_version.sh '${{ github.run_number }}' lab_certification)"
+          echo "BUILD_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Image version: $version" >> "$GITHUB_STEP_SUMMARY"
+      - name: Rebuild rootfs and verify payload preservation
+        run: python3 scripts/rebuild-lab-nat-only.py
+      - uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/rauc-secrets
+          token: ${{ secrets.GH_REPO_WORKFLOW }}
+          path: components/rauc-secrets
+          persist-credentials: false
+      - name: Build and verify signed update
+        run: |
+          set -euo pipefail
+          ./make-ota.sh --variant lab_certification --cert components/rauc-secrets/keys/beta.rsa4096.cert.pem --key components/rauc-secrets/keys/beta.rsa4096.key.pem
+          bundle=$(find . -maxdepth 1 -name 'rauc_meticulous_emmc_lab_certification_*.raucb' -printf '%f\n')
+          test -n "$bundle"
+          rauc --keyring rauc-config/beta.rsa4096.cert.pem info "$bundle" | tee bundle-info.txt
+          mkdir -p release
+          mv "$bundle" release/
+          cp verification.json bundle-info.txt release/
+          printf '%s\n' "$BUILD_VERSION" > release/image-version.txt
+          (cd release && sha256sum *.raucb > SHA256SUMS)
+          cat release/SHA256SUMS >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab-nat-only-signed-update
+          path: release/
+          compression-level: 0
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lab-nat-only-rootfs
+          path: meticulous-rootfs.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+      - name: Check distribution credential availability
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+        run: |
+          if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo 'DISTRIBUTION_CREDENTIALS_AVAILABLE=true' >> "$GITHUB_ENV"
           else
-            git commit -m "changelog: ${{ github.ref_name }} build #${{ github.run_number }}"
-            git push origin HEAD:main
+            echo 'Signed update ready; distribution credentials unavailable in this repository.' >> "$GITHUB_STEP_SUMMARY"
           fi
-
-  deploy-changelog:
-    name: Deploy changelog to GitHub Pages
-    needs: commit-changelog
-    uses: meticuloushome/meticulous-machine/.github/workflows/deploy-changelog.yml@main
+      - name: Publish bundle to existing download host
+        if: env.DISTRIBUTION_CREDENTIALS_AVAILABLE == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          set -euo pipefail
+          bucket=meticulous-distribution
+          old_key=lab-certification/rauc_meticulous_emmc_lab_certification_2026-09-16T03_32_01.raucb
+          aws s3api head-object --bucket "$bucket" --key "$old_key" --query ContentLength
+          bundle=$(find release -name '*.raucb' -printf '%f\n')
+          digest=$(sha256sum "release/$bundle" | cut -d' ' -f1)
+          key="lab-certification/$bundle"
+          aws s3 cp "release/$bundle" "s3://$bucket/$key" --content-type application/octet-stream --metadata "sha256=$digest,image-version=$BUILD_VERSION" --only-show-errors
+          aws s3 cp release/SHA256SUMS "s3://$bucket/$key.sha256" --content-type text/plain --only-show-errors
+          url="https://dial-app.meticuloushome.com/$key"
+          curl --fail --silent --show-error "$url" -o /tmp/published.raucb
+          test "$(sha256sum /tmp/published.raucb | cut -d' ' -f1)" = "$digest"
+          printf '\nVerified download: %s\n' "$url" >> "$GITHUB_STEP_SUMMARY"
