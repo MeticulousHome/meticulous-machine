@@ -21,7 +21,9 @@
         "shot_history",
         "freePour",
         "freePourHistory",
-        "guidedPourOver"
+        "guidedPourOver",
+        "shotDataSharingPrompt",
+        "manualSetup"
       ],
       "profile_authoring": [
         "pressetSettings",
@@ -35,9 +37,7 @@
         "motor_power",
         "dose",
         "output",
-        "pressetProfileImage",
-        "defaultProfiles",
-        "defaultProfileDetails"
+        "pressetProfileImage"
       ],
       "settings": [
         "settings",
@@ -45,7 +45,9 @@
         "brewSettings",
         "scrollDirections",
         "community",
-        "tare_behavior"
+        "tare_behavior",
+        "experimentalSettings",
+        "helpUsImprove"
       ],
       "wifi": [
         "wifiSettings",
@@ -84,7 +86,8 @@
         "bug-report",
         "OSStatus",
         "snake",
-        "unlock"
+        "unlock",
+        "reportContactEmail"
       ]
     },
     "api_methods": [
@@ -105,9 +108,12 @@
       "getMeticulousReportTracking",
       "getNotifications",
       "getOSStatus",
+      "getPendingReportDispatches",
+      "getProfile",
       "getProfileDefaultImages",
       "getProfileImage",
       "getProfileImageUrl",
+      "getReportPreflight",
       "getRootPassword",
       "getSettings",
       "getTimezoneRegion",
@@ -122,6 +128,7 @@
       "setBrightness",
       "setTime",
       "setWiFiConfig",
+      "unlockMachine",
       "updateManufacturingSettings",
       "updateReport",
       "updateSetting"
@@ -136,6 +143,7 @@
       "profileHover",
       "sensors",
       "status",
+      "upload_report",
       "water_status"
     ],
     "socket_emits": [
@@ -170,12 +178,14 @@
       "/machine/factory_reset",
       "/machine/root-password",
       "/machine/time",
+      "/machine/unlock",
       "/manufacturing[/]*",
       "/notifications",
       "/notifications/acknowledge",
       "/profile/changes",
       "/profile/defaults",
       "/profile/delete/([0-9a-fA-F-]+)",
+      "/profile/from_manual",
       "/profile/get/([0-9a-fA-F-]+)",
       "/profile/image([/]*)",
       "/profile/image/(.*)",
@@ -192,8 +202,11 @@
       "/pour-over/profile/list",
       "/pour-over/profile/schema",
       "/reports/create",
+      "/reports/dispatch",
       "/reports/draft/([^/]+)",
       "/reports/list",
+      "/reports/preflight",
+      "/reports/request",
       "/reports/submit",
       "/scaleCalibrate",
       "/serial",
@@ -240,6 +253,7 @@
     "allowed_actions": [
       "abort",
       "continue",
+      "finish",
       "home",
       "preheat",
       "purge",
@@ -262,6 +276,7 @@
     "uart_actions": [
       "calibration",
       "continue",
+      "finish",
       "home",
       "idle",
       "info",
