@@ -2,6 +2,9 @@
 
 ## Purpose
 
+How these journeys fit the checks from pull request to image is described in
+[`validation-architecture.md`](validation-architecture.md).
+
 This document defines the scope that the Espresso end-to-end program must
 cover before individual test runners are implemented. The machine-readable
 source of truth is [`e2e/contracts/coverage.json`](../../e2e/contracts/coverage.json).
