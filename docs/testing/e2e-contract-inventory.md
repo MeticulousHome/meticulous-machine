@@ -61,9 +61,12 @@ journeys execute successfully.
 5. Abort a shot and recover safely.
 6. Exercise home, purge, tare and calibration at the appropriate test tier.
 7. Recover from backend REST/Socket disconnection.
+8. Act on a running shot: skip a stage, end it early and keep it.
 
 `P1` journeys cover settings persistence, Wi-Fi lifecycle, update state and
-privacy-safe diagnostics.
+privacy-safe diagnostics (device information and bug reports also at the
+`simulated` tier), creating and deleting profiles, manual mode and the guided
+Free Pour.
 
 Each journey declares one or more execution tiers:
 
