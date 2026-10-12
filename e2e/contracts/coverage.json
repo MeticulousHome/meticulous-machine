@@ -357,6 +357,14 @@
       "status": "planned"
     },
     {
+      "id": "profile-create-and-delete",
+      "priority": "P1",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["profile_authoring", "settings"],
+      "summary": "Create a profile on the Dial, save it with the values set with the knob, see it on the home, and delete it again from the quick settings.",
+      "status": "planned"
+    },
+    {
       "id": "espresso-complete",
       "priority": "P0",
       "tiers": ["simulated", "hil"],
@@ -370,6 +378,30 @@
       "tiers": ["simulated", "hil"],
       "screen_groups": ["brew_lifecycle"],
       "summary": "Abort an active shot, stop outputs and recover to a usable idle/home state.",
+      "status": "planned"
+    },
+    {
+      "id": "espresso-interactions",
+      "priority": "P0",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["brew_lifecycle", "settings"],
+      "summary": "Act on a running shot from the Dial: skip the current stage from the quick settings, end the shot early with a double push and keep it in history.",
+      "status": "planned"
+    },
+    {
+      "id": "manual-brew",
+      "priority": "P1",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["brew_lifecycle", "settings"],
+      "summary": "Set up a manual-mode shot on the Dial (temperature, output, start on pressure or flow), steer it with the knob, end it and record it.",
+      "status": "planned"
+    },
+    {
+      "id": "pour-over-brew",
+      "priority": "P1",
+      "tiers": ["simulated", "hil"],
+      "screen_groups": ["brew_lifecycle"],
+      "summary": "Brew a guided Free Pour with the scale: set up server, brewer and coffee, pour, finish, and find it in the pour-over history.",
       "status": "planned"
     },
     {
@@ -407,7 +439,7 @@
     {
       "id": "update-and-diagnostics",
       "priority": "P1",
-      "tiers": ["rootfs", "hil"],
+      "tiers": ["simulated", "rootfs", "hil"],
       "screen_groups": ["advanced", "support_and_diagnostics"],
       "summary": "Expose image/device information, update state, notifications and privacy-safe diagnostic reporting.",
       "status": "planned"
