@@ -397,6 +397,13 @@
       "summary": "Act on a running shot from the Dial: skip the current stage from the quick settings, end the shot early with a double push and keep it in history."
     },
     {
+      "id": "knob-fast-turns",
+      "priority": "P1",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": ["brew_lifecycle", "profile_authoring", "settings"],
+      "summary": "Spin the knob quickly on the home carousel, a number entry, the name keyboard and a menu: every turn the Dial receives moves it one step, as slow turns do."
+    },
+    {
       "id": "manual-brew",
       "priority": "P1",
       "tiers": {"simulated": "implemented", "hil": "planned"},
