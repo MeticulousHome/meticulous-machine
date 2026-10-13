@@ -40,8 +40,8 @@ def _duplicates(values: Iterable[str]) -> list[str]:
 
 def validate_manifest(manifest: dict) -> list[str]:
     errors: list[str] = []
-    if manifest.get("schema_version") != 1:
-        errors.append("schema_version must be 1")
+    if manifest.get("schema_version") != 2:
+        errors.append("schema_version must be 2")
 
     screens = flatten_screen_groups(manifest)
     duplicates = _duplicates(screens)
@@ -64,15 +64,24 @@ def validate_manifest(manifest: dict) -> list[str]:
                 f"Journey {journey['id']} references unknown screen groups: "
                 f"{sorted(unknown_groups)}"
             )
-        unknown_tiers = set(journey.get("tiers", [])) - valid_tiers
+        # Each tier the journey runs at has its own status: passing in the
+        # simulated stack says nothing about the image or a machine.
+        tiers = journey.get("tiers")
+        if not isinstance(tiers, dict) or not tiers:
+            errors.append(f"Journey {journey['id']} needs tiers: {{tier: status}}")
+            tiers = {}
+        unknown_tiers = set(tiers) - valid_tiers
         if unknown_tiers:
             errors.append(
                 f"Journey {journey['id']} references unknown tiers: {sorted(unknown_tiers)}"
             )
+        for tier, status in tiers.items():
+            if status not in valid_statuses:
+                errors.append(f"Journey {journey['id']} has an invalid status at {tier}: {status!r}")
+        if "status" in journey:
+            errors.append(f"Journey {journey['id']}: the status is per tier, in tiers")
         if journey.get("priority") not in valid_priorities:
             errors.append(f"Journey {journey['id']} has an invalid priority")
-        if journey.get("status") not in valid_statuses:
-            errors.append(f"Journey {journey['id']} has an invalid status")
         if not journey.get("summary"):
             errors.append(f"Journey {journey['id']} needs a summary")
 
@@ -375,8 +384,14 @@ def main(argv: list[str] | None = None) -> int:
         f"{len(manifest['backend']['api_routes'])} backend routes, "
         f"{len(manifest['firmware']['uart_actions'])} firmware actions, "
         f"{len(manifest['image']['component_sources'])} image component sources, "
-        f"{len(manifest['journeys'])} planned journeys."
+        f"{len(manifest['journeys'])} journeys."
     )
+    for tier in ("simulated", "rootfs", "hil"):
+        statuses = [j["tiers"][tier] for j in manifest["journeys"] if tier in j["tiers"]]
+        print(
+            f"  {tier}: {statuses.count('implemented')} of {len(statuses)} implemented"
+            + (f", {statuses.count('blocked')} blocked" if "blocked" in statuses else "")
+        )
     return 0
 
 

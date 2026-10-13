@@ -75,8 +75,18 @@ Each journey declares one or more execution tiers:
 - `hil`: physical i.MX8/Variscite and/or ESP32-S3 fixture with safe hardware
   controls.
 
-All journeys are marked `planned`. Their status must only change to
-`implemented` when an executable test exists and passes in its declared tier.
+Each tier has its own status (`"tiers": {"simulated": "implemented",
+"rootfs": "planned", "hil": "planned"}`): a journey that passes in the
+simulated stack says nothing yet about the built image or a machine. A tier is
+`implemented` when a test declaring that journey and tier runs in that tier's CI;
+what each test checks is in its docstring. `blocked` marks a tier that cannot be
+tested yet, with the reason in `known_gaps`.
+
+The runner keeps it true: meticulous-integration fails when the catalog says
+`simulated` is `implemented` and no test there declares it, and warns when a
+test declares a tier the catalog still has as `planned` (mark it in the same
+change as the test, or right after). `scripts/validate_e2e_contract.py` prints
+how many journeys are implemented at each tier.
 
 ## Known gaps found during inventory
 
