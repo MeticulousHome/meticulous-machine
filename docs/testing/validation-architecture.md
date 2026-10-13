@@ -53,19 +53,21 @@ at the bottom, few slow ones at the top.
 |---|---|
 | EspressoFirmware | Static, unit (C++), the SIL (the whole firmware against a simulated machine), its UART contract checked against itself; and the backend's integration tests against the backend of its branch (status `integration/backend`) |
 | meticulous-backend | Static, unit, API, data (migrations, config), contract (API snapshots), packaging and boot; and its integration tests against the firmware of its branch (status `integration/firmware`) |
-| meticulous-dial | Static, unit, component (screens against a fake backend); and the catalog journeys end to end against the backend and the firmware of its branch |
+| meticulous-dial | Static, unit, component (real components in Chromium with a simulated machine), the build, the Tauri side (Rust), its use of the backend checked against the backend's published contract; and the catalog journeys end to end against the backend and the firmware of its branch (status `integration/e2e`) |
 | meticulous-machine | On every image: the system tests in the built image (services, OTA, crash reporter) and the catalog journeys at `rootfs` tier; on release candidates, the `hil` tier |
 
 Anything that needs the firmware runs in MeticulousHome/meticulous-integration
 (private); each component's pull request asks for it and receives a commit
 status. It pairs the components and uses the firmware's prebuilt fika-sil, so
-no firmware is compiled on a backend or Dial pull request.
+no firmware is compiled on a backend or Dial pull request. The Dial's journeys
+also run on backend and firmware pull requests (status `integration/dial`), so a
+change to either that breaks the Dial is caught before it merges.
 
 ```
-backend PR ───┐                                  ┌──▶ integration/firmware on the backend commit
-firmware PR ──┼─▶ meticulous-integration ────────┼──▶ integration/backend on the firmware commit
-Dial PR ──────┘   pair by branch, real backend,  └──▶ (Dial status, to do)
-                  fika-sil of that branch
+backend PR ───┐                                  ┌──▶ integration/firmware, integration/dial on the backend commit
+firmware PR ──┼─▶ meticulous-integration ────────┼──▶ integration/backend, integration/dial on the firmware commit
+Dial PR ──────┘   pair by branch, real backend,  └──▶ integration/e2e on the Dial commit
+                  fika-sil and Dial of that branch
 image build ────▶ system tests, rootfs journeys ────▶ hil journeys on release candidates
 ```
 
@@ -109,8 +111,11 @@ The catalog and its rules are in
 - `hil`: a physical machine in the lab. Runs on release candidates.
 - Every journey test declares the journey and tier it covers (in pytest,
   `@pytest.mark.journey("espresso-complete", tier="simulated")`); the runner
-  refuses an id or tier the catalog does not list. A journey's status becomes
-  `implemented` only when its test exists and passes at that tier.
+  refuses an id or tier the catalog does not list.
+- Each tier of a journey has its own status. A tier is `implemented` once a test
+  declaring it runs in that tier's CI; the runner fails when the catalog claims
+  a tier no test declares, and warns when a test declares a tier still `planned`.
+  So `implemented` at `simulated` never reads as validated on a machine.
 
 ## Public and private
 
@@ -145,21 +150,22 @@ catalog change through a pull request to this document.
 | Step | Status |
 |---|---|
 | Firmware gates (SIL) | Done |
-| Backend gates | Done in `gates/main`; to `beta` next |
-| Dial gates | In progress |
-| Catalog and inventory with drift detection | Done; the inventory needs refreshing (its validator reports drift, and its daily run fails to start) |
-| Firmware UART contract checked against itself | In review |
-| fika-sil published per branch by the firmware's CI | In review |
-| Backend × firmware on every PR, both directions, paired by branch | Ready; needs the tokens, and the backend's handshake race fixed before it can be required |
-| Dial journeys with the backend and the firmware | To do |
+| Backend gates | Done |
+| Dial gates | Done in `gates/main`; to `beta` next |
+| Catalog and inventory with drift detection | Done; status per tier |
+| Firmware UART contract checked against itself | Done |
+| fika-sil published per branch by the firmware's CI | Done |
+| Backend × firmware on every PR, both directions, paired by branch | Done |
+| Dial journeys with the backend and the firmware, on Dial, backend and firmware PRs | Done (11 of 14 journeys at `simulated`); still to cover: every route, backend disconnection, Wi-Fi |
 | System tests and `rootfs` journeys per image | To do |
 | `hil` journeys on a lab runner | To do |
 
 ## Open decisions
 
-- **How the Dial runs in its journeys**: its web build in a browser (fast) or the
-  Tauri binary under a Wayland compositor (closer to the machine). `rootfs` gets
-  the real one either way.
+- **The Tauri side in the journeys**: at `simulated` the Dial is its web build in
+  Chromium, so what only Tauri does (Sentry, the ready markers, Community
+  uploads) is not exercised there. Either a Tauri binary under a Wayland
+  compositor at `simulated`, or leave it to `rootfs`, which gets the real one.
 - **How the rootfs boots at `rootfs` tier**: systemd-nspawn on an ARM64 runner, or
   QEMU with the image's kernel and RAUC slots.
 - **Credentials**: one GitHub App for the organisation with the permissions the
