@@ -210,11 +210,12 @@ def check_update_channel(args):
 def check_rauc_bundle(args):
     if not args.bundle:
         return None, "no bundle given"
-    shutil.copy(args.bundle, args.rootfs / "run/validation-bundle.raucb")
+    # Not under /run: the image mounts its own tmpfs there and would hide it.
+    shutil.copy(args.bundle, args.rootfs / "var/tmp/validation-bundle.raucb")
     conf = (args.rootfs / "etc/rauc/system.conf").read_text()
     compatible = re.search(r"^compatible=(.+)$", conf, re.M).group(1).strip()
     keyring = re.search(r"^path=(.+)$", conf.split("[keyring]", 1)[1], re.M).group(1).strip()
-    done = inside("rauc", "info", "--output-format=json", "/run/validation-bundle.raucb", timeout=180)
+    done = inside("rauc", "info", "--output-format=json", "/var/tmp/validation-bundle.raucb", timeout=180)
     if done.returncode != 0:
         print(f"rauc info exited {done.returncode}", "--- stdout", done.stdout, "--- stderr", done.stderr, sep="\n", flush=True)
         errors = [line for line in done.stderr.splitlines() if "rauc-Message" not in line and line.strip()]
