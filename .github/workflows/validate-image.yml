@@ -3,8 +3,9 @@ name: Validate image
 # Phase 1 of the image validation (docs/testing/validation-architecture.md):
 # boots the image a build produced on an ARM64 runner, with no network, and
 # checks that it starts its services and is what the build says it is
-# (e2e/image/). Informative for now: it never fails the build or blocks the
-# upload to hawkBit.
+# (e2e/image/), then asks meticulous-integration for phase 2, the image's
+# backend with the firmware (its image-journeys.yml, private). Informative for
+# now: it never fails the build or blocks the upload to hawkBit.
 on:
   workflow_call:
     inputs:
@@ -21,12 +22,16 @@ on:
         description: The channel that run built
         default: beta
   push:
-    # While this check is being developed: the beta image of run 37083310300.
+    # Temporary, to check this file in a real run: the beta image of run 37083310300.
     branches: [image-validation]
 
 permissions:
   contents: read
   actions: read
+
+env:
+  RUN_ID: ${{ inputs.run_id || (github.event_name == 'push' && '37083310300') || github.run_id }}
+  IMAGE: ${{ inputs.image || 'beta' }}
 
 jobs:
   boot:
@@ -35,8 +40,6 @@ jobs:
     timeout-minutes: 40
     continue-on-error: true
     env:
-      RUN_ID: ${{ inputs.run_id || (github.event_name == 'push' && '37083310300') || github.run_id }}
-      IMAGE: ${{ inputs.image || 'beta' }}
       WORK: /var/tmp/image
     steps:
     - uses: actions/checkout@v4
@@ -97,3 +100,24 @@ jobs:
         name: image-validation
         path: logs/
         retention-days: 14
+
+  journeys:
+    name: Ask meticulous-integration for the image journeys
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+    - name: Dispatch image-built
+      env:
+        GH_TOKEN: ${{ secrets.INTEGRATION_DISPATCH_TOKEN }}
+        MACHINE_REF: ${{ github.ref_name }}
+      run: |
+        if [ -z "$GH_TOKEN" ]; then
+          echo "::notice::INTEGRATION_DISPATCH_TOKEN is not set here: no image journeys for this image."
+          exit 0
+        fi
+        gh api repos/MeticulousHome/meticulous-integration/dispatches \
+          -f event_type=image-built \
+          -f "client_payload[run_id]=$RUN_ID" \
+          -f "client_payload[image]=$IMAGE" \
+          -f "client_payload[machine_ref]=$MACHINE_REF"
+        echo "The image journeys run in MeticulousHome/meticulous-integration (private)." >> "$GITHUB_STEP_SUMMARY"
