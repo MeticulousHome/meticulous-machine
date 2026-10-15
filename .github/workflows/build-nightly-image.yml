@@ -16,15 +16,37 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
   id-token: write
   pages: write
 
 run-name: "Build ${{ github.ref_name }} image"
 
 jobs:
+  # GitHub only fires the schedule on the default branch. This workflow file is
+  # promoted to beta and stable unchanged, so if one of those ever becomes the
+  # default branch the schedule would build and upload that channel every
+  # night. Instead, a scheduled run on any branch other than nightly hands off
+  # to the nightly image workflow and builds nothing itself.
+  trigger-nightly:
+    name: Hand scheduled run over to nightly
+    if: ${{ github.event_name == 'schedule' && github.ref_name != 'nightly' }}
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Dispatch the nightly image workflow
+        run: |
+          gh workflow run build-nightly-image.yml \
+            --repo "${{ github.repository }}" \
+            --ref nightly \
+            -f upload_emmc_to_hawkbit=true \
+            -f skip-if-unchanged=true
+          echo "Scheduled run on '${{ github.ref_name }}' dispatched the nightly image workflow instead of building here." >> "$GITHUB_STEP_SUMMARY"
+
   build-image:
     name: Build via selected branch
+    if: ${{ github.event_name != 'schedule' || github.ref_name == 'nightly' }}
     uses: ./.github/workflows/build-image-channel.yml
     with:
       image: ${{ github.ref_name }}
