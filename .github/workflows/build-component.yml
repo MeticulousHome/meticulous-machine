@@ -84,54 +84,10 @@ jobs:
     - name: Checkout the sources
       run: ./update-sources.sh --${{ inputs['build-option'] }} --image ${{ inputs['image'] }}
 
-    - name: Resolve component commit hash for caching
+    - name: Resolve component cache key
       id: component-hash
       run: |
-        case "${{ inputs['build-option'] }}" in
-          linux)
-            HASH="$(git -C components/linux rev-parse HEAD)-$(git -C components/linux-mwifiex rev-parse HEAD)-$(git -C components/linux-mwifiex-iw612 rev-parse HEAD)"
-            ;;
-          debian)
-            TRIXIE_VERSION="$(curl -fsSL --max-time 30 https://deb.debian.org/debian/dists/trixie/InRelease | awk '/^Version:/{print $2; exit}')"
-            if [ -z "${TRIXIE_VERSION}" ]; then
-              # If the archive is unreachable, fall back to a monthly bucket: worst
-              # case one spurious rebuild, never a silently stale key.
-              TRIXIE_VERSION="unknown-$(date +%Y%m)"
-            fi
-            HASH="$(git -C components/debian-base rev-parse HEAD)-trixie${TRIXIE_VERSION}"
-            ;;
-          bootloader)
-            HASH="$(git -C components/bootloader/uboot rev-parse HEAD)-$(git -C components/bootloader/imx-atf rev-parse HEAD)-$(git -C components/bootloader/imx-mkimage rev-parse HEAD)"
-            ;;
-          psplash)
-            HASH="$(git -C components/psplash rev-parse HEAD)"
-            ;;
-          rauc)
-            HASH="$(git -C components/rauc/rauc rev-parse HEAD)-$(git -C components/rauc/rauc-hawkbit-updater rev-parse HEAD)"
-            ;;
-          dial)
-            HASH="$(git -C components/meticulous-dial rev-parse HEAD)"
-            ;;
-          web)
-            HASH="$(git -C components/meticulous-web-ui rev-parse HEAD)"
-            ;;
-          firmware)
-            HASH="$(git -C components/meticulous-firmware rev-parse HEAD)"
-            ;;
-          plotter)
-            HASH="$(git -C components/meticulous-plotter-ui rev-parse HEAD)"
-            ;;
-          crash-reporter)
-            HASH="$(git -C components/crash-reporter rev-parse HEAD)"
-            ;;
-          backend)
-            HASH="$(git -C components/meticulous-backend rev-parse HEAD)"
-            ;;
-          watcher)
-            HASH="$(git -C components/meticulous-watcher rev-parse HEAD)"
-            ;;
-        esac
-        echo "cache-key=${{ inputs['build-option'] }}-build-${HASH}" >> $GITHUB_OUTPUT
+        echo "cache-key=$(./scripts/component-cache-key.sh "${{ inputs['build-option'] }}" "${{ inputs['image'] }}")" >> "$GITHUB_OUTPUT"
 
     - name: Restore build cache
       id: build-cache

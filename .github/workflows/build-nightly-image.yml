@@ -13,29 +13,59 @@ on:
         description: Force rebuild all components, ignoring cache
         type: boolean
         default: false
+      skip-if-unchanged:
+        description: Stop early when nothing changed since the last published image (nightly only)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
-  actions: read
+  actions: write
   id-token: write
   pages: write
 
 run-name: "Build ${{ github.ref_name }} image"
 
 jobs:
+  # GitHub only fires the schedule on the default branch. This workflow file is
+  # promoted to beta and stable unchanged, so if one of those ever becomes the
+  # default branch the schedule would build and upload that channel every
+  # night. Instead, a scheduled run on any branch other than nightly hands off
+  # to the nightly image workflow and builds nothing itself.
+  trigger-nightly:
+    name: Hand scheduled run over to nightly
+    if: ${{ github.event_name == 'schedule' && github.ref_name != 'nightly' }}
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Dispatch the nightly image workflow
+        run: |
+          gh workflow run build-nightly-image.yml \
+            --repo "${{ github.repository }}" \
+            --ref nightly \
+            -f upload_emmc_to_hawkbit=true \
+            -f skip-if-unchanged=true
+          echo "Scheduled run on '${{ github.ref_name }}' dispatched the nightly image workflow instead of building here." >> "$GITHUB_STEP_SUMMARY"
+
   build-image:
     name: Build via selected branch
+    if: ${{ github.event_name != 'schedule' || github.ref_name == 'nightly' }}
     uses: ./.github/workflows/build-image-channel.yml
     with:
       image: ${{ github.ref_name }}
       machine-ref: ${{ github.ref_name }}
       upload_emmc_to_hawkbit: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
       no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache || false }}
+      # Only the scheduled nightly build may stop on an unchanged fingerprint.
+      # beta/stable builds are requested by hand and always produce an image.
+      skip-if-unchanged: ${{ github.ref_name == 'nightly' && (github.event_name != 'workflow_dispatch' || inputs.skip-if-unchanged) }}
     secrets: inherit
 
   tag-controlled-repos:
     name: Tag controlled component repos
     needs: build-image
+    if: ${{ needs.build-image.outputs.skipped != 'true' }}
     runs-on: ubuntu-24.04
     env:
       IMAGE: ${{ github.ref_name }}
@@ -61,7 +91,7 @@ jobs:
   commit-changelog:
     name: Commit changelog to main
     needs: build-image
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit }}
+    if: ${{ needs.build-image.outputs.skipped != 'true' && (github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit) }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout main
