@@ -15,9 +15,11 @@
 #   - the ESP32: the backend's built-in emulator (BACKEND=EMULATOR), or, with
 #     ESP_UART, that serial device in place of the ESP32's /dev/ttymxc0;
 #   - DEVICES: more device nodes for the image, as SOURCE[:DESTINATION], such
-#     as simulated GPIO chips and I2C bus.
+#     as a simulated I2C bus;
+#   - PREPARE: a script run with the rootfs copy's path before it boots, for
+#     what a caller simulates inside the image (it says what, and why).
 #
-# Usage: sudo [NETWORK=link] [ESP_UART=DEVICE] [DEVICES="..."] \
+# Usage: sudo [NETWORK=link] [ESP_UART=DEVICE] [DEVICES="..."] [PREPARE=SCRIPT] \
 #            e2e/image/boot.sh ROOTFS_TARBALL WORKDIR
 # Leaves the container "image" running.
 set -euo pipefail
@@ -32,6 +34,9 @@ tar -xzf "$tarball" -C "$rootfs" --numeric-owner
 
 cp "$rootfs/etc/fstab" "$work/fstab.image"
 printf '/meticulous-user/syslog /var/log none bind 0 0\n' > "$rootfs/etc/fstab"
+if [ -n "${PREPARE:-}" ]; then
+    "$PREPARE" "$rootfs"
+fi
 
 options=(--boot --machine=image --bind="$user:/meticulous-user" -D "$rootfs")
 
