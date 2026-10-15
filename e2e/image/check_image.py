@@ -216,7 +216,13 @@ def check_rauc_bundle(args):
     keyring = re.search(r"^path=(.+)$", conf.split("[keyring]", 1)[1], re.M).group(1).strip()
     done = inside("rauc", "info", "--output-format=json", "/run/validation-bundle.raucb", timeout=180)
     if done.returncode != 0:
-        return False, f"the image's rauc refuses this build's bundle: {done.stderr.strip()[-300:]}"
+        print(f"rauc info exited {done.returncode}
+--- stdout
+{done.stdout}
+--- stderr
+{done.stderr}", flush=True)
+        errors = [line for line in done.stderr.splitlines() if "rauc-Message" not in line and line.strip()]
+        return False, f"the image's rauc refuses this build's bundle: {' / '.join(errors)[-300:] or done.stderr.strip()[-300:]}"
     info = json.loads(done.stdout)
     ok = info.get("compatible") == compatible
     return ok, f"signature verified with `{keyring}`; bundle compatible `{info.get('compatible')}`, image `{compatible}`"
