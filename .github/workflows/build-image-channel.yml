@@ -19,10 +19,17 @@ on:
         description: Force rebuild all components, ignoring cache
         type: boolean
         default: false
+      skip-if-unchanged:
+        description: Stop early when the image fingerprint matches an already published build
+        type: boolean
+        default: false
     outputs:
       build_version_number:
         description: Generated image build version number
         value: ${{ jobs.generate-version-info.outputs.build_version_number }}
+      skipped:
+        description: "'true' when the build stopped early because nothing changed since the last published image"
+        value: ${{ jobs.fingerprint.outputs.skip }}
 
 permissions:
   contents: read
@@ -61,9 +68,65 @@ jobs:
 
           echo "Building image '${image}' from machine config branch '${machine_ref}'." >> "$GITHUB_STEP_SUMMARY"
 
+  fingerprint:
+    name: Fingerprint image inputs
+    needs: preflight
+    runs-on: ubuntu-24.04
+    outputs:
+      key: ${{ steps.fingerprint.outputs.key }}
+      skip: ${{ steps.decide.outputs.skip }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.machine-ref }}
+
+      - name: Set up Git authentication
+        run: |
+          git config --global url."https://${{ secrets.GH_ORG_WORKFLOW }}@github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout all component sources
+        run: ./update-sources.sh --all --image "${{ inputs.image }}" --firmware --plotter
+
+      - name: Compute image fingerprint
+        id: fingerprint
+        run: |
+          fingerprint="$(./scripts/image-fingerprint.sh "${{ inputs.image }}")"
+          echo "key=image-fingerprint-${{ inputs.image }}-${fingerprint}" >> "$GITHUB_OUTPUT"
+
+      - name: Look up fingerprint of the last published image
+        id: lookup
+        uses: actions/cache/restore@v4
+        with:
+          path: .image-fingerprint
+          key: ${{ steps.fingerprint.outputs.key }}
+          lookup-only: true
+
+      - name: Decide whether to build
+        id: decide
+        env:
+          CACHE_HIT: ${{ steps.lookup.outputs.cache-hit }}
+          SKIP_IF_UNCHANGED: ${{ inputs.skip-if-unchanged }}
+          FINGERPRINT_KEY: ${{ steps.fingerprint.outputs.key }}
+        run: |
+          if [[ "${CACHE_HIT}" == "true" && "${SKIP_IF_UNCHANGED}" == "true" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Nothing changed since the last published '${{ inputs.image }}' image (\`${FINGERPRINT_KEY}\`). Stopping the build." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            if [[ "${CACHE_HIT}" == "true" ]]; then
+              echo "Image inputs match an already published '${{ inputs.image }}' image, but a rebuild was requested." >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Image inputs changed since the last published '${{ inputs.image }}' image." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
   build-components:
     name: Build all image components
-    needs: preflight
+    needs:
+      - preflight
+      - fingerprint
+    if: ${{ needs.fingerprint.outputs.skip != 'true' }}
     secrets: inherit
     uses: ./.github/workflows/build-all-components.yml
     with:
@@ -73,7 +136,10 @@ jobs:
 
   generate-version-info:
     name: Generate version info and changelog
-    needs: preflight
+    needs:
+      - preflight
+      - fingerprint
+    if: ${{ needs.fingerprint.outputs.skip != 'true' }}
     runs-on: ubuntu-24.04
     outputs:
       build_version_number: ${{ steps.generate-build-number.outputs.build_version_number }}
@@ -424,3 +490,24 @@ jobs:
           name: deployment.img.gz
           path: deployment.img.gz
           if-no-files-found: error
+
+  record-fingerprint:
+    name: Record image fingerprint
+    needs:
+      - fingerprint
+      - build-deployment-image
+      - deploy-emmc-bundle
+    # An image counts as published only once it reached hawkBit and every other
+    # artifact exists. A build without upload, or with a failed upload, leaves
+    # no fingerprint behind so the next scheduled run builds and uploads it.
+    if: ${{ !cancelled() && inputs.upload_emmc_to_hawkbit && needs.deploy-emmc-bundle.result == 'success' && needs.build-deployment-image.result == 'success' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Write fingerprint marker
+        run: echo "${{ needs.fingerprint.outputs.key }}" > .image-fingerprint
+
+      - name: Save fingerprint of this published image
+        uses: actions/cache/save@v4
+        with:
+          path: .image-fingerprint
+          key: ${{ needs.fingerprint.outputs.key }}
