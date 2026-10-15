@@ -107,7 +107,8 @@ The catalog and its rules are in
   Runs on the pull requests of the components that take part, with the branch
   pairing above.
 - `rootfs`: the assembled ARM64 rootfs, its packages, services and routing, with
-  fika-sil in place of the ESP32. Runs per image.
+  fika-sil in place of the ESP32. Runs per image, in two steps (see "The image
+  per build" below).
 - `hil`: a physical machine in the lab. Runs on release candidates.
 - Every journey test declares the journey and tier it covers (in pytest,
   `@pytest.mark.journey("espresso-complete", tier="simulated")`); the runner
@@ -116,6 +117,32 @@ The catalog and its rules are in
   declaring it runs in that tier's CI; the runner fails when the catalog claims
   a tier no test declares, and warns when a test declares a tier still `planned`.
   So `implemented` at `simulated` never reads as validated on a machine.
+
+## The image per build
+
+Each image a build produces boots on GitHub's ARM64 runners with
+systemd-nspawn (`e2e/image/boot.sh`): the image's own systemd and services,
+with what only a machine has replaced in that copy, never in the image. No
+network beyond the runner, so nothing reaches hawkBit or Sentry; an empty
+`/meticulous-user`, as a machine leaving the factory. Both steps are
+informative for now: nothing waits for them, and they never fail the build.
+
+1. **The image boots and is what the build says** (`validate-image.yml`, here,
+   public; `e2e/image/check_image.py`). The backend runs on its ESP32 emulator.
+   It checks that the services start (the ones that need the display, the eMMC,
+   the radios or a network are listed in `e2e/image/machine-only-units.txt` with
+   what they need), the backend, the web app and the watcher answer through
+   nginx, every component and the ESP32 firmware are the ones
+   `images/<channel>.versions.sh` pins, a new machine follows its image's update
+   channel, and the image's RAUC accepts the build's own bundle.
+2. **The image works as a machine** (meticulous-integration's
+   `image-journeys.yml`, private, because it runs the firmware). fika-sil is the
+   ESP32 on `/dev/ttymxc0`, reporting the version of the firmware the image
+   carries so the backend does not flash it; the kernel simulates the I2C bus;
+   the GPIO lines are a stand-in, because the runners' kernel lacks the GPIO
+   interface v1 the image's gpiod uses. The backend × firmware journeys run
+   against the image's backend through its nginx, as the mobile app does:
+   identity and version, the status stream, a shot from load to history.
 
 ## Public and private
 
@@ -157,7 +184,7 @@ catalog change through a pull request to this document.
 | fika-sil published per branch by the firmware's CI | Done |
 | Backend × firmware on every PR, both directions, paired by branch | Done |
 | Dial journeys with the backend and the firmware, on Dial, backend and firmware PRs | Done (11 of 14 journeys at `simulated`); still to cover: every route, backend disconnection, Wi-Fi |
-| System tests and `rootfs` journeys per image | To do |
+| System tests and `rootfs` journeys per image | Informative on every build: the image boots and is what the build says; the backend × firmware journeys against it. Still to cover: the Dial's journeys, an update over the previous image |
 | `hil` journeys on a lab runner | To do |
 
 ## Open decisions
@@ -166,8 +193,9 @@ catalog change through a pull request to this document.
   Chromium, so what only Tauri does (Sentry, the ready markers, Community
   uploads) is not exercised there. Either a Tauri binary under a Wayland
   compositor at `simulated`, or leave it to `rootfs`, which gets the real one.
-- **How the rootfs boots at `rootfs` tier**: systemd-nspawn on an ARM64 runner, or
-  QEMU with the image's kernel and RAUC slots.
+- **How the rootfs boots at `rootfs` tier**: decided, systemd-nspawn on an ARM64
+  runner. QEMU with the image's kernel and RAUC slots stays the option for what
+  needs them: the bootloader, the A/B switch, an update over the previous image.
 - **Credentials**: one GitHub App for the organisation with the permissions the
   integration needs, instead of separate tokens.
 - **The lab runner's security**: attached only to the private repository.

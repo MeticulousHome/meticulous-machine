@@ -335,6 +335,17 @@ jobs:
           path: rauc_meticulous_emmc_*.raucb
           if-no-files-found: error
 
+  validate-image:
+    # Informative for now: nothing waits for it, and it never fails the build.
+    name: Validate image
+    needs:
+      - build-root
+      - build-bundle
+    uses: ./.github/workflows/validate-image.yml
+    with:
+      image: ${{ inputs.image }}
+    secrets: inherit
+
   deploy-emmc-bundle:
     name: Upload EMMC image to hawkbit
     needs:
