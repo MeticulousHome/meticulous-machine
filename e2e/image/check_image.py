@@ -70,10 +70,10 @@ def until(predicate, timeout_s: float, every_s: float = 2):
         time.sleep(every_s)
 
 
-def hardware_units() -> dict[str, str]:
-    """Units that fail here only because the machine's hardware is missing."""
+def machine_only_units() -> dict[str, str]:
+    """Units that fail here only because the machine's hardware or network is missing."""
     units = {}
-    for line in (HERE / "hardware-units.txt").read_text().splitlines():
+    for line in (HERE / "machine-only-units.txt").read_text().splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
             unit, _, reason = line.partition(" ")
@@ -94,10 +94,10 @@ def check_boots(args):
 def check_failed_units(args):
     done = inside("systemctl", "list-units", "--state=failed", "--plain", "--no-legend", "--no-pager")
     failed = sorted(line.split()[0] for line in done.stdout.splitlines() if line.strip())
-    allowed = hardware_units()
+    allowed = machine_only_units()
     unexpected = [u for u in failed if not any(re.fullmatch(pattern, u) for pattern in allowed)]
     expected = [u for u in failed if u not in unexpected]
-    seen = f"unexpected: {', '.join(unexpected) or 'none'}; without the machine's hardware: {', '.join(expected) or 'none'}"
+    seen = f"unexpected: {', '.join(unexpected) or 'none'}; need the machine: {', '.join(expected) or 'none'}"
     return not unexpected, seen
 
 
@@ -126,11 +126,9 @@ def check_backend_api(args):
 
 
 def check_nginx_routes(args):
-    routes = {"/": None, "/api/v1/settings": None, "/health/": None}
-    for path in routes:
-        routes[path] = get(f"http://127.0.0.1{path}")[0]
     # / is the web app, /api the backend, /health the watcher.
-    ok = routes["/"] == 200 and routes["/api/v1/settings"] == 200 and 0 < routes["/health/"] < 500
+    routes = {path: get(f"http://127.0.0.1{path}")[0] for path in ("/", "/api/v1/settings", "/health/status")}
+    ok = all(status == 200 for status in routes.values())
     return ok, ", ".join(f"{p} {s}" for p, s in routes.items())
 
 
@@ -197,9 +195,9 @@ def check_firmware(args):
 
 
 def check_update_channel(args):
-    # ota.py: a machine with no channel chosen follows stable, unless its image
-    # is stable or factory, which follow their own.
-    expected = args.image if args.image in ("stable", "factory") else "stable"
+    # ota.py: a machine that boots an image it has not run before (a new one,
+    # or one just updated) follows that image's channel.
+    expected = args.image
 
     def channel():
         done = inside("cat", "/etc/hawkbit/channel")
@@ -236,14 +234,14 @@ def check_dial(args):
 
 CHECKS = [
     ("The image boots", check_boots),
-    ("No service fails, except for missing hardware", check_failed_units),
+    ("No service fails, except what needs the machine", check_failed_units),
     ("Backend, watcher and nginx are running", check_services),
     ("The backend answers", check_backend_api),
     ("nginx routes the web app, the API and /health", check_nginx_routes),
     ("The image is the channel it was built for", check_identity),
     ("Every component as images/<channel>.versions.sh pins it", check_versions),
     ("It carries the firmware it was built with", check_firmware),
-    ("A new machine follows the update channel ota.py sets", check_update_channel),
+    ("A new machine follows its image's update channel", check_update_channel),
     ("Its RAUC accepts this build's update bundle", check_rauc_bundle),
     ("The Dial is installed", check_dial),
 ]

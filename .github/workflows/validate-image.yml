@@ -75,7 +75,7 @@ jobs:
     - name: Check it
       run: >
         sudo python3 e2e/image/check_image.py --rootfs "$WORK/rootfs" --image "$IMAGE"
-        --versions build/versions.sh --bundle build/bundle/emmc-bundle.raucb
+        --versions build/versions.sh --bundle "$(ls build/bundle/*.raucb)"
         --summary "$GITHUB_STEP_SUMMARY" --report build/report.json
 
     - name: Keep what the image logged
