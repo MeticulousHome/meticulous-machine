@@ -21,17 +21,14 @@ on:
       image:
         description: The channel that run built
         default: beta
-  push:
-    # Temporary, to check this file in a real run: the beta image of run 37083310300.
-    branches: [image-validation]
 
 permissions:
   contents: read
   actions: read
 
 env:
-  RUN_ID: ${{ inputs.run_id || (github.event_name == 'push' && '37083310300') || github.run_id }}
-  IMAGE: ${{ inputs.image || 'beta' }}
+  RUN_ID: ${{ inputs.run_id || github.run_id }}
+  IMAGE: ${{ inputs.image }}
 
 jobs:
   boot:
