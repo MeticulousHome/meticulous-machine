@@ -14,6 +14,20 @@ sudo make-rootfs.sh --all
 sudo make-sdcard.sh --image
 ```
 
+## Testing
+
+The cross-repository Espresso E2E scope, planned product journeys, known gaps,
+and drift-validation commands are documented in
+[`docs/testing/e2e-contract-inventory.md`](docs/testing/e2e-contract-inventory.md).
+The machine-readable contract lives in `e2e/contracts/coverage.json`.
+
+Validate the inventory itself with:
+
+```bash
+python scripts/validate_e2e_contract.py --self-check
+python -m unittest discover -s tests -p 'test_e2e_contract.py' -v
+```
+
 ## Running on non-ubuntu > 24.04 systems (macOS / docker)
 For building on macOS or non-ubuntu systems we offer the `./run-in-container.sh` script. It will start an ubuntu container with all dependencies
 installed

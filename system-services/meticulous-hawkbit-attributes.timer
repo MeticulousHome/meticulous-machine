@@ -1,0 +1,16 @@
+[Unit]
+Description=Hourly hawkBit attribute resynchronisation
+Documentation=https://linear.app/meticulous/issue/SW-114
+ConditionHost=meticulous*
+
+[Timer]
+Unit=meticulous-hawkbit-attributes.service
+# Monotonic rather than OnCalendar: the fleet is already spread by boot time,
+# so machines do not all report on the hour.
+OnBootSec=15min
+OnUnitActiveSec=1h
+RandomizedDelaySec=10min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

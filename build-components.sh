@@ -129,6 +129,7 @@ function build_kernel() {
 
     mkdir -p ${LINUX_BUILD_DIR}
     rm -rf ${LINUX_BUILD_DIR}/*
+    local murata_regdb_cert="$(pwd)/config/usr/lib/firmware/nxp/murata/files/2DL/murata.hex"
     pushd $LINUX_SRC_DIR >/dev/null
     if [ ! $(uname -m) == "aarch64" ]; then
         export CROSS_COMPILE="aarch64-linux-gnu-"
@@ -140,6 +141,10 @@ function build_kernel() {
     export DPKG_DEB_COMPRESSOR_TYPE=xz
     export DEB_BUILD_OPTIONS="parallel=`nproc`"
     make mrproper
+    if [ -f "${murata_regdb_cert}" ]; then
+        echo "Installing Murata 2DL regulatory certificate into kernel source"
+        cp -v "${murata_regdb_cert}" net/wireless/certs/murata.hex
+    fi
     make imx8_var_meticulous_defconfig
     make -j`nproc` Image modules dtbs
     make -j`nproc` bindeb-pkg
@@ -151,6 +156,8 @@ function build_kernel() {
 
     echo -e "\033[1;32mBuilding out-of-tree mwifiex driver\033[0m"
     export KERNELDIR="$(pwd)/${LINUX_SRC_DIR}"
+    mlanutl_external_top="$(pwd)/${MLANUTL_SRC_DIR}"
+    mlanutl_external_src="$(pwd)/${MLANUTL_SRC_DIR}/mapp/mlanutl"
 
     pushd $MWIFIEX_SRC_DIR >/dev/null
     if [ ! $(uname -m) == "aarch64" ]; then
@@ -162,6 +169,25 @@ function build_kernel() {
     sed -i 's/$(MAKE) -C/$(MAKE) -j`nproc` -C/' Makefile
 
     make build
+    mlanutl_src=""
+    mlanutl_top=""
+    if [ -d mapp/mlanutl ]; then
+        mlanutl_src="$(pwd)/mapp/mlanutl"
+        mlanutl_top="$(pwd)"
+    elif [ -d "${mlanutl_external_src}" ]; then
+        mlanutl_src="${mlanutl_external_src}"
+        mlanutl_top="${mlanutl_external_top}"
+    fi
+    if [ -n "${mlanutl_src}" ]; then
+        echo -e "\033[1;32mBuilding mlanutl from ${mlanutl_src}\033[0m"
+        mkdir -p bin_wlan
+        make -C "${mlanutl_src}" clean
+        make -C "${mlanutl_top}" mapp/mlanutl CC="${CROSS_COMPILE:-}gcc" KERNELDIR="${KERNELDIR}"
+        cp -v "${mlanutl_top}/mlanutl" "$(pwd)/bin_wlan/"
+    else
+        echo "mlanutl source was not found" >&2
+        exit 1
+    fi
     popd >/dev/null
     mv -v ${MWIFIEX_SRC_DIR}/bin_wlan ${LINUX_BUILD_DIR}/
 }

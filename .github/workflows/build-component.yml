@@ -89,7 +89,7 @@ jobs:
       run: |
         case "${{ inputs['build-option'] }}" in
           linux)
-            HASH="$(git -C components/linux rev-parse HEAD)-$(git -C components/linux-mwifiex rev-parse HEAD)"
+            HASH="$(git -C components/linux rev-parse HEAD)-$(git -C components/linux-mwifiex rev-parse HEAD)-$(git -C components/linux-mwifiex-iw612 rev-parse HEAD)"
             ;;
           debian)
             TRIXIE_VERSION="$(curl -fsSL --max-time 30 https://deb.debian.org/debian/dists/trixie/InRelease | awk '/^Version:/{print $2; exit}')"

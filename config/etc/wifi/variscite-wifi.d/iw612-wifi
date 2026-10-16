@@ -16,7 +16,15 @@ disable_network_interface() {
 # Start WIFI
 wifi_start()
 {
+	if command -v met-iw612-set-region >/dev/null 2>&1; then
+		met-iw612-set-region --apply-current --no-iw --no-reload-driver || true
+	fi
+
 	modprobe moal mod_para=nxp/var_wifi_mod_para.conf
+
+	if command -v met-iw612-set-region >/dev/null 2>&1; then
+		met-iw612-set-region --apply-current --no-write --no-reload-driver || true
+	fi
 }
 
 # Stop WIFI

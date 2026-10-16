@@ -223,7 +223,7 @@ deepen_to_merge_base() {
         fi
 
         echo "Deepening ${repo_dir} to ${depth} commits to find a merge base..." >&2
-        if ! git -C "$repo_dir" fetch --deepen="$depth" origin \
+        if ! git -C "$repo_dir" fetch --no-recurse-submodules --deepen="$depth" origin \
             "+refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" \
             "+refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2; then
             break
@@ -240,7 +240,7 @@ deepen_to_merge_base() {
     # --unshallow would be an error rather than a no-op.
     if [[ "$(git -C "$repo_dir" rev-parse --is-shallow-repository)" == "true" ]]; then
         echo "No merge base within ${DEEPEN_MAX_DEPTH} commits of ${repo_dir}; fetching full history." >&2
-        git -C "$repo_dir" fetch --unshallow origin >&2 || true
+        git -C "$repo_dir" fetch --no-recurse-submodules --unshallow origin >&2 || true
     fi
 }
 
@@ -255,10 +255,10 @@ merge_component_branch() {
     MERGE_PUSH_NEEDED=0
 
     if [[ "$DRY_RUN" -eq 1 ]]; then
-        echo "DRY-RUN: git -C ${repo_dir} fetch origin refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2
-        echo "DRY-RUN: git -C ${repo_dir} fetch origin refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2
+        echo "DRY-RUN: git -C ${repo_dir} fetch --no-recurse-submodules origin refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2
+        echo "DRY-RUN: git -C ${repo_dir} fetch --no-recurse-submodules origin refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2
         echo "DRY-RUN: require origin/${DEST_IMAGE} to exist for ${name}" >&2
-        echo "DRY-RUN: if shallow, git -C ${repo_dir} fetch --deepen=N (20, doubling to ${DEEPEN_MAX_DEPTH}) until a merge base exists" >&2
+        echo "DRY-RUN: if shallow, git -C ${repo_dir} fetch --no-recurse-submodules --deepen=N (20, doubling to ${DEEPEN_MAX_DEPTH}) until a merge base exists" >&2
         echo "DRY-RUN: if origin/${DEST_IMAGE} already contains ${source_rev}, pin origin/${DEST_IMAGE}" >&2
         echo "DRY-RUN: otherwise git -C ${repo_dir} checkout -B ${DEST_IMAGE} refs/remotes/origin/${DEST_IMAGE}" >&2
         echo "DRY-RUN: git -C ${repo_dir} -c core.hooksPath=/dev/null merge --no-ff --no-edit ${source_rev}" >&2
@@ -268,13 +268,19 @@ merge_component_branch() {
         return
     fi
 
-    if ! git -C "$repo_dir" fetch origin "refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2; then
-        echo "Error: source branch '${SOURCE_IMAGE}' does not exist in ${name} (${repo_dir})." >&2
+    # Promotion only merges and pushes superproject refs, so submodule contents
+    # are never read here. Leaving git's default on-demand recursion on makes an
+    # unfetchable historical gitlink fatal: meticulous-watcher has a commit that
+    # pinned log_redactor to a never-pushed SHA, and once the fetch deepens past
+    # it the submodule fetch fails and takes the whole fetch down with it, even
+    # though the branch refs updated fine.
+    if ! git -C "$repo_dir" fetch --no-recurse-submodules origin "refs/heads/${SOURCE_IMAGE}:refs/remotes/origin/${SOURCE_IMAGE}" >&2; then
+        echo "Error: failed to fetch source branch '${SOURCE_IMAGE}' of ${name} (${repo_dir})." >&2
         exit 1
     fi
 
-    if ! git -C "$repo_dir" fetch origin "refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2; then
-        echo "Error: destination branch '${DEST_IMAGE}' does not exist in ${name} (${repo_dir})." >&2
+    if ! git -C "$repo_dir" fetch --no-recurse-submodules origin "refs/heads/${DEST_IMAGE}:refs/remotes/origin/${DEST_IMAGE}" >&2; then
+        echo "Error: failed to fetch destination branch '${DEST_IMAGE}' of ${name} (${repo_dir})." >&2
         exit 1
     fi
 

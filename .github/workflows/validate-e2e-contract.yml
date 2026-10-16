@@ -1,0 +1,103 @@
+name: Validate E2E contract inventory
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/validate-e2e-contract.yml"
+      - "docs/testing/e2e-contract-inventory.md"
+      - "e2e/contracts/**"
+      - "scripts/validate_e2e_contract.py"
+      - "scripts/meticulous-smoke-report"
+      - "tests/test_e2e_contract.py"
+      - "tests/test_hawkbit_device_identity.sh"
+      - "tests/test_hawkbit_config_atomicity.py"
+      - "config.sh"
+      - "images/*.versions.sh"
+      - "system-services/**"
+      - "config/etc/hawkbit/**"
+      - "config/etc/nginx/sites-available/default"
+  push:
+    branches:
+      - beta
+      - nightly
+    paths:
+      - ".github/workflows/validate-e2e-contract.yml"
+      - "docs/testing/e2e-contract-inventory.md"
+      - "e2e/contracts/**"
+      - "scripts/validate_e2e_contract.py"
+      - "scripts/meticulous-smoke-report"
+      - "tests/test_e2e_contract.py"
+      - "tests/test_hawkbit_device_identity.sh"
+      - "tests/test_hawkbit_config_atomicity.py"
+      - "config.sh"
+      - "images/*.versions.sh"
+      - "system-services/**"
+      - "config/etc/hawkbit/**"
+      - "config/etc/nginx/sites-available/default"
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout meticulous-machine
+        uses: actions/checkout@v4
+        with:
+          path: meticulous-machine
+
+      - name: Validate Hawkbit config generation
+        working-directory: meticulous-machine
+        run: |
+          bash -n config/etc/hawkbit/create_config.sh
+          bash -n config/etc/hawkbit/config_writer.sh
+          bash -n config/etc/hawkbit/device_identity.sh
+          bash -n tests/test_hawkbit_device_identity.sh
+          bash tests/test_hawkbit_device_identity.sh
+          python -m unittest -v tests/test_hawkbit_config_atomicity.py
+
+      - name: Checkout Dial beta
+        uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/meticulous-dial
+          ref: beta
+          path: meticulous-dial
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
+
+      - name: Checkout backend beta
+        uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/meticulous-backend
+          ref: beta
+          path: meticulous-backend
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
+
+      - name: Checkout firmware beta
+        uses: actions/checkout@v4
+        with:
+          repository: MeticulousHome/EspressoFirmware
+          ref: beta
+          path: EspressoFirmware
+          token: ${{ secrets.GH_ORG_WORKFLOW }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate contract structure
+        working-directory: meticulous-machine
+        run: python -m unittest discover -s tests -p 'test_e2e_contract.py' -v
+
+      - name: Validate contract against source
+        working-directory: meticulous-machine
+        run: >-
+          python scripts/validate_e2e_contract.py
+          --machine .
+          --dial ../meticulous-dial
+          --backend ../meticulous-backend
+          --firmware ../EspressoFirmware

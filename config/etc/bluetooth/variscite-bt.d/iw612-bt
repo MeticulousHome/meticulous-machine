@@ -86,6 +86,10 @@ bt_start()
 
 	sleep 1;
 
+	if command -v met-iw612-set-region >/dev/null 2>&1; then
+		met-iw612-set-region --apply-current --no-write --no-iw --no-reload-driver --apply-bt-power || true
+	fi
+
 	# Fork a dummy process to satisfy the variscite-bt systemd service type=forking
 	(while true; do sleep 60; done) &
 }

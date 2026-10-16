@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+iface="${1:-wlan0}"
+conf="/lib/firmware/nxp/ed_mac.conf"
+
+if ! command -v mlanutl >/dev/null 2>&1; then
+    echo "mlanutl is not installed" >&2
+    exit 1
+fi
+
+if [ ! -r "${conf}" ]; then
+    echo "${conf} is missing" >&2
+    exit 1
+fi
+
+mlanutl "${iface}" hostcmd "${conf}" ed_mac_ctrl_v2

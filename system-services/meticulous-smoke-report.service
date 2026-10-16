@@ -1,0 +1,15 @@
+[Unit]
+Description=Publish Meticulous smoke validation status to Hawkbit
+ConditionHost=meticulous*
+After=network-online.target meticulous-backend.service meticulous-dial.service rauc-hawkbit-updater.service
+Wants=network-online.target
+OnFailure=crash-reporter@.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/meticulous-venv/bin/python3 /usr/local/bin/meticulous-smoke-report --boot
+TimeoutStartSec=4min
+User=root
+
+[Install]
+WantedBy=multi-user.target

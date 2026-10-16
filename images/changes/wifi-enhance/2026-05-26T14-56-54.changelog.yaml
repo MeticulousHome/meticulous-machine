@@ -1,0 +1,80 @@
+channel: "wifi-enhance"
+timestamp: "2026-05-26T14-56-54"
+build-version: "2026M1252-wifi-enhance"
+versions:
+  linux: "9e14e4a6eb19f16722d7cb7e4c1afd635f8dad91"
+  uboot: "00ba0da24a8b4a5b5d5e9ec56ebf92c8d1b055d0"
+  atf: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+  imx-mkimage: "71b8c18af93a5eb972d80fbec290006066cff24f"
+  debian: "db279cf0c71d35b1a9930699bca0446414390549"
+  backend: "b2b1e48aae6f18a6f305b543c0386599126cedbd"
+  dial: "83248b5e7e3c2737aeed5165a8613d6c06540b03"
+  web-app: "b9bc6563c0216ef2f2dc6d422664c45aef381155"
+  watcher: "58c85ae07b4c6207ade6f5a6f70bb2c1e1e90295"
+  firmware: "ba71fd6c049b80830479286e220b9e4fe5f49dba"
+  rauc: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+  hawkbit: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+  psplash: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+  plotter-ui: "294c147710a2b422bd419fc553ef0f5d4a57fa65"
+  crash-reporter: "9c377cac4a53ecbf8a4345fbaad56060be166ebf"
+changes:
+  linux:
+    old_rev: null
+    new_rev: "9e14e4a6eb19f16722d7cb7e4c1afd635f8dad91"
+    commits: []
+  uboot:
+    old_rev: null
+    new_rev: "00ba0da24a8b4a5b5d5e9ec56ebf92c8d1b055d0"
+    commits: []
+  atf:
+    old_rev: null
+    new_rev: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+    commits: []
+  imx-mkimage:
+    old_rev: null
+    new_rev: "71b8c18af93a5eb972d80fbec290006066cff24f"
+    commits: []
+  debian:
+    old_rev: null
+    new_rev: "db279cf0c71d35b1a9930699bca0446414390549"
+    commits: []
+  backend:
+    old_rev: null
+    new_rev: "b2b1e48aae6f18a6f305b543c0386599126cedbd"
+    commits: []
+  dial:
+    old_rev: null
+    new_rev: "83248b5e7e3c2737aeed5165a8613d6c06540b03"
+    commits: []
+  web-app:
+    old_rev: null
+    new_rev: "b9bc6563c0216ef2f2dc6d422664c45aef381155"
+    commits: []
+  watcher:
+    old_rev: null
+    new_rev: "58c85ae07b4c6207ade6f5a6f70bb2c1e1e90295"
+    commits: []
+  firmware:
+    old_rev: null
+    new_rev: "ba71fd6c049b80830479286e220b9e4fe5f49dba"
+    commits: []
+  rauc:
+    old_rev: null
+    new_rev: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+    commits: []
+  hawkbit:
+    old_rev: null
+    new_rev: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+    commits: []
+  psplash:
+    old_rev: null
+    new_rev: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+    commits: []
+  plotter-ui:
+    old_rev: null
+    new_rev: "294c147710a2b422bd419fc553ef0f5d4a57fa65"
+    commits: []
+  crash-reporter:
+    old_rev: null
+    new_rev: "9c377cac4a53ecbf8a4345fbaad56060be166ebf"
+    commits: []

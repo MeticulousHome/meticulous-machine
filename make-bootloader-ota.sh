@@ -41,10 +41,15 @@ fi
 # Get project root directory
 PROJECT_ROOT="$(pwd)"
 BOOTLOADER_PATH="$PROJECT_ROOT/components/bootloader/build/imx-boot-sd.bin"
+BOOT_SCRIPT_PATH="$PROJECT_ROOT/components/bootloader/build/u-boot.scr"
 
 # Verify bootloader file exists
 if [ ! -f "$BOOTLOADER_PATH" ]; then
     echo "Error: Bootloader file not found at $BOOTLOADER_PATH"
+    exit 1
+fi
+if [ ! -f "$BOOT_SCRIPT_PATH" ]; then
+    echo "Error: Boot script not found at $BOOT_SCRIPT_PATH"
     exit 1
 fi
 
@@ -55,6 +60,7 @@ mkdir -p "$CONTENT_DIR"
 
 # Create bootloader image file
 cp "$BOOTLOADER_PATH" "$CONTENT_DIR/bootloader.img"
+cp "$BOOT_SCRIPT_PATH" "$CONTENT_DIR/u-boot.scr"
 cp rauc-config/bootloader_hooks.sh "$CONTENT_DIR/bootloader_hooks.sh"
 
 # Create manifest

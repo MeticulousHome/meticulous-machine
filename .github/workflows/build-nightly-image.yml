@@ -2,7 +2,7 @@ name: Build image
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Nightly at midnight
+    - cron: '0 0 * * *'  # Nightly at midnight UTC time
   workflow_dispatch:
     inputs:
       upload_emmc_to_hawkbit:

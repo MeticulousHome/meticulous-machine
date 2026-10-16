@@ -1,0 +1,120 @@
+name: Validate image
+
+# Phase 1 of the image validation (docs/testing/validation-architecture.md):
+# boots the image a build produced on an ARM64 runner, with no network, and
+# checks that it starts its services and is what the build says it is
+# (e2e/image/), then asks meticulous-integration for phase 2, the image's
+# backend with the firmware (its image-journeys.yml, private). Informative for
+# now: it never fails the build or blocks the upload to hawkBit.
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: The channel the image was built for
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: The "Build image" run whose image to check
+        required: true
+      image:
+        description: The channel that run built
+        default: beta
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RUN_ID: ${{ inputs.run_id || github.run_id }}
+  IMAGE: ${{ inputs.image }}
+
+jobs:
+  boot:
+    name: The image boots and is what the build says
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
+    continue-on-error: true
+    env:
+      WORK: /var/tmp/image
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download the image
+      uses: actions/download-artifact@v4
+      with:
+        name: meticulous-rootfs.tar.gz
+        run-id: ${{ env.RUN_ID }}
+        github-token: ${{ github.token }}
+        path: build/rootfs
+
+    - name: Download its update bundle
+      uses: actions/download-artifact@v4
+      with:
+        name: emmc-bundle.raucb
+        run-id: ${{ env.RUN_ID }}
+        github-token: ${{ github.token }}
+        path: build/bundle
+
+    - name: Install systemd-nspawn
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq systemd-container
+
+    - name: Boot it
+      run: sudo e2e/image/boot.sh build/rootfs/meticulous-rootfs.tar.gz "$WORK"
+
+    - name: The versions it was built against
+      run: |
+        commit=$(awk '/^## meticulous-machine ##/ {found=1} found && /^Commit:/ {print $2; exit}' "$WORK/rootfs/opt/summary.txt")
+        git show "$commit:images/$IMAGE.versions.sh" > build/versions.sh
+
+    - name: Check it
+      run: >
+        sudo python3 e2e/image/check_image.py --rootfs "$WORK/rootfs" --image "$IMAGE"
+        --versions build/versions.sh --bundle "$(ls build/bundle/*.raucb)"
+        --summary "$GITHUB_STEP_SUMMARY" --report build/report.json
+
+    - name: Keep what the image logged
+      if: always()
+      run: |
+        mkdir -p logs
+        cp build/report.json logs/ 2>/dev/null || true
+        leader=$(machinectl show image -p Leader --value 2>/dev/null) || exit 0
+        in_image() { sudo nsenter --target "$leader" --all -- "$@"; }
+        in_image journalctl --no-pager -b > logs/journal.txt 2>&1 || true
+        in_image systemctl --failed --no-pager > logs/failed-units.txt 2>&1 || true
+        for unit in $(in_image systemctl list-units --state=failed --plain --no-legend | awk '{print $1}'); do
+          in_image systemctl status "$unit" --no-pager -l > "logs/status-$unit.txt" 2>&1 || true
+        done
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: image-validation
+        path: logs/
+        retention-days: 14
+
+  journeys:
+    name: Ask meticulous-integration for the image journeys
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+    - name: Dispatch image-built
+      env:
+        GH_TOKEN: ${{ secrets.INTEGRATION_DISPATCH_TOKEN }}
+        MACHINE_REF: ${{ github.ref_name }}
+      run: |
+        if [ -z "$GH_TOKEN" ]; then
+          echo "::notice::INTEGRATION_DISPATCH_TOKEN is not set here: no image journeys for this image."
+          exit 0
+        fi
+        gh api repos/MeticulousHome/meticulous-integration/dispatches \
+          -f event_type=image-built \
+          -f "client_payload[run_id]=$RUN_ID" \
+          -f "client_payload[image]=$IMAGE" \
+          -f "client_payload[machine_ref]=$MACHINE_REF"
+        echo "The image journeys run in MeticulousHome/meticulous-integration (private)." >> "$GITHUB_STEP_SUMMARY"

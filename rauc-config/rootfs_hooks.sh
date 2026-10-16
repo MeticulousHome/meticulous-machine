@@ -22,6 +22,14 @@ case "$1" in
                 cp -rv /etc/ssh/ssh_host_*_key*   "$RAUC_SLOT_MOUNT_POINT/etc/ssh"
                 cp -rv /etc/passwd /etc/shadow "$RAUC_SLOT_MOUNT_POINT/etc/"
 
+                if [ -e /etc/meticulous/iw612-region.conf ]; then
+                        mkdir -p "$RAUC_SLOT_MOUNT_POINT/etc/meticulous"
+                        cp -rv /etc/meticulous/iw612-region.conf "$RAUC_SLOT_MOUNT_POINT/etc/meticulous/"
+                elif [ -e /meticulous-user/iw612-region.conf ]; then
+                        mkdir -p "$RAUC_SLOT_MOUNT_POINT/etc/meticulous"
+                        cp -rv /meticulous-user/iw612-region.conf "$RAUC_SLOT_MOUNT_POINT/etc/meticulous/"
+                fi
+
                 if [ -e /root/.ssh/authorized_keys ]; then
                         mkdir -p "$RAUC_SLOT_MOUNT_POINT/root/.ssh"
                         cp -rv /root/.ssh/authorized_keys "$RAUC_SLOT_MOUNT_POINT/root/.ssh/"

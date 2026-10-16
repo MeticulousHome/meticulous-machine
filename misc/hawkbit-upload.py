@@ -17,6 +17,65 @@ from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 MAX_PRODUCTION_IMAGES_ON_SERVER = 3
 MAX_TESTING_IMAGES_ON_SERVER = 2
 
+ROLLOUT_MANAGER_PATH = "rollout-manager"
+BOOT_SMOKE_THRESHOLD_NAME = "boot_smoke"
+POST_UPDATE_SHOT_THRESHOLD_NAME = "post_update_shot"
+BOOT_SMOKE_VERSION_ATTRIBUTE = "boot_smoke_version"
+POST_UPDATE_SHOT_VERSION_ATTRIBUTE = "post_update_shot_version"
+
+# Mirrors aux/rollout_manager/config/default_thresholds.json in
+# MeticulousHome/hawkbit-docker-deployment. Only used to fill in what the Rollout
+# Manager did not hand us: a missing threshold, or a threshold missing the matcher we
+# are about to pin. The live GET is what normally keeps this script in step with the
+# deployed defaults.
+FALLBACK_THRESHOLDS = [
+    {
+        "name": BOOT_SMOKE_THRESHOLD_NAME,
+        "percentage": 80,
+        "attributes": [
+            {
+                "name": "boot_smoke_at",
+                "type": "regex",
+                "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}$",
+            },
+            {"name": "boot_smoke_backend", "type": "exact", "pattern": "true"},
+            {
+                "name": "boot_smoke_firmware_version",
+                "type": "regex",
+                "pattern": r"^\d+\.\d+\.\d+-\d+-g[0-9a-f]+$",
+            },
+            {"name": "boot_smoke_status", "type": "exact", "pattern": "pass"},
+            {
+                "name": BOOT_SMOKE_VERSION_ATTRIBUTE,
+                "type": "regex",
+                "pattern": r"^\d{4}M\d+-.*$",
+            },
+            {"name": "boot_smoke_machine_status", "type": "regex", "pattern": "^.+$"},
+            {"name": "boot_smoke_failed_checks", "type": "regex", "pattern": "^$"},
+            {"name": "boot_smoke_dial_home", "type": "exact", "pattern": "true"},
+            {"name": "boot_smoke_esp32", "type": "exact", "pattern": "true"},
+            {"name": "boot_smoke_dial", "type": "exact", "pattern": "true"},
+        ],
+    },
+    {
+        "name": POST_UPDATE_SHOT_THRESHOLD_NAME,
+        "percentage": 50,
+        "attributes": [
+            {"name": "post_update_shot_completed", "type": "exact", "pattern": "true"},
+            {
+                "name": "post_update_shot_completed_at",
+                "type": "regex",
+                "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}$",
+            },
+            {
+                "name": POST_UPDATE_SHOT_VERSION_ATTRIBUTE,
+                "type": "regex",
+                "pattern": r"^\d{4}M\d+-.*$",
+            },
+        ],
+    },
+]
+
 # Retries for requests that are safe to replay. hawkBit occasionally answers a perfectly
 # valid request with a 5xx while it is under load, so retrying recovers the run instead of
 # failing the whole upload.
@@ -52,6 +111,65 @@ class HawkbitError(Exception):
     pass
 
 
+def pin_attribute(threshold: dict, attribute_name: str, value: str):
+    """
+    Rewrites one attribute matcher of `threshold` into an exact match on `value`.
+
+    Every other matcher is left untouched, so matchers the deployed defaults grew, or
+    that somebody set by hand through the console, survive the update. A matcher the
+    threshold does not carry is appended from FALLBACK_THRESHOLDS rather than skipped.
+    """
+    matchers = threshold.setdefault("attributes", [])
+    for matcher in matchers:
+        if matcher.get("name") == attribute_name:
+            matcher["type"] = "exact"
+            matcher["pattern"] = value
+            return False
+
+    matchers.append({"name": attribute_name, "type": "exact", "pattern": value})
+    return True
+
+
+def fallback_threshold(threshold_name: str):
+    for threshold in FALLBACK_THRESHOLDS:
+        if threshold["name"] == threshold_name:
+            return json.loads(json.dumps(threshold))
+    raise HawkbitError(f"No fallback threshold named {threshold_name}")
+
+
+def pin_thresholds(thresholds, image_version: str):
+    """Returns a copy of `thresholds` with the image version matchers pinned."""
+    pinned = json.loads(json.dumps(list(thresholds)))
+    synthesized = []
+
+    pins = [
+        (
+            BOOT_SMOKE_THRESHOLD_NAME,
+            BOOT_SMOKE_VERSION_ATTRIBUTE,
+            image_version,
+        ),
+        (
+            POST_UPDATE_SHOT_THRESHOLD_NAME,
+            POST_UPDATE_SHOT_VERSION_ATTRIBUTE,
+            image_version,
+        ),
+    ]
+
+    for threshold_name, attribute_name, value in pins:
+        threshold = next(
+            (item for item in pinned if item.get("name") == threshold_name), None
+        )
+        if threshold is None:
+            threshold = fallback_threshold(threshold_name)
+            pinned.append(threshold)
+            synthesized.append(f"threshold '{threshold_name}'")
+
+        if pin_attribute(threshold, attribute_name, value):
+            synthesized.append(f"matcher '{attribute_name}' on '{threshold_name}'")
+
+    return pinned, synthesized
+
+
 class HawkbitIdStore(dict):
     """dict raising a HawkbitMgmtTestClient related error on KeyError."""
 
@@ -77,12 +195,18 @@ class HawkbitMgmtClient:
     username = attr.ib(default="admin", validator=attr.validators.instance_of(str))
     password = attr.ib(default="admin", validator=attr.validators.instance_of(str))
     version = attr.ib(default="1.0", validator=attr.validators.instance_of(str))
+    rollout_manager_base = attr.ib(default=None)
 
     def __attrs_post_init__(self):
-        if self.port == 443:
-            self.url = f"https://{self.host}:{self.port}/rest/v1/{{endpoint}}"
-        else:
-            self.url = f"http://{self.host}:{self.port}/rest/v1/{{endpoint}}"
+        scheme = "https" if self.port == 443 else "http"
+        self.url = f"{scheme}://{self.host}:{self.port}/rest/v1/{{endpoint}}"
+        # The Rollout Manager admin API is served by the same nginx on the same host and
+        # port, but outside /rest/v1/. nginx authenticates it against hawkBit's
+        # /rest/v1/userinfo, so the credentials of this client apply unchanged.
+        base = self.rollout_manager_base or (
+            f"{scheme}://{self.host}:{self.port}/{ROLLOUT_MANAGER_PATH}"
+        )
+        self.rollout_manager_url = base.rstrip("/") + "/{endpoint}"
         self.id = HawkbitIdStore()
 
     def _request_with_retry(
@@ -760,6 +884,30 @@ class HawkbitMgmtClient:
         rollouts = self.get("rollouts")
         return rollouts.get("content", [])
 
+    def get_rollout_thresholds(self, rollout_id):
+        """
+        Returns the thresholds the Rollout Manager currently resolves for `rollout_id`.
+
+        The response carries a `source` of "override", "default" or "none", reflecting
+        the resolution order the Rollout Manager applies.
+        """
+        url = self.rollout_manager_url.format(
+            endpoint=f"rollouts/{rollout_id}/thresholds"
+        )
+        return self.get(url)
+
+    def put_rollout_thresholds(self, rollout_id, thresholds):
+        """
+        Replaces the rollout specific threshold override for `rollout_id`.
+
+        A whole-list replace, so replaying it after a 5xx converges on the same state
+        and the inherited retry policy of `put()` applies safely.
+        """
+        url = self.rollout_manager_url.format(
+            endpoint=f"rollouts/{rollout_id}/thresholds"
+        )
+        return self.put(url, thresholds).json()
+
     def get_targets_by_filter(self, filter_query, offset=None, limit=None):
         query_params = [f"q={quote(filter_query, safe='')}"]
         if offset is not None:
@@ -1393,6 +1541,79 @@ def print_dry_run_distribution_plan(
     )
 
 
+def describe_pins(image_version):
+    return [
+        (BOOT_SMOKE_VERSION_ATTRIBUTE, image_version),
+        (POST_UPDATE_SHOT_VERSION_ATTRIBUTE, image_version),
+    ]
+
+
+def print_dry_run_threshold_plan(client, image_version):
+    rollout_id = "<dry-run-rollout-id>"
+    url = client.rollout_manager_url.format(
+        endpoint=f"rollouts/{rollout_id}/thresholds"
+    )
+
+    print("\n[DRY RUN] Rollout threshold pinning:")
+    print(f"[DRY RUN]   Would GET  {url}")
+    for attribute_name, value in describe_pins(image_version):
+        print(f"[DRY RUN]   Would pin  {attribute_name} -> exact '{value}'")
+    print(f"[DRY RUN]   Would PUT  {url}")
+
+    pinned, _synthesized = pin_thresholds(FALLBACK_THRESHOLDS, image_version)
+    print(
+        "[DRY RUN]   Payload, shown against the shipped defaults because no rollout "
+        "exists to resolve the live thresholds from:"
+    )
+    print(json.dumps(pinned, indent=2))
+
+
+def apply_rollout_thresholds(client, rollout_id, image_version):
+    """
+    Pins this build's versions into the Rollout Manager thresholds for `rollout_id`.
+
+    Returns True on success. On failure it reports what the rollout falls back to and
+    returns False, leaving the caller to finish the remaining setup and exit non-zero.
+    """
+    print(f"\nPinning rollout thresholds for rollout {rollout_id}")
+
+    try:
+        resolved = client.get_rollout_thresholds(rollout_id)
+    except HawkbitError as e:
+        print(f"Error reading rollout thresholds for rollout {rollout_id}: {e}")
+        print(
+            "Rollout keeps the Rollout Manager default thresholds, which match any "
+            "well-formed version rather than this build"
+        )
+        return False
+
+    source = resolved.get("source", "unknown")
+    thresholds = resolved.get("thresholds") or []
+    print(f"Resolved {len(thresholds)} threshold(s) from source '{source}'")
+
+    pinned, synthesized = pin_thresholds(thresholds, image_version)
+    for attribute_name, value in describe_pins(image_version):
+        print(f"Pinning {attribute_name} -> exact '{value}'")
+    for entry in synthesized:
+        print(f"Synthesized missing {entry} from the built-in defaults")
+
+    try:
+        response = client.put_rollout_thresholds(rollout_id, pinned)
+    except HawkbitError as e:
+        print(f"Error pinning rollout thresholds for rollout {rollout_id}: {e}")
+        print(
+            "Rollout keeps the Rollout Manager default thresholds, which match any "
+            "well-formed version rather than this build"
+        )
+        return False
+
+    print(
+        f"Rollout thresholds pinned, now serving from source "
+        f"'{response.get('source', 'unknown')}'"
+    )
+    return True
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -1413,6 +1634,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Print planned Hawkbit changes without creating, updating, deleting, uploading, assigning, or cancelling anything.",
     )
+    parser.add_argument(
+        "--rollout-manager-url",
+        help=(
+            "Base URL of the Rollout Manager admin API. Defaults to the /rollout-manager "
+            "path on the same host and port as the Hawkbit Management API."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1425,6 +1653,7 @@ if __name__ == "__main__":
         password=args.password,
         username=args.username,
         version=args.version,
+        rollout_manager_base=args.rollout_manager_url,
     )
 
     if args.dry_run:
@@ -1544,13 +1773,29 @@ if __name__ == "__main__":
         dry_run=args.dry_run,
     )
 
+    thresholds_pinned = True
     if rollout:
         print(f"Rollout created/replaced: {json.dumps(rollout, indent=2)}")
         if args.dry_run:
             print("[DRY RUN] Would wait 10 seconds for Hawkbit to process the rollout.")
+            print_dry_run_threshold_plan(client, args.version)
         else:
             print("Waiting 10 seconds for Hawkbit to process the rollout...")
             time.sleep(10)
+
+            # The admin API requires the rollout to exist at write time, hence only
+            # after the settle above.
+            rollout_id = rollout.get("id")
+            if rollout_id is None:
+                print(
+                    "Rollout response carried no id, cannot pin its thresholds. "
+                    "Rollout keeps the Rollout Manager default thresholds."
+                )
+                thresholds_pinned = False
+            else:
+                thresholds_pinned = apply_rollout_thresholds(
+                    client, rollout_id, args.version
+                )
     else:
         print("No rollout was created. Relying on filter query instead")
 
@@ -1605,5 +1850,13 @@ if __name__ == "__main__":
         f"In Progress Machines in {args.channel}",
         dry_run=args.dry_run,
     )
+
+    if not thresholds_pinned:
+        # The bundle, rollout and filters are all in place, so the remaining setup above
+        # was worth finishing. Exit non-zero so the unpinned rollout is not missed.
+        print(
+            "\nfinished with errors: rollout thresholds were not pinned to this build"
+        )
+        exit(1)
 
     print("\nfinished!")
