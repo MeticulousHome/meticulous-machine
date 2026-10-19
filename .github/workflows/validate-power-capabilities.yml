@@ -1,0 +1,25 @@
+name: Validate power capability inventory
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/validate-power-capabilities.yml
+      - scripts/met-power-capabilities
+      - tests/test_power_capabilities.py
+  push:
+    branches: [beta, nightly]
+    paths:
+      - .github/workflows/validate-power-capabilities.yml
+      - scripts/met-power-capabilities
+      - tests/test_power_capabilities.py
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test missing controls and read-only inventory
+        run: python3 -m unittest discover -s tests -p test_power_capabilities.py -v
