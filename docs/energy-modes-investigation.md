@@ -46,6 +46,13 @@ The firmware defines `ESP32_IN_OUT_PIN` (42), but the inspected runtime does not
 use it. The name is not evidence of a SoM power-enable or wake connection. Do not
 toggle it, reuse an unknown GPIO, or power off Linux speculatively.
 
+The [VAR-SOM-MX8M-NANO V2 datasheet, revision 1.0](https://variscite.com/wp-content/uploads/2025/02/VAR-SOM-MX8M-NANO_V2.x_Datasheet.pdf)
+describes an ONOFF input for wake from its off state (page 83), but the carrier
+must actually connect and power that wake path. Its power table leaves standby
+and off current/power unspecified (page 93). Values from V1 modules must not be
+substituted for V2 or treated as whole-machine consumption. The device-tree
+module name does not identify the carrier PCB revision.
+
 ### Dedicated-lab observations
 
 Alú confirmed the target and required correlation through its direct USB debug
@@ -124,6 +131,14 @@ Firmware must quiesce non-wake traffic and inhibit actuators before any product
 sleep transition. The backend needs an acknowledged transition and recovery
 protocol, including its UART watchdog. Full SoM power removal still requires
 board power/wake evidence. No product system-sleep mode is implemented yet.
+
+The inspected firmware calls its periodic sensor/status senders every 100 ms.
+It also emits notifications, events and some status/log messages outside that
+periodic path. Disabling only periodic telemetry would therefore not establish
+a quiet wake UART. The proposed transition needs an acknowledged safe state,
+bounded failure recovery and a defined treatment of every UART transmitter;
+local wake must restore fresh reception before normal commands are accepted.
+These are design requirements, not an implemented protocol.
 
 Before implementing SoM-off plus local wake, establish:
 
