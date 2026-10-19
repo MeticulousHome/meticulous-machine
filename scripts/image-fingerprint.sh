@@ -49,13 +49,6 @@ load_image_config "${image}"
 # <distro>-security, plus trixie pinned low for libc.
 distro="$(sed -n 's/^DISTRO=\([a-z]*\).*/\1/p' "${DEBIAN_SRC_DIR}/create_rootfs.sh" | head -n1)"
 distro="${distro:-bookworm}"
-suite_urls=(
-    "https://deb.debian.org/debian/dists/${distro}/InRelease"
-    "https://deb.debian.org/debian/dists/${distro}-updates/InRelease"
-    "https://deb.debian.org/debian/dists/${distro}-backports/InRelease"
-    "https://security.debian.org/debian-security/dists/${distro}-security/InRelease"
-    "https://deb.debian.org/debian/dists/trixie/InRelease"
-)
 
 {
     echo "image=${image}"
@@ -68,14 +61,5 @@ suite_urls=(
             continue
         fi
         echo "repo=${name} url=$(repo_var "${name}" GIT) branch=$(repo_var "${name}" BRANCH) rev=$(repo_head "${name}")"
-    done
-
-    for url in "${suite_urls[@]}"; do
-        if digest="$(curl -fsSL --max-time 30 "${url}" | sha256sum | awk '{print $1}')" && [[ -n "${digest}" ]]; then
-            echo "apt=${url}=${digest}"
-        else
-            echo "::warning::Could not read ${url}; the image fingerprint will not match any previous build." >&2
-            echo "apt=${url}=unavailable-${GITHUB_RUN_ID:-$$}-$(date +%s)"
-        fi
     done
 } | tee /dev/stderr | sha256sum | awk '{print $1}'
