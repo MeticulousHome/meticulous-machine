@@ -1,7 +1,7 @@
 # Energy modes: investigation and validation plan
 
 Status: implementation and dedicated-lab investigation in progress, 2026-10-19.
-Five bounded suspend trials were run and the machine was recovered. No power
+Eight bounded suspend trials were run and the machine was recovered. No power
 measurement, compliance claim or certification image has been made.
 
 ## Existing implementation
@@ -81,7 +81,16 @@ was confirmed. Suspend counters showed three entries and zero kernel-reported
 failures, despite the UART regression. Therefore these are **not** passing
 end-to-end power-mode tests.
 
-### Controlled UART DMA comparison
+### UART DMA diagnostic and stock control
+
+The recovery reboot changed the booted rootfs from slot A to slot B; the API's
+image version changed from `2026M1446-beta` to `2026M1468-beta`. The inactive A
+slot was then mounted read-only without journal replay for comparison. Both
+slots have byte-identical `Image.gz` and meticulous V2 DTB files (SHA-256
+prefixes `6738c707449e` and `83a13b6e3b3a` respectively), but their userspace
+differs. No image was built or installed by this work. This change of slot is
+a confounding variable; the first three trials cannot be treated as a pure
+comparison of DMA versus non-DMA behavior.
 
 A one-boot diagnostic removed only `dmas` and `dma-names` from UART1 in the
 installed V2 DTB. The normalized DT diff was checked for exactly those two
@@ -96,11 +105,20 @@ advanced before either trial. The machine was correlated through USB again.
 | Same tree, ESP TTY wake disabled, ten-second RTC fallback | Woke on RTC IRQ 21 after approximately 7.20 seconds suspended; fresh RX bytes after resume | Bounded RTC recovery only |
 
 Neither diagnostic resume reported the earlier SDMA timeout, RX DMA preparation
-failure or kernel warning. These two observations support investigating the UART
-DMA path, but do not establish a production fix, reliability over repeated
-cycles, CPU cost without DMA, or power savings. The original DTB was restored;
-this PR does not change a device tree or kernel. The bootloader environment was
-not modified.
+failure or kernel warning. After restoring the stock DTB and booting B again,
+an ESP-UART wake trial also returned on IRQ 15 with fresh reception and no
+measurable deep-sleep interval. A second stock-B trial, with UART wake disabled,
+returned on RTC IRQ 21 after approximately 6.90 seconds suspended and retained
+fresh UART reception. These stock results contradict treating DMA removal as
+the demonstrated solution. A third stock-B trial woke through the debug UART
+(IRQ 17, approximately 2.56 seconds suspended) and also retained fresh reception
+without the earlier kernel errors. The original failure remains unreliably reproduced;
+root cause, repeated recovery and physical-input wake need further investigation.
+
+The original DTB was restored; this PR does not change a device tree or kernel.
+The bootloader environment was not edited by this work. No conclusion about
+CPU cost without DMA, power savings or production readiness follows from these
+trials.
 
 Firmware must quiesce non-wake traffic and inhibit actuators before any product
 sleep transition. The backend needs an acknowledged transition and recovery
