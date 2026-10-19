@@ -1,7 +1,7 @@
 # Energy modes: investigation and validation plan
 
 Status: implementation and dedicated-lab investigation in progress, 2026-10-19.
-Three bounded suspend trials were run and the machine was recovered. No power
+Five bounded suspend trials were run and the machine was recovered. No power
 measurement, compliance claim or certification image has been made.
 
 ## Existing implementation
@@ -81,12 +81,31 @@ was confirmed. Suspend counters showed three entries and zero kernel-reported
 failures, despite the UART regression. Therefore these are **not** passing
 end-to-end power-mode tests.
 
-Further suspension is on hold pending a controlled diagnosis of UART/SDMA resume
-and ESP wake. A useful next comparison is the ESP UART without DMA, as the debug
-UART's device tree already disables DMA; this is a hypothesis requiring a
-reviewed DT/kernel change and recovery plan, not an implemented fix. Firmware
-must also quiesce non-wake traffic and inhibit actuators before any product sleep
-transition. Full SoM power removal still requires board power/wake evidence.
+### Controlled UART DMA comparison
+
+A one-boot diagnostic removed only `dmas` and `dma-names` from UART1 in the
+installed V2 DTB. The normalized DT diff was checked for exactly those two
+removed properties. A temporary boot service restored the original DTB on disk
+before backend startup, so the next reboot used the original configuration.
+The running diagnostic tree had no UART1 DMA property; its UART RX counter
+advanced before either trial. The machine was correlated through USB again.
+
+| Diagnostic trial | Result | Limit |
+| --- | --- | --- |
+| UART1 without DMA, ESP TTY wake enabled, ten-second RTC fallback | Woke on ESP UART IRQ 15 after approximately 0.21 seconds suspended; fresh RX bytes after resume | Existing background traffic immediately wakes the SoM; no button or encoder wake was tested |
+| Same tree, ESP TTY wake disabled, ten-second RTC fallback | Woke on RTC IRQ 21 after approximately 7.20 seconds suspended; fresh RX bytes after resume | Bounded RTC recovery only |
+
+Neither diagnostic resume reported the earlier SDMA timeout, RX DMA preparation
+failure or kernel warning. These two observations support investigating the UART
+DMA path, but do not establish a production fix, reliability over repeated
+cycles, CPU cost without DMA, or power savings. The original DTB was restored;
+this PR does not change a device tree or kernel. The bootloader environment was
+not modified.
+
+Firmware must quiesce non-wake traffic and inhibit actuators before any product
+sleep transition. The backend needs an acknowledged transition and recovery
+protocol, including its UART watchdog. Full SoM power removal still requires
+board power/wake evidence. No product system-sleep mode is implemented yet.
 
 Before implementing SoM-off plus local wake, establish:
 
