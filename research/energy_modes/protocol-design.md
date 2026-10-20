@@ -125,6 +125,30 @@ The following are integration requirements, not capabilities proven by the model
 | OS | Validate driver wake registration, supported deep state, syscall/abort handling, wakeup-count races, RTC fallback ownership and post-resume UART freshness. Use a clock including suspended time for deadlines; handle ESP tick rollover. |
 | Rollback | Old firmware never receives a sleep request. Define safe recovery if userspace or firmware rolls back with an outstanding transaction; never erase the intent merely to make the old software boot. |
 
+### Offline implementation candidates
+
+- [Firmware PR #536](https://github.com/MeticulousHome/EspressoFirmware/pull/536)
+  adds an unused one-way actuator inhibit primitive exercised by the real-source
+  SIL, plus a separate SDK UART probe with a versioned diagnostic grammar.
+  The probe is excluded from normal firmware builds and release packaging.
+  Source snapshot: `e955b5ccc86ac6dc3b9d7f5c80cc4041b33dff81`.
+- [Backend PR #458](https://github.com/MeticulousHome/meticulous-backend/pull/458)
+  adds an unused one-way pyserial command writer with explicit deadlines,
+  concurrent-write tests and a pseudo-terminal test. It is not connected to
+  `Machine.write()` and does not prove FIFO drain or firmware readiness.
+  Source snapshot: `3fc4c3318bc6c93b15571bd900d33eb470dfdc5b`.
+- [Dial PR #644](https://github.com/MeticulousHome/meticulous-dial/pull/644)
+  consumes encoder/context/tare wake gestures at the UI event boundary, including
+  a held context button that produces no decoded click. It does not suppress
+  actions performed directly by firmware or implement scale wake.
+  Source snapshot: `3e15add16753c13b509665b82eeeab8bc8dff7fc`.
+
+These candidates are not connected into an end-to-end suspend runtime. Durable
+intent, boot/session reconciliation, release, input ownership in firmware,
+measured scale criteria and hardware validation remain open. No candidate was
+deployed during this offline phase; the earlier installed screen preview predates
+the new input gate.
+
 A candidate TX design is to route console stdio through the installed UART driver
 and intercept the common UART0 write boundary, including Arduino's write entry
 points, while reserving a serialized control-frame path. The installed Arduino
