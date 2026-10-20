@@ -4,6 +4,10 @@ Status: implementation and dedicated-lab investigation in progress, 2026-10-19.
 Eight bounded suspend trials were run and the machine was recovered. No power
 measurement, compliance claim or certification image has been made.
 
+The next step has an [executable protocol proposal](../research/energy_modes/protocol-design.md)
+for coordinated inhibit, quiet UART, acknowledged recovery and bounded failure.
+It is offline research; no backend or firmware runtime calls the model.
+
 ## Existing implementation
 
 The reviewed beta snapshots are Dial `59b92313`, backend `32ddb73`, firmware
