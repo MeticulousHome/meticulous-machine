@@ -85,6 +85,33 @@ while firmware has accepted the explicit release and holds zero output. This is
 not simultaneous distributed state: the real integration must ensure local input
 and background controllers cannot revive stale work after that explicit release.
 
+## Required wake interactions
+
+Wake must support encoder rotation/press, context, tare and scale interaction.
+The ESP must keep their acquisition paths active during Linux deep suspend.
+Suppressing all acquisition together with UART telemetry would make these wake
+sources unavailable. Only a bounded wake/control frame may pass the host TX gate.
+
+Button suppression must happen before the firmware callbacks modify driver
+flags, append encoder steps, tare or calibrate. It must consume the initial input
+and the full release/click/double/long tail, including a button held throughout
+recovery. The UART parser, backend forwarding and Dial must not replay old queued
+events after resume. Test all three buttons and both rotation directions before,
+during and after the transition, including same-turn/batched delivery.
+
+The Acaia interface currently provides weight and stability, not a touch signal.
+The scale needs power, fresh samples and a valid communication state throughout
+sleep. A load-change detector requires measured idle noise, thermal drift and
+representative touch/place/remove-cup traces before selecting its criterion; no
+numerical threshold is chosen by this proposal. Do not reuse the Dial overlay's
+2 g visibility rule as evidence. Mere touch producing no measurable load change
+is not presently observable. Reconnects, stale samples and tare/baseline resets
+must not be misclassified as user interaction.
+
+SoM-off still requires a verified always-powered detection and hardware power-on
+path from these sources. A UART wake that works in deep suspend does not establish
+that capability, and the laboratory carrier revision remains unconfirmed.
+
 ## Required adapters and unresolved risks
 
 The following are integration requirements, not capabilities proven by the model:
