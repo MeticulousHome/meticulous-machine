@@ -140,7 +140,7 @@ The following are integration requirements, not capabilities proven by the model
   Held buttons remain consumed until both physical release and decoder completion.
   Its normal product build does not enable this protocol; neither experimental
   build is a release artifact. Source snapshot:
-  `9cf60afccb0ffae98caacc18876bb388419b3a4f`.
+  `2e63b90a3a7daca4d1463410836ebee9e97da382`.
 - [Backend PR #458](https://github.com/MeticulousHome/meticulous-backend/pull/458)
   adds an unused durable session owner around the actual one-way command writer.
   It serializes complete multipart transactions and closes admission before a
