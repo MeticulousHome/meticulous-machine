@@ -6,7 +6,9 @@ measurement, compliance claim or certification image has been made.
 
 The next step has an [executable protocol proposal](../research/energy_modes/protocol-design.md)
 for coordinated inhibit, quiet UART, acknowledged recovery and bounded failure.
-It is offline research; no backend or firmware runtime calls the model.
+It is offline research; no backend or firmware runtime calls the model. The
+linked proposal also records a separate compile-gated firmware/backend session
+integration and its remaining product and hardware gates.
 
 ## Existing implementation
 

@@ -42,8 +42,9 @@ the experimental path, not a measured production sleep policy.
 
 ## Transition and ownership
 
-All identifiers below are symbolic model fields, not an implemented wire grammar.
-The firmware must eventually own/version the real grammar in `contracts/uart`.
+The model below uses symbolic fields. The separate offline integration now owns
+a versioned experimental wire grammar in firmware `contracts/uart/experimental`;
+it is not an advertised product capability.
 Use a fresh transaction identifier and recovery challenge, plus a firmware boot
 identifier. They establish freshness/correlation, not cryptographic authentication.
 
@@ -128,26 +129,49 @@ The following are integration requirements, not capabilities proven by the model
 ### Offline implementation candidates
 
 - [Firmware PR #536](https://github.com/MeticulousHome/EspressoFirmware/pull/536)
-  adds an unused one-way actuator inhibit primitive exercised by the real-source
-  SIL, plus a separate SDK UART probe with a versioned diagnostic grammar.
-  The probe is excluded from normal firmware builds and release packaging.
-  Source snapshot: `e955b5ccc86ac6dc3b9d7f5c80cc4041b33dff81`.
+  adds the separate `energy-runtime-experiment-s3` full-source build, alongside
+  the earlier actuator primitives and isolated SDK UART probe. The runtime begins
+  inhibited before actuator initialization, persists armed/released records in a
+  separate NVS namespace, and reconciles boot/session/sequence identities. A fresh
+  single-use negotiation nonce rejects delayed PREPARE frames. Recovery requires
+  a strictly newer completed pressure conversion before a zero-output release.
+  Counted work ownership and generation checks cover controllers, ordinary UART
+  commands/output, and raw/decoded inputs before driver or calibration effects.
+  Held buttons remain consumed until both physical release and decoder completion.
+  Its normal product build does not enable this protocol; neither experimental
+  build is a release artifact. Source snapshot:
+  `9cf60afccb0ffae98caacc18876bb388419b3a4f`.
 - [Backend PR #458](https://github.com/MeticulousHome/meticulous-backend/pull/458)
-  adds an unused one-way pyserial command writer with explicit deadlines,
-  concurrent-write tests and a pseudo-terminal test. It is not connected to
-  `Machine.write()` and does not prove FIFO drain or firmware readiness.
-  Source snapshot: `3fc4c3318bc6c93b15571bd900d33eb470dfdc5b`.
+  adds an unused durable session owner around the actual one-way command writer.
+  It serializes complete multipart transactions and closes admission before a
+  transition waits for ownership. Host intent uses file and directory fsync;
+  uncertain normal writes remain recorded across process restart and poison the
+  owner. Recovery retains pending intent until a fresh matching RELEASED and a
+  durable completion, then creates a new writer lease. It is not connected to
+  `Machine.write()` or API/settings/reset/update producers. Source snapshot:
+  `fe142e9d3df5c760459b0778e91a97952ca9629d`.
 - [Dial PR #644](https://github.com/MeticulousHome/meticulous-dial/pull/644)
   consumes encoder/context/tare wake gestures at the UI event boundary, including
   a held context button that produces no decoded click. It does not suppress
   actions performed directly by firmware or implement scale wake.
   Source snapshot: `3e15add16753c13b509665b82eeeab8bc8dff7fc`.
 
-These candidates are not connected into an end-to-end suspend runtime. Durable
-intent, boot/session reconciliation, release, input ownership in firmware,
-measured scale criteria and hardware validation remain open. No candidate was
-deployed during this offline phase; the earlier installed screen preview predates
-the new input gate.
+The private firmware integration imports the actual pinned backend candidate
+and exercises both motor configurations through real firmware parsing, journals,
+GPIO/PWM and button callbacks. Tests include SIGKILL without graceful/periodic
+journal saving, lost acknowledgements, failed/corrupt persistence, stale samples,
+and held-button/calibration effects. SIL proves these paths under its simulated
+scheduler and devices; it does not prove ESP32 flash power-loss behavior, SDK
+FIFO drain, physical output continuity or hardware wake.
+
+Product integration remains open: all backend producers and observability must
+share ownership; Linux suspend/wakeup-count/RTC and bounded wake retransmission
+are absent. An uncertain partial legacy write needs external transport/reset
+reconciliation. Cold-reset release also needs position/homing and scale-state
+readiness before product commands may be enabled. NVS capacity/endurance, host
+per-transaction fsync cost, old-software rollback, physical scale criteria and
+hardware validation remain gates. No candidate was deployed during this offline
+phase; the earlier installed screen preview predates the new input gate.
 
 A candidate TX design is to route console stdio through the installed UART driver
 and intercept the common UART0 write boundary, including Arduino's write entry
