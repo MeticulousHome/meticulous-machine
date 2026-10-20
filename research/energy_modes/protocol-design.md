@@ -132,7 +132,8 @@ The following are integration requirements, not capabilities proven by the model
   adds the separate `energy-runtime-experiment-s3` full-source build, alongside
   the earlier actuator primitives and isolated SDK UART probe. The runtime begins
   inhibited before actuator initialization, persists armed/released records in a
-  separate NVS namespace, and reconciles boot/session/sequence identities. A fresh
+  separate NVS namespace, refuses mileage partition formatting after init errors,
+  and reconciles boot/session/sequence identities. A fresh
   single-use negotiation nonce rejects delayed PREPARE frames. Recovery requires
   a strictly newer completed pressure conversion before a zero-output release.
   Counted work ownership and generation checks cover controllers, ordinary UART
@@ -140,7 +141,7 @@ The following are integration requirements, not capabilities proven by the model
   Held buttons remain consumed until both physical release and decoder completion.
   Its normal product build does not enable this protocol; neither experimental
   build is a release artifact. Source snapshot:
-  `2e63b90a3a7daca4d1463410836ebee9e97da382`.
+  `703461254ed0da49b9ae18310c33262e32ddc228`.
 - [Backend PR #458](https://github.com/MeticulousHome/meticulous-backend/pull/458)
   adds an unused durable session owner around the actual one-way command writer.
   It serializes complete multipart transactions and closes admission before a
