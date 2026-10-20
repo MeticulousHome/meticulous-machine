@@ -141,16 +141,20 @@ The following are integration requirements, not capabilities proven by the model
   Held buttons remain consumed until both physical release and decoder completion.
   Its normal product build does not enable this protocol; neither experimental
   build is a release artifact. Source snapshot:
-  `703461254ed0da49b9ae18310c33262e32ddc228`.
+  `ed9069b6e2271065769161506d8565e78abebf76`.
 - [Backend PR #458](https://github.com/MeticulousHome/meticulous-backend/pull/458)
   adds an unused durable session owner around the actual one-way command writer.
   It serializes complete multipart transactions and closes admission before a
-  transition waits for ownership. Host intent uses file and directory fsync;
+  transition waits for ownership. Requests capture their writer and admission
+  generation before building multipart input or waiting for the owner; neither
+  kind of delayed request may cross a complete close/recover cycle. A later
+  transition also prevents an earlier recovery from publishing a writer, even
+  when the later request times out. Host intent uses file and directory fsync;
   uncertain normal writes remain recorded across process restart and poison the
   owner. Recovery retains pending intent until a fresh matching RELEASED and a
   durable completion, then creates a new writer lease. It is not connected to
   `Machine.write()` or API/settings/reset/update producers. Source snapshot:
-  `fe142e9d3df5c760459b0778e91a97952ca9629d`.
+  `7a30184fe72c5d3357e0d9352a847bafd57434dc`.
 - [Dial PR #644](https://github.com/MeticulousHome/meticulous-dial/pull/644)
   consumes encoder/context/tare wake gestures at the UI event boundary, including
   a held context button that produces no decoded click. It does not suppress
