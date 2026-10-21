@@ -451,6 +451,20 @@
       "tiers": {"simulated": "implemented", "rootfs": "planned", "hil": "planned"},
       "screen_groups": ["advanced", "support_and_diagnostics"],
       "summary": "Expose image/device information, update state, notifications and privacy-safe diagnostic reporting."
+    },
+    {
+      "id": "app-add-machine",
+      "priority": "P0",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": [],
+      "summary": "On a fresh install of the mobile app, add the machine by its IP address and land on its Home, connected and showing its status."
+    },
+    {
+      "id": "app-reconnect",
+      "priority": "P0",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": [],
+      "summary": "When nothing from the machine reaches the mobile app any more, it says it is reconnecting, connects again once the network is back and follows the machine."
     }
   ],
   "known_gaps": [
