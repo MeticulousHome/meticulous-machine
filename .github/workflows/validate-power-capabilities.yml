@@ -1,0 +1,31 @@
+name: Validate power inventory and protocol model
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/validate-power-capabilities.yml
+      - scripts/met-power-capabilities
+      - tests/test_power_capabilities.py
+      - tests/test_energy_mode_protocol.py
+      - research/energy_modes/**
+  push:
+    branches: [beta, nightly]
+    paths:
+      - .github/workflows/validate-power-capabilities.yml
+      - scripts/met-power-capabilities
+      - tests/test_power_capabilities.py
+      - tests/test_energy_mode_protocol.py
+      - research/energy_modes/**
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test missing controls and read-only inventory
+        run: python3 -m unittest discover -s tests -p test_power_capabilities.py -v
+      - name: Test offline protocol failure ordering
+        run: python3 -m unittest -v tests/test_energy_mode_protocol.py

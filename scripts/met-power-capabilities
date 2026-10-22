@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Read-only Linux power inventory. Never suspend, change a rail or contact a host.
+
+Run only on an identity-verified target during its reserved investigation window.
+Output is capabilities/configuration, not power measurements or proof of wake.
+No hostname, serial, network addresses, credentials, command line or logs are read.
+"""
+
+import argparse
+import json
+from pathlib import Path
+
+
+def read_value(path):
+    try:
+        return {"value": path.read_text().strip().replace("\x00", " ").strip()}
+    except OSError as error:
+        return {"unavailable": error.errno}
+
+
+def inventory(root=Path("/")):
+    def read(path):
+        return read_value(root / path)
+
+    policies = []
+    for policy in sorted((root / "sys/devices/system/cpu/cpufreq").glob("policy*")):
+        policies.append(
+            {
+                "policy": policy.name,
+                **{
+                    key: read_value(policy / key)
+                    for key in (
+                        "scaling_driver",
+                        "scaling_governor",
+                        "scaling_available_governors",
+                        "scaling_min_freq",
+                        "scaling_max_freq",
+                        "cpuinfo_min_freq",
+                        "cpuinfo_max_freq",
+                    )
+                },
+            }
+        )
+    backlights = [
+        {
+            "name": device.name,
+            **{
+                key: read_value(device / key)
+                for key in ("brightness", "actual_brightness", "max_brightness", "bl_power")
+            },
+        }
+        for device in sorted((root / "sys/class/backlight").glob("*"))
+    ]
+    # Only the board's UART family; never read serial data or open the tty.
+    uart_wakeup = [
+        {"tty": device.name, "wakeup": read_value(device / "power/wakeup")}
+        for device in sorted((root / "sys/class/tty").glob("ttymxc*"))
+    ]
+    return {
+        "schema_version": 1,
+        "read_only": True,
+        "power_measured": False,
+        "wake_validated": False,
+        "board_model": read("sys/firmware/devicetree/base/model"),
+        "board_compatible": read("sys/firmware/devicetree/base/compatible"),
+        "kernel_release": read("proc/sys/kernel/osrelease"),
+        "suspend_states": read("sys/power/state"),
+        "mem_sleep": read("sys/power/mem_sleep"),
+        "disk_modes": read("sys/power/disk"),
+        "cpu_policies": policies,
+        "backlights": backlights,
+        "uart_wakeup": uart_wakeup,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.parse_args()
+    print(json.dumps(inventory(), indent=2))
+
+
+if __name__ == "__main__":
+    main()
