@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "captured_at": "2026-09-30",
   "source_snapshot": {
     "meticulous-machine": "84b1ae63f0956896e3e25f37e9bfa46cf5141946",
@@ -21,7 +21,9 @@
         "shot_history",
         "freePour",
         "freePourHistory",
-        "guidedPourOver"
+        "guidedPourOver",
+        "shotDataSharingPrompt",
+        "manualSetup"
       ],
       "profile_authoring": [
         "pressetSettings",
@@ -35,8 +37,7 @@
         "motor_power",
         "dose",
         "output",
-        "pressetProfileImage",
-        "manualSetup"
+        "pressetProfileImage"
       ],
       "settings": [
         "settings",
@@ -45,7 +46,8 @@
         "scrollDirections",
         "community",
         "tare_behavior",
-        "experimentalSettings"
+        "experimentalSettings",
+        "helpUsImprove"
       ],
       "wifi": [
         "wifiSettings",
@@ -84,7 +86,8 @@
         "bug-report",
         "OSStatus",
         "snake",
-        "unlock"
+        "unlock",
+        "reportContactEmail"
       ]
     },
     "api_methods": [
@@ -105,6 +108,7 @@
       "getMeticulousReportTracking",
       "getNotifications",
       "getOSStatus",
+      "getPendingReportDispatches",
       "getProfile",
       "getProfileDefaultImages",
       "getProfileImage",
@@ -139,6 +143,7 @@
       "profileHover",
       "sensors",
       "status",
+      "upload_report",
       "water_status"
     ],
     "socket_emits": [
@@ -197,9 +202,11 @@
       "/pour-over/profile/list",
       "/pour-over/profile/schema",
       "/reports/create",
+      "/reports/dispatch",
       "/reports/draft/([^/]+)",
       "/reports/list",
       "/reports/preflight",
+      "/reports/request",
       "/reports/submit",
       "/scaleCalibrate",
       "/serial",
@@ -343,82 +350,121 @@
     {
       "id": "dial-all-routes-reachable",
       "priority": "P0",
-      "tiers": ["simulated", "rootfs", "hil"],
+      "tiers": {"simulated": "planned", "rootfs": "planned", "hil": "planned"},
       "screen_groups": ["*"],
-      "summary": "Open every registered Dial route through production navigation and return without a render or state error.",
-      "status": "planned"
+      "summary": "Open every registered Dial route through production navigation and return without a render or state error."
     },
     {
       "id": "boot-to-ready",
       "priority": "P0",
-      "tiers": ["simulated", "rootfs", "hil"],
+      "tiers": {"simulated": "implemented", "rootfs": "planned", "hil": "planned"},
       "screen_groups": ["brew_lifecycle"],
-      "summary": "Start backend and Dial, receive machine state and reach the ready/profile selection experience.",
-      "status": "planned"
+      "summary": "Start backend and Dial, receive machine state and reach the ready/profile selection experience."
     },
     {
       "id": "profile-select-edit-persist",
       "priority": "P0",
-      "tiers": ["simulated", "hil"],
+      "tiers": {"simulated": "implemented", "hil": "planned"},
       "screen_groups": ["profile_authoring"],
-      "summary": "Browse, select, edit, save and reload a profile while preserving its selected identity.",
-      "status": "planned"
+      "summary": "Browse, select, edit, save and reload a profile while preserving its selected identity."
+    },
+    {
+      "id": "profile-create-and-delete",
+      "priority": "P1",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": ["profile_authoring", "settings"],
+      "summary": "Create a profile on the Dial, save it with the values set with the knob, see it on the home, and delete it again from the quick settings."
     },
     {
       "id": "espresso-complete",
       "priority": "P0",
-      "tiers": ["simulated", "hil"],
+      "tiers": {"simulated": "implemented", "hil": "planned"},
       "screen_groups": ["brew_lifecycle"],
-      "summary": "Load a profile, start, heat, brew, complete, remove the cup and return to idle with history recorded.",
-      "status": "planned"
+      "summary": "Load a profile, start, heat, brew, complete, remove the cup and return to idle with history recorded."
     },
     {
       "id": "espresso-abort-and-recover",
       "priority": "P0",
-      "tiers": ["simulated", "hil"],
+      "tiers": {"simulated": "implemented", "hil": "planned"},
       "screen_groups": ["brew_lifecycle"],
-      "summary": "Abort an active shot, stop outputs and recover to a usable idle/home state.",
-      "status": "planned"
+      "summary": "Abort an active shot, stop outputs and recover to a usable idle/home state."
+    },
+    {
+      "id": "espresso-interactions",
+      "priority": "P0",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": ["brew_lifecycle", "settings"],
+      "summary": "Act on a running shot from the Dial: skip the current stage from the quick settings, end the shot early with a double push and keep it in history."
+    },
+    {
+      "id": "knob-fast-turns",
+      "priority": "P1",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": ["brew_lifecycle", "profile_authoring", "settings"],
+      "summary": "Spin the knob quickly on the home carousel, a number entry, the name keyboard and a menu: every turn the Dial receives moves it one step, as slow turns do."
+    },
+    {
+      "id": "manual-brew",
+      "priority": "P1",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": ["brew_lifecycle", "settings"],
+      "summary": "Set up a manual-mode shot on the Dial (temperature, output, start on pressure or flow), steer it with the knob, end it and record it."
+    },
+    {
+      "id": "pour-over-brew",
+      "priority": "P1",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": ["brew_lifecycle"],
+      "summary": "Brew a guided Free Pour with the scale: set up server, brewer and coffee, pour, finish, and find it in the pour-over history."
     },
     {
       "id": "maintenance-actions",
       "priority": "P0",
-      "tiers": ["simulated", "hil"],
+      "tiers": {"simulated": "implemented", "hil": "planned"},
       "screen_groups": ["brew_lifecycle", "advanced"],
-      "summary": "Exercise home, purge, tare and scale calibration with explicit simulated versus hardware assertions.",
-      "status": "planned"
+      "summary": "Exercise home, purge, tare and scale calibration with explicit simulated versus hardware assertions."
     },
     {
       "id": "settings-persistence",
       "priority": "P1",
-      "tiers": ["simulated", "rootfs", "hil"],
+      "tiers": {"simulated": "implemented", "rootfs": "planned", "hil": "planned"},
       "screen_groups": ["settings", "advanced"],
-      "summary": "Change supported settings, restart the stack and verify persisted values and resulting UI state.",
-      "status": "planned"
+      "summary": "Change supported settings, restart the stack and verify persisted values and resulting UI state."
     },
     {
       "id": "wifi-lifecycle",
       "priority": "P1",
-      "tiers": ["simulated", "hil"],
+      "tiers": {"simulated": "planned", "hil": "planned"},
       "screen_groups": ["wifi"],
-      "summary": "List, connect, inspect, repair and delete Wi-Fi configuration, including failure and recovery states.",
-      "status": "planned"
+      "summary": "List, connect, inspect, repair and delete Wi-Fi configuration, including failure and recovery states."
     },
     {
       "id": "backend-disconnect-recovery",
       "priority": "P0",
-      "tiers": ["simulated", "rootfs", "hil"],
+      "tiers": {"simulated": "planned", "rootfs": "planned", "hil": "planned"},
       "screen_groups": ["brew_lifecycle", "support_and_diagnostics"],
-      "summary": "Lose and restore REST/Socket connectivity without leaving Dial permanently stale or unusable.",
-      "status": "planned"
+      "summary": "Lose and restore REST/Socket connectivity without leaving Dial permanently stale or unusable."
     },
     {
       "id": "update-and-diagnostics",
       "priority": "P1",
-      "tiers": ["rootfs", "hil"],
+      "tiers": {"simulated": "implemented", "rootfs": "planned", "hil": "planned"},
       "screen_groups": ["advanced", "support_and_diagnostics"],
-      "summary": "Expose image/device information, update state, notifications and privacy-safe diagnostic reporting.",
-      "status": "planned"
+      "summary": "Expose image/device information, update state, notifications and privacy-safe diagnostic reporting."
+    },
+    {
+      "id": "app-add-machine",
+      "priority": "P0",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": [],
+      "summary": "On a fresh install of the mobile app, add the machine by its IP address and land on its Home, connected and showing its status."
+    },
+    {
+      "id": "app-reconnect",
+      "priority": "P0",
+      "tiers": {"simulated": "implemented", "hil": "planned"},
+      "screen_groups": [],
+      "summary": "When nothing from the machine reaches the mobile app any more, it says it is reconnecting, connects again once the network is back and follows the machine."
     }
   ],
   "known_gaps": [

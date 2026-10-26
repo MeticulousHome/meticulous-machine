@@ -2,6 +2,9 @@
 
 ## Purpose
 
+How these journeys fit the checks from pull request to image is described in
+[`validation-architecture.md`](validation-architecture.md).
+
 This document defines the scope that the Espresso end-to-end program must
 cover before individual test runners are implemented. The machine-readable
 source of truth is [`e2e/contracts/coverage.json`](../../e2e/contracts/coverage.json).
@@ -60,9 +63,12 @@ journeys execute successfully.
 5. Abort a shot and recover safely.
 6. Exercise home, purge, tare and calibration at the appropriate test tier.
 7. Recover from backend REST/Socket disconnection.
+8. Act on a running shot: skip a stage, end it early and keep it.
 
 `P1` journeys cover settings persistence, Wi-Fi lifecycle, update state and
-privacy-safe diagnostics.
+privacy-safe diagnostics (device information and bug reports also at the
+`simulated` tier), creating and deleting profiles, manual mode and the guided
+Free Pour.
 
 Each journey declares one or more execution tiers:
 
@@ -71,8 +77,18 @@ Each journey declares one or more execution tiers:
 - `hil`: physical i.MX8/Variscite and/or ESP32-S3 fixture with safe hardware
   controls.
 
-All journeys are marked `planned`. Their status must only change to
-`implemented` when an executable test exists and passes in its declared tier.
+Each tier has its own status (`"tiers": {"simulated": "implemented",
+"rootfs": "planned", "hil": "planned"}`): a journey that passes in the
+simulated stack says nothing yet about the built image or a machine. A tier is
+`implemented` when a test declaring that journey and tier runs in that tier's CI;
+what each test checks is in its docstring. `blocked` marks a tier that cannot be
+tested yet, with the reason in `known_gaps`.
+
+The runner keeps it true: meticulous-integration fails when the catalog says
+`simulated` is `implemented` and no test there declares it, and warns when a
+test declares a tier the catalog still has as `planned` (mark it in the same
+change as the test, or right after). `scripts/validate_e2e_contract.py` prints
+how many journeys are implemented at each tier.
 
 ## Known gaps found during inventory
 
