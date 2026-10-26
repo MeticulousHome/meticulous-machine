@@ -112,11 +112,14 @@ The catalog and its rules are in
 - `hil`: a physical machine in the lab. Runs on release candidates.
 - Every journey test declares the journey and tier it covers (in pytest,
   `@pytest.mark.journey("espresso-complete", tier="simulated")`); the runner
-  refuses an id or tier the catalog does not list.
+  refuses an id or tier the catalog does not list. It reads the catalog of the
+  branch it pairs with, as it does the components.
 - Each tier of a journey has its own status. A tier is `implemented` once a test
-  declaring it runs in that tier's CI; the runner fails when the catalog claims
-  a tier no test declares, and warns when a test declares a tier still `planned`.
-  So `implemented` at `simulated` never reads as validated on a machine.
+  declaring it runs in that tier's CI; each journey names its `owner`, the
+  repository whose tests back it, and that runner fails when the catalog claims
+  a tier none of its own tests declares, and warns when a test declares a tier still
+  `planned`. So `implemented` at `simulated` never reads as validated on a
+  machine.
 
 ## The image per build
 
