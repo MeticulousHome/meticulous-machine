@@ -21,11 +21,28 @@ class E2EContractManifestTests(unittest.TestCase):
         screens = VALIDATOR.flatten_screen_groups(self.manifest)
         self.assertEqual(len(screens), len(set(screens)))
 
-    def test_every_journey_has_a_test_tier_and_explicit_status(self):
+    def test_every_journey_has_a_status_at_each_of_its_tiers(self):
         for journey in self.manifest["journeys"]:
             with self.subTest(journey=journey["id"]):
                 self.assertTrue(journey["tiers"])
-                self.assertIn(journey["status"], {"planned", "implemented", "blocked"})
+                for status in journey["tiers"].values():
+                    self.assertIn(status, {"planned", "implemented", "blocked"})
+
+    def test_a_status_outside_the_tiers_is_refused(self):
+        journey = dict(self.manifest["journeys"][0], status="implemented")
+        manifest = dict(self.manifest, journeys=[journey])
+        self.assertIn(
+            f"Journey {journey['id']}: the status is per tier, in tiers",
+            VALIDATOR.validate_manifest(manifest),
+        )
+
+    def test_an_unknown_status_at_a_tier_is_refused(self):
+        journey = dict(self.manifest["journeys"][0], tiers={"simulated": "done"})
+        manifest = dict(self.manifest, journeys=[journey])
+        self.assertIn(
+            f"Journey {journey['id']} has an invalid status at simulated: 'done'",
+            VALIDATOR.validate_manifest(manifest),
+        )
 
     def test_full_route_reachability_is_a_p0_target(self):
         journey = next(
