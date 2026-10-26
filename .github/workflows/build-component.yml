@@ -176,6 +176,40 @@ jobs:
         export PATH=/usr/lib/ccache:/usr/local/bin:$PATH
         ./build-components.sh --${{ inputs['build-option'] }}
 
+    # The backend's .deb ships its binary stripped. The debug file split from
+    # it next to the .deb is what lets Sentry symbolicate the backend's
+    # crashes, and only the one from this very build matches the binary that
+    # goes into the image. A Sentry outage must not stop the image.
+    - name: Upload the backend's debug file to Sentry
+      if: ${{ inputs['build-option'] == 'backend' }}
+      continue-on-error: true
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        SENTRY_URL: ${{ vars.SENTRY_URL || 'https://sentry.meticulousespresso.com' }}
+        SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+        SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        # Read by the installer; bump deliberately.
+        SENTRY_CLI_VERSION: 2.46.0
+      run: |
+        shopt -s nullglob
+        # BACKEND_BUILD_DIR in config.sh.
+        debug_files=(components/meticulous-backend-build/*.debug)
+        if [ ${#debug_files[@]} -eq 0 ]; then
+          echo "::notice title=Sentry upload skipped::this backend build has no split debug file"
+          exit 0
+        fi
+        if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+          echo "::notice title=Sentry upload skipped::no SENTRY_AUTH_TOKEN secret"
+          exit 0
+        fi
+        if [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
+          echo "::error::SENTRY_AUTH_TOKEN is set but the SENTRY_ORG or SENTRY_PROJECT variable is not"
+          exit 1
+        fi
+        curl -sSfL https://sentry.io/get-cli/ | INSTALL_DIR="$RUNNER_TEMP" sh
+        "$RUNNER_TEMP/sentry-cli" debug-files check "${debug_files[@]}"
+        "$RUNNER_TEMP/sentry-cli" debug-files upload --wait "${debug_files[@]}"
+
     - name: Upload ${{ inputs['build-option'] }} artifact
       uses: actions/upload-artifact@v4
       if:  ${{ inputs['build-path'] != '' }}
