@@ -11,45 +11,18 @@ function build_debian() {
     popd >/dev/null
 }
 
-function repack_deb() {
-    deb_package=$1
-    echo "Unpacking package ${deb_package}"
-    rm -f meticulous-dial.deb
-    ar x ${deb_package}
-
-    # Uncompress zstd files an re-compress them using xz
-    echo "Repacking control.tar.zst"
-    zstd -d <control.tar.zst | xz >control.tar.xz
-    echo "Repacking data.tar.zst"
-    du -sh data.tar.zst
-    zstd -d <data.tar.zst | xz -0 | pv | cat >data.tar.xz
-
-    # Re-create the Debian package
-    echo "Repacking package"
-    ar -m -c -a sdsd meticulous-dial.deb debian-binary control.tar.xz data.tar.xz
-    # Clean up
-    rm debian-binary control.tar.xz data.tar.xz control.tar.zst data.tar.zst
-}
-
+# The Dial (Qt Quick) builds in Docker: qt/scripts/package-deb.sh builds the image of Debian bookworm's
+# Qt 6.4 with the arm64 cross compiler (qt/docker/Dockerfile.bookworm), then the binary and the package.
+# qt/build/machine/ gets meticulous-dial.deb, which make-rootfs.sh installs, and the binary with its
+# symbols, which build-component.yml uploads to Sentry.
 function build_dial() {
     echo "Building Dial app"
     pushd $DIAL_SRC_DIR >/dev/null
-    export DPKG_DEB_COMPRESSOR_TYPE=xz
-    rm -rfv src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/meticulous-dial_*_arm64.deb
-    npm install
-    npm run docker:arm64-cross 
-    npm run package:arm64-cross
-
-    pushd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb >/dev/null
-    contents=$(ar t meticulous-dial_*_arm64.deb)
-    if [[ $contents == *"control.tar.zst"* ]] && [[ $contents == *"data.tar.zst"* ]]; then
-        echo "Compression is zstd. Archive needs to be repacked"
-        repack_deb meticulous-dial_*_arm64.deb
-    else
-        echo "Compression is xz or gzip. Archive can be used as is"
-        cp meticulous-dial_*_arm64.deb meticulous-dial.deb
-    fi
-    popd >/dev/null
+    rm -rf qt/build/machine
+    mkdir -p qt/build/machine
+    deb=$(bash qt/scripts/package-deb.sh | head -n 1)
+    cp -v "${deb}" qt/build/machine/meticulous-dial.deb
+    cp -v qt/build/arm64/meticulous-dial-qt qt/build/machine/
     popd >/dev/null
 }
 

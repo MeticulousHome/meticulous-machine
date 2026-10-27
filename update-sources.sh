@@ -144,15 +144,10 @@ function update_dial() {
     echo "Cloning / Updating Dial Repository"
     get_git_src ${DIAL_GIT} ${DIAL_BRANCH} \
         ${DIAL_SRC_DIR} ${DIAL_REV}
-
-    if [ -z "$(which npm)" ]; then
-        echo "node / npm not found. Not checking out Dial App dependencies."
-    else
-        echo "Installing Dial App dependencies"
-        pushd $DIAL_SRC_DIR
-        npm install
-        popd
-    fi
+    # The Dial's package version counts the commits (qt/scripts/package-deb.sh).
+    pushd ${DIAL_SRC_DIR}
+    git fetch --unshallow || true
+    popd
 }
 
 

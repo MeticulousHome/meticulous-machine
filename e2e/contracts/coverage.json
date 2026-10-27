@@ -330,8 +330,7 @@
       "meticulous-dial.service",
       "meticulous-watcher.service",
       "pulseaudio.service",
-      "rauc-hawkbit-updater.service",
-      "weston.service"
+      "rauc-hawkbit-updater.service"
     ],
     "nginx_contracts": [
       "location / {",

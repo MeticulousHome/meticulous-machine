@@ -91,7 +91,10 @@ for the i.MX8MN SOM, particularly from Variscite as SOM vendor and NXP as SOC ve
 The debian requires NXP specific GPU drivers and therefore a custom wayland stack.
 It furthermore contains the downstrad custom NXP kernel for now.
 
-The Dial and the Dashboard App are nodeJS base applications which are build using npm.
+The Dial is a Qt Quick application: `build-components.sh --dial` builds its Debian package in Docker
+(its `qt/scripts/package-deb.sh`, Debian bookworm's Qt 6.4 and an arm64 cross compiler); the image gets its
+Qt runtime from bookworm through the package's dependencies. It draws straight on DRM/KMS, without Weston.
+The Dashboard App is a nodeJS based application which is built using npm.
 
 The Backend and the Watcher are shipped as raw python and don't need to be pre-built. They use [uv](https://docs.astral.sh/uv/) for dependency management (see `components/meticulous-backend/readme.md`).
 
