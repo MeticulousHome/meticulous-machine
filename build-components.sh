@@ -20,7 +20,8 @@ function build_dial() {
     pushd $DIAL_SRC_DIR >/dev/null
     rm -rf qt/build/machine
     mkdir -p qt/build/machine
-    deb=$(bash qt/scripts/package-deb.sh | head -n 1)
+    # Its first line is the package's path (all of its output is read: no SIGPIPE under pipefail).
+    deb=$(bash qt/scripts/package-deb.sh | sed -n 1p)
     cp -v "${deb}" qt/build/machine/meticulous-dial.deb
     cp -v qt/build/arm64/meticulous-dial-qt qt/build/machine/
     popd >/dev/null
