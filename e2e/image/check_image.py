@@ -231,13 +231,17 @@ def check_rauc_bundle(args):
 
 
 def check_dial(args):
-    binary = args.rootfs / "usr/bin/meticulous-dial"
+    binary = args.rootfs / "usr/bin/meticulous-dial-qt"
     if not binary.is_file():
-        return False, "/usr/bin/meticulous-dial missing"
+        return False, "/usr/bin/meticulous-dial-qt missing"
     head = binary.read_bytes()[:20]
     arm64 = head[:4] == b"\x7fELF" and head[18:20] == b"\xb7\x00"
+    qml = (args.rootfs / "usr/share/meticulous-dial-qt/qml/main.qml").is_file()
     state = inside("systemctl", "is-active", "meticulous-dial").stdout.strip()
-    return arm64, f"ARM64 binary installed: {arm64}; service `{state}` (it needs Weston, which needs a display)"
+    return arm64 and qml, (
+        f"ARM64 binary installed: {arm64}; QML installed: {qml}; service `{state}` "
+        "(it needs the machine's DRM device)"
+    )
 
 
 CHECKS = [

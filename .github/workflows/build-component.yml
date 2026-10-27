@@ -70,7 +70,7 @@ jobs:
     env:
       needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' && inputs['build-option'] != 'backend' && inputs['build-option'] != 'watcher'}}
       needs-cross-compile: ${{ inputs['build-option'] == 'linux' }}
-      needs-qemu: ${{ inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' }}
+      needs-qemu: ${{ inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' && inputs['build-option'] != 'dial' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -162,14 +162,6 @@ jobs:
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
         ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
 
-    - name: Cache Cargo build artifacts
-      if: ${{ inputs['build-option'] == 'dial' && fromJSON(steps.build-check.outputs.needed) }}
-      uses: Swatinem/rust-cache@v2
-      with:
-        workspaces: "components/meticulous-dial/src-tauri -> target"
-        key: "aarch64-cross"
-        cache-on-failure: true
-
     - name: Build components
       if: ${{ fromJSON(steps.build-check.outputs.needed) }}
       run: |
@@ -209,6 +201,39 @@ jobs:
         curl -sSfL https://sentry.io/get-cli/ | INSTALL_DIR="$RUNNER_TEMP" sh
         "$RUNNER_TEMP/sentry-cli" debug-files check "${debug_files[@]}"
         "$RUNNER_TEMP/sentry-cli" debug-files upload --wait "${debug_files[@]}"
+
+    # The Dial's binary ships with its symbols; the copy next to the .deb is
+    # the one from this very build, so its build ID matches the image's. It
+    # reports to the Dial's own Sentry project (release meticulous-dial-qt@...).
+    # A Sentry outage must not stop the image.
+    - name: Upload the Dial's symbols to Sentry
+      if: ${{ inputs['build-option'] == 'dial' }}
+      continue-on-error: true
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        SENTRY_URL: ${{ vars.SENTRY_URL || 'https://sentry.meticulousespresso.com' }}
+        SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+        SENTRY_PROJECT: ${{ vars.SENTRY_DIAL_PROJECT || 'meticulous-dial' }}
+        # Read by the installer; bump deliberately.
+        SENTRY_CLI_VERSION: 2.46.0
+      run: |
+        # build_dial in build-components.sh.
+        binary=components/meticulous-dial/qt/build/machine/meticulous-dial-qt
+        if [ ! -f "$binary" ]; then
+          echo "::notice title=Sentry upload skipped::this Dial build has no binary next to its package"
+          exit 0
+        fi
+        if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+          echo "::notice title=Sentry upload skipped::no SENTRY_AUTH_TOKEN secret"
+          exit 0
+        fi
+        if [ -z "$SENTRY_ORG" ]; then
+          echo "::error::SENTRY_AUTH_TOKEN is set but the SENTRY_ORG variable is not"
+          exit 1
+        fi
+        curl -sSfL https://sentry.io/get-cli/ | INSTALL_DIR="$RUNNER_TEMP" sh
+        "$RUNNER_TEMP/sentry-cli" debug-files check "$binary"
+        "$RUNNER_TEMP/sentry-cli" debug-files upload --wait "$binary"
 
     - name: Upload ${{ inputs['build-option'] }} artifact
       uses: actions/upload-artifact@v4

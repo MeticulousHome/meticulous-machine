@@ -1,23 +1,20 @@
+# The Dial (Qt Quick), straight on DRM/KMS: no Weston. The meticulous-dial package installs this same
+# unit (its qt/packaging/meticulous-dial.service) over this copy; change both together.
 [Unit]
-Description=Meticulous Dial App
-After=network.target
-After=weston.service
-Requires=weston.service
+Description=Meticulous Dial
+After=network.target meticulous-backend.service systemd-user-sessions.service plymouth-quit-wait.service
+# It must be the DRM master: never together with Weston.
+Conflicts=weston.service
 OnFailure=crash-reporter@.service
 
 [Service]
-ExecStartPre=/bin/bash -c 'for i in {1..50}; do test -S /run/user/0/wayland-0 && exit 0; sleep 0.1; done; echo "Timed out waiting for /run/user/0/wayland-0" >&2; exit 1'
-ExecStart=/usr/bin/meticulous-dial
-Restart=on-success
+ExecStart=/usr/bin/meticulous-dial-qt-launch
+Restart=always
+RestartSec=1
 User=root
 MemoryMax=1000M
 Slice=meticulous.slice
-
-#Environment="DISPLAY=:0"
 Environment="XDG_RUNTIME_DIR=/run/user/0"
-Environment="WAYLAND_DISPLAY=wayland-0"
-Environment="GDK_BACKEND=wayland"
-#Environment="GDK_GL=gles"
 
 [Install]
 WantedBy=multi-user.target

@@ -53,7 +53,7 @@ at the bottom, few slow ones at the top.
 |---|---|
 | EspressoFirmware | Static, unit (C++), the SIL (the whole firmware against a simulated machine), its UART contract checked against itself; and the backend's integration tests against the backend of its branch (status `integration/backend`) |
 | meticulous-backend | Static, unit, API, data (migrations, config), contract (API snapshots), packaging and boot; and its integration tests against the firmware of its branch (status `integration/firmware`) |
-| meticulous-dial | Static, unit, component (real components in Chromium with a simulated machine), the build, the Tauri side (Rust), its use of the backend checked against the backend's published contract; and the catalog journeys end to end against the backend and the firmware of its branch (status `integration/e2e`) |
+| meticulous-dial | The amd64 and arm64 builds, the QML smoke (every route opened), the C++ and JavaScript unit tests, the package, its use of the backend checked against the backend's published contract; and the catalog journeys end to end against the backend and the firmware of its branch (status `integration/e2e`) |
 | meticulous-machine | On every image: the system tests in the built image (services, OTA, crash reporter) and the catalog journeys at `rootfs` tier; on release candidates, the `hil` tier |
 
 Anything that needs the firmware runs in MeticulousHome/meticulous-integration
@@ -196,10 +196,11 @@ catalog change through a pull request to this document.
 
 ## Open decisions
 
-- **The Tauri side in the journeys**: at `simulated` the Dial is its web build in
-  Chromium, so what only Tauri does (Sentry, the ready markers, Community
-  uploads) is not exercised there. Either a Tauri binary under a Wayland
-  compositor at `simulated`, or leave it to `rootfs`, which gets the real one.
+- **The Dial's external services in the journeys**: at `simulated` the Dial is
+  the real Qt binary (under Xvfb), but it runs with its external services off
+  (Sentry, the ticket service, Community uploads), so those are not exercised
+  there. Either answer them with fakes at `simulated`, or leave them to
+  `rootfs`, which gets the real Dial.
 - **How the rootfs boots at `rootfs` tier**: decided, systemd-nspawn on an ARM64
   runner. QEMU with the image's kernel and RAUC slots stays the option for what
   needs them: the bootloader, the A/B switch, an update over the previous image.
