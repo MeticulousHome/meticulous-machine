@@ -57,6 +57,9 @@ def validate_manifest(manifest: dict) -> list[str]:
     valid_tiers = {"simulated", "rootfs", "hil"}
     valid_priorities = {"P0", "P1", "P2"}
     valid_statuses = {"planned", "implemented", "blocked"}
+    # The repository whose tests back the journey's `implemented` tiers: its
+    # runner fails when the catalog claims a tier none of its tests declares.
+    valid_owners = {"meticulous-integration", "meticulous-mobile"}
     for journey in manifest.get("journeys", []):
         unknown_groups = set(journey.get("screen_groups", [])) - groups - {"*"}
         if unknown_groups:
@@ -82,6 +85,11 @@ def validate_manifest(manifest: dict) -> list[str]:
             errors.append(f"Journey {journey['id']}: the status is per tier, in tiers")
         if journey.get("priority") not in valid_priorities:
             errors.append(f"Journey {journey['id']} has an invalid priority")
+        if journey.get("owner") not in valid_owners:
+            errors.append(
+                f"Journey {journey['id']} needs an owner, one of {sorted(valid_owners)}, "
+                f"not {journey.get('owner')!r}"
+            )
         if not journey.get("summary"):
             errors.append(f"Journey {journey['id']} needs a summary")
 

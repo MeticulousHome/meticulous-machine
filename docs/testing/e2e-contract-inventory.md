@@ -84,11 +84,19 @@ simulated stack says nothing yet about the built image or a machine. A tier is
 what each test checks is in its docstring. `blocked` marks a tier that cannot be
 tested yet, with the reason in `known_gaps`.
 
+Each journey names its `owner`, the repository whose tests back its
+`implemented` tiers: `meticulous-integration` for the journeys that need the
+firmware, `meticulous-mobile` for the app's journeys its own gates run against
+the emulated backend.
+
 The runner keeps it true: meticulous-integration fails when the catalog says
-`simulated` is `implemented` and no test there declares it, and warns when a
-test declares a tier the catalog still has as `planned` (mark it in the same
-change as the test, or right after). `scripts/validate_e2e_contract.py` prints
-how many journeys are implemented at each tier.
+`simulated` is `implemented` for a journey it owns and no test there declares
+it, and warns when a test declares a tier the catalog still has as `planned`
+(mark it in the same change as the test, or right after). It reads the catalog
+of the branch its run pairs with (`stable` for a pull request to `stable`), so
+each channel's runs answer to that channel's catalog.
+`scripts/validate_e2e_contract.py` prints how many journeys are implemented at
+each tier.
 
 ## Known gaps found during inventory
 
