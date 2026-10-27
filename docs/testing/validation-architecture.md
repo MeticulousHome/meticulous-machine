@@ -139,8 +139,9 @@ informative for now: nothing waits for them, and they never fail the build.
    the radios or a network are listed in `e2e/image/machine-only-units.txt` with
    what they need), the backend, the web app and the watcher answer through
    nginx, every component and the ESP32 firmware are the ones
-   `images/<channel>.versions.sh` pins, a new machine follows its image's update
-   channel, and the image's RAUC accepts the build's own bundle.
+   `images/<channel>.versions.sh` pins (`config.sh` for nightly, which builds
+   from its defaults), a new machine follows its image's update channel, and the
+   image's RAUC accepts the build's own bundle.
 2. **The image works as a machine** (meticulous-integration's
    `image-journeys.yml`, private, because it runs the firmware). fika-sil is the
    ESP32 on `/dev/ttymxc0`, reporting the version of the firmware the image
