@@ -8,7 +8,7 @@ built-in ESP32 emulator. Each check prints one line and goes into a Markdown
 table (--summary); the exit status is 1 when one fails.
 
 Usage: sudo e2e/image/check_image.py --rootfs DIR --image CHANNEL
-           [--versions images/<channel>.versions.sh] [--bundle emmc-bundle.raucb]
+           [--versions images/<channel>.versions.sh | config.sh] [--bundle emmc-bundle.raucb]
            [--summary FILE] [--report FILE]
 """
 
@@ -152,9 +152,10 @@ def summary_components(rootfs: Path) -> dict[str, dict[str, str]]:
 
 
 def pinned(versions: Path) -> dict[str, dict[str, str]]:
-    """What images/<channel>.versions.sh asks for: {component: {branch, rev}}."""
+    """What images/<channel>.versions.sh, or config.sh for nightly, asks for:
+    {component: {branch, rev}}. config.sh aligns its values after `export`."""
     pins = {}
-    for m in re.finditer(r'^export (\w+?)_(BRANCH|REV)="([^"]*)"', versions.read_text(), re.M):
+    for m in re.finditer(r'^export[ \t]+(\w+?)_(BRANCH|REV)="([^"]*)"', versions.read_text(), re.M):
         pins.setdefault(m.group(1).lower().replace("_", "-"), {})[m.group(2).lower()] = m.group(3)
     return pins
 
@@ -163,11 +164,13 @@ def check_versions(args):
     if not args.versions:
         return None, "no versions.sh given"
     built = summary_components(args.rootfs)
-    problems = []
+    problems, unrecorded = [], []
     for component, pin in pinned(args.versions).items():
         got = built.get(component)
         if got is None:
-            problems.append(f"{component}: not in /opt/summary.txt")
+            # generate-build-info.sh records a fixed list of components, and
+            # config.sh declares a few more (mwifiex, mlanutl, dash, mobile).
+            unrecorded.append(component)
             continue
         if "branch" in pin and got.get("branch") != pin["branch"]:
             problems.append(f"{component}: branch `{got.get('branch')}`, pinned `{pin['branch']}`")
@@ -175,7 +178,9 @@ def check_versions(args):
         if rev != "HEAD" and not (got.get("commit") or "").startswith(rev):
             problems.append(f"{component}: commit `{(got.get('commit') or '')[:12]}`, pinned `{rev[:12]}`")
     empty = sorted(c for c, info in built.items() if not info)
-    seen = "; ".join(problems) or f"{len(built)} components as pinned"
+    seen = "; ".join(problems) or f"{len(built)} components as {args.versions.name} pins them"
+    if unrecorded:
+        seen += f" (not in /opt/summary.txt, so not checked: {', '.join(sorted(unrecorded))})"
     if empty:
         seen += f" (no branch or commit recorded: {', '.join(empty)})"
     return not problems, seen
@@ -242,7 +247,7 @@ CHECKS = [
     ("The backend answers", check_backend_api),
     ("nginx routes the web app, the API and /health", check_nginx_routes),
     ("The image is the channel it was built for", check_identity),
-    ("Every component as images/<channel>.versions.sh pins it", check_versions),
+    ("Every component as images/<channel>.versions.sh, or config.sh for nightly, pins it", check_versions),
     ("It carries the firmware it was built with", check_firmware),
     ("A new machine follows its image's update channel", check_update_channel),
     ("Its RAUC accepts this build's update bundle", check_rauc_bundle),
