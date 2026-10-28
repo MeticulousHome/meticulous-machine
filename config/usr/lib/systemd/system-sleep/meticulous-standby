@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# Arms the wake-up sources of the ErP standby before the SoC suspends, and puts
+# the radio back the way NetworkManager runs it after resume. systemd-sleep runs
+# it with $1 = pre|post and $2 = suspend|hibernate|hybrid-sleep|suspend-then-hibernate.
+#
+# While suspended the SoC wakes on:
+#  - a WoWLAN magic packet (the app on the LAN) or the access point dropping
+#    us, through the IW612's WIFI_HOST_WAKE line (GPIO3_IO14 in the v2 device
+#    tree, armed by moal);
+#  - any byte from the ESP32 on UART1: a button or the dial woke it first;
+#  - the SNVS power key and the RTC alarm, which the kernel arms by itself.
+
+sysfs="${MET_STANDBY_SYSFS:-/sys}"
+wifi_iface="${MET_STANDBY_WIFI_IFACE:-wlan0}"
+esp_tty="${MET_STANDBY_ESP_TTY:-ttymxc0}"
+mwlan_config="${MET_STANDBY_MWLAN_CONFIG:-/proc/mwlan/adapter0/config}"
+# IW612 GPIO that drives WIFI_HOST_WAKE (NXP AN14465). moal defaults to 0xff,
+# the in-band SDIO interrupt, which the SoC cannot see while suspended.
+wifi_wake_gpio="${MET_STANDBY_WIFI_WAKE_GPIO:-17}"
+# Host sleep conditions (broadcast, unicast, MAC event: moal's default; moal
+# replaces them with the magic packet filter at suspend) and the gap in ms
+# between raising the wake line and handing over the frame.
+hs_conditions=0x7
+hs_gap_ms=200
+
+log() {
+    echo "meticulous-standby: $*"
+}
+
+wifi_phy() {
+    cat "${sysfs}/class/net/${wifi_iface}/phy80211/name" 2>/dev/null
+}
+
+arm_wake_sources() {
+    wakeup="${sysfs}/class/tty/${esp_tty}/power/wakeup"
+    if [ -w "${wakeup}" ]; then
+        echo enabled >"${wakeup}"
+    else
+        log "no ${wakeup}: the ESP32 cannot wake the SoC"
+    fi
+
+    phy="$(wifi_phy)"
+    if [ -z "${phy}" ]; then
+        log "no ${wifi_iface}: WoWLAN not armed"
+        return
+    fi
+    if [ -w "${mwlan_config}" ]; then
+        echo "hssetpara=${hs_conditions} ${wifi_wake_gpio} ${hs_gap_ms}" >"${mwlan_config}" ||
+            log "hssetpara failed"
+    else
+        log "no ${mwlan_config}: the IW612 keeps its default wake signal"
+    fi
+    iw phy "${phy}" wowlan enable magic-packet disconnect || log "iw wowlan enable failed"
+    # NetworkManager keeps power save off while awake
+    # (conf.d/99-wifi-powersave-off.conf); asleep, the radio only listens to beacons.
+    iw dev "${wifi_iface}" set power_save on || log "iw power_save on failed"
+}
+
+restore_radio() {
+    [ -n "$(wifi_phy)" ] || return 0
+    iw dev "${wifi_iface}" set power_save off || log "iw power_save off failed"
+}
+
+case "$1" in
+pre)
+    arm_wake_sources
+    ;;
+post)
+    restore_radio
+    ;;
+esac
+
+exit 0
