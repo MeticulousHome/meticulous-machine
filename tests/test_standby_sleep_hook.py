@@ -30,7 +30,9 @@ class StandbySleepHookTest(unittest.TestCase):
         phy = self.sysfs / "class" / "net" / "wlan0" / "phy80211"
         phy.mkdir(parents=True)
         (phy / "name").write_text("phy0\n")
-        self.mwlan_config = self.tmp / "mwlan-config"
+        # A reloaded driver takes the next adapter slot.
+        self.mwlan_config = self.tmp / "mwlan" / "adapter1" / "config"
+        self.mwlan_config.parent.mkdir(parents=True)
         self.mwlan_config.write_text("")
         self.calls = self.tmp / "calls"
         bin_dir = self.tmp / "bin"
@@ -38,11 +40,15 @@ class StandbySleepHookTest(unittest.TestCase):
         iw = bin_dir / "iw"
         iw.write_text(f'#!/bin/sh\necho "iw $*" >> "{self.calls}"\n')
         iw.chmod(0o755)
+        self.mlanutl = bin_dir / "mlanutl"
+        self.mlanutl.write_text(f'#!/bin/sh\necho "mlanutl $*" >> "{self.calls}"\n')
+        self.mlanutl.chmod(0o755)
         self.env = {
             **os.environ,
             "PATH": f"{bin_dir}:{os.environ['PATH']}",
             "MET_STANDBY_SYSFS": str(self.sysfs),
-            "MET_STANDBY_MWLAN_CONFIG": str(self.mwlan_config),
+            "MET_STANDBY_MWLAN_PROC": str(self.tmp / "mwlan"),
+            "MET_STANDBY_MLANUTL": str(self.mlanutl),
         }
 
     def run_hook(self, *args):
@@ -54,8 +60,14 @@ class StandbySleepHookTest(unittest.TestCase):
         calls = self.run_hook("pre", "suspend")
         self.assertEqual((self.sysfs / "class" / "tty" / "ttymxc0" / "power" / "wakeup").read_text(), "enabled\n")
         self.assertEqual(self.mwlan_config.read_text(), "hssetpara=0x7 17 200\n")
-        self.assertIn("iw phy phy0 wowlan enable magic-packet disconnect", calls)
+        self.assertIn("iw phy phy0 wowlan enable magic-packet", calls)
         self.assertIn("iw dev wlan0 set power_save on", calls)
+        self.assertNotIn("mlanutl", "\n".join(calls))
+
+    def test_suspend_without_the_proc_interface_sets_the_wake_signal_with_mlanutl(self):
+        self.mwlan_config.unlink()
+        calls = self.run_hook("pre", "suspend")
+        self.assertIn("mlanutl wlan0 hssetpara 0x7 17 200", calls)
 
     def test_resume_gives_power_save_back_to_networkmanager(self):
         calls = self.run_hook("post", "suspend")

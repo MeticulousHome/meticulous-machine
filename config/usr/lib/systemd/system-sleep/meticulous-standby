@@ -5,16 +5,18 @@
 # it with $1 = pre|post and $2 = suspend|hibernate|hybrid-sleep|suspend-then-hibernate.
 #
 # While suspended the SoC wakes on:
-#  - a WoWLAN magic packet (the app on the LAN) or the access point dropping
-#    us, through the IW612's WIFI_HOST_WAKE line (GPIO3_IO14 in the v2 device
-#    tree, armed by moal);
+#  - a WoWLAN magic packet (the app on the LAN), through the IW612's
+#    WIFI_HOST_WAKE line (GPIO3_IO14 in the v2 device tree, armed by moal);
 #  - any byte from the ESP32 on UART1: a button or the dial woke it first;
 #  - the SNVS power key and the RTC alarm, which the kernel arms by itself.
 
 sysfs="${MET_STANDBY_SYSFS:-/sys}"
 wifi_iface="${MET_STANDBY_WIFI_IFACE:-wlan0}"
 esp_tty="${MET_STANDBY_ESP_TTY:-ttymxc0}"
-mwlan_config="${MET_STANDBY_MWLAN_CONFIG:-/proc/mwlan/adapter0/config}"
+# moal names its proc directory after the adapter's slot, adapter0 unless the
+# driver was reloaded; mlanutl (shipped by the image) reaches it through ioctls.
+mwlan_proc="${MET_STANDBY_MWLAN_PROC:-/proc/mwlan}"
+mlanutl="${MET_STANDBY_MLANUTL:-/usr/local/bin/mlanutl}"
 # IW612 GPIO that drives WIFI_HOST_WAKE (NXP AN14465). moal defaults to 0xff,
 # the in-band SDIO interrupt, which the SoC cannot see while suspended.
 wifi_wake_gpio="${MET_STANDBY_WIFI_WAKE_GPIO:-17}"
@@ -32,6 +34,25 @@ wifi_phy() {
     cat "${sysfs}/class/net/${wifi_iface}/phy80211/name" 2>/dev/null
 }
 
+mwlan_config() {
+    for config in "${mwlan_proc}"/adapter*/config; do
+        [ -w "${config}" ] && echo "${config}" && return
+    done
+}
+
+set_wifi_wake_signal() {
+    config="$(mwlan_config)"
+    if [ -n "${config}" ]; then
+        echo "hssetpara=${hs_conditions} ${wifi_wake_gpio} ${hs_gap_ms}" >"${config}" && return
+        log "hssetpara through ${config} failed"
+    fi
+    if [ -x "${mlanutl}" ]; then
+        "${mlanutl}" "${wifi_iface}" hssetpara "${hs_conditions}" "${wifi_wake_gpio}" "${hs_gap_ms}" >/dev/null && return
+        log "mlanutl hssetpara failed"
+    fi
+    log "the IW612 keeps its default wake signal: the app cannot wake the SoC"
+}
+
 arm_wake_sources() {
     wakeup="${sysfs}/class/tty/${esp_tty}/power/wakeup"
     if [ -w "${wakeup}" ]; then
@@ -45,13 +66,10 @@ arm_wake_sources() {
         log "no ${wifi_iface}: WoWLAN not armed"
         return
     fi
-    if [ -w "${mwlan_config}" ]; then
-        echo "hssetpara=${hs_conditions} ${wifi_wake_gpio} ${hs_gap_ms}" >"${mwlan_config}" ||
-            log "hssetpara failed"
-    else
-        log "no ${mwlan_config}: the IW612 keeps its default wake signal"
-    fi
-    iw phy "${phy}" wowlan enable magic-packet disconnect || log "iw wowlan enable failed"
+    set_wifi_wake_signal
+    # moal offers no disconnect trigger (only any and magic-packet), and cfg80211
+    # refuses the whole request when one trigger is missing.
+    iw phy "${phy}" wowlan enable magic-packet || log "iw wowlan enable failed"
     # NetworkManager keeps power save off while awake
     # (conf.d/99-wifi-powersave-off.conf); asleep, the radio only listens to beacons.
     iw dev "${wifi_iface}" set power_save on || log "iw power_save on failed"
