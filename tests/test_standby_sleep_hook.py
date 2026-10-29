@@ -1,7 +1,8 @@
 """The ErP standby wake-up sources the image arms around suspend.
 
 The systemd-sleep hook must leave the SoC wakeable by the app (WoWLAN on the
-IW612's out-of-band wake line) and by the ESP32 (UART1), and must give the
+IW612's out-of-band wake line, v2 boards) and by the ESP32 (UART1), must leave
+the v1 boards' LWB5 alone (no WoWL in its firmware), and must give the
 radio back to NetworkManager's power-save-off setting on resume. The IW612
 driver must answer ARP while the host sleeps, or the app's unicast wake packet
 never reaches the machine; met-iw612-set-region rewrites the driver's
@@ -30,6 +31,15 @@ class StandbySleepHookTest(unittest.TestCase):
         phy = self.sysfs / "class" / "net" / "wlan0" / "phy80211"
         phy.mkdir(parents=True)
         (phy / "name").write_text("phy0\n")
+        # wlan0 sits on an SDIO function under the usdhc1 host, which can wake the system.
+        self.sdio_host = self.sysfs / "devices" / "platform" / "30b40000.mmc"
+        (self.sdio_host / "power").mkdir(parents=True)
+        (self.sdio_host / "power" / "wakeup").write_text("disabled\n")
+        func = self.sdio_host / "mmc_host" / "mmc0" / "mmc0:0001" / "mmc0:0001:1"
+        func.mkdir(parents=True)
+        (self.sysfs / "class" / "net" / "wlan0" / "device").symlink_to(func)
+        self.drivers = self.sysfs / "bus" / "sdio" / "drivers"
+        self.use_wifi_driver("wlan_sdio")
         # A reloaded driver takes the next adapter slot.
         self.mwlan_config = self.tmp / "mwlan" / "adapter1" / "config"
         self.mwlan_config.parent.mkdir(parents=True)
@@ -51,6 +61,13 @@ class StandbySleepHookTest(unittest.TestCase):
             "MET_STANDBY_MLANUTL": str(self.mlanutl),
         }
 
+    def use_wifi_driver(self, name):
+        (self.drivers / name).mkdir(parents=True, exist_ok=True)
+        link = self.sysfs / "class" / "net" / "wlan0" / "device" / "driver"
+        if link.is_symlink():
+            link.unlink()
+        link.symlink_to(self.drivers / name)
+
     def run_hook(self, *args):
         result = subprocess.run([str(HOOK), *args], env=self.env, capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -63,11 +80,19 @@ class StandbySleepHookTest(unittest.TestCase):
         self.assertIn("iw phy phy0 wowlan enable magic-packet", calls)
         self.assertIn("iw dev wlan0 set power_save on", calls)
         self.assertNotIn("mlanutl", "\n".join(calls))
+        self.assertEqual((self.sdio_host / "power" / "wakeup").read_text(), "disabled\n")
 
-    def test_suspend_without_the_proc_interface_sets_the_wake_signal_with_mlanutl(self):
-        self.mwlan_config.unlink()
-        calls = self.run_hook("pre", "suspend")
-        self.assertIn("mlanutl wlan0 hssetpara 0x7 17 200", calls)
+    def test_suspend_on_the_lwb5_leaves_its_sdio_host_alone(self):
+        # Its firmware has no WoWL, and an SDIO host left armed as a wake-up
+        # source loses the card on resume: WiFi stays down until a reboot.
+        self.use_wifi_driver("brcmfmac")
+        result = subprocess.run([str(HOOK), "pre", "suspend"], env=self.env, capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls.read_text().splitlines()
+        self.assertEqual((self.sdio_host / "power" / "wakeup").read_text(), "disabled\n")
+        self.assertEqual(self.mwlan_config.read_text(), "")
+        self.assertEqual(calls, ["iw dev wlan0 set power_save on"])
+        self.assertIn("WiFi on brcmfmac: WoWLAN not armed", result.stdout)
 
     def test_resume_gives_power_save_back_to_networkmanager(self):
         calls = self.run_hook("post", "suspend")

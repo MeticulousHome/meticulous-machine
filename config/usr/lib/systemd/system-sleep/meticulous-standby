@@ -5,8 +5,10 @@
 # it with $1 = pre|post and $2 = suspend|hibernate|hybrid-sleep|suspend-then-hibernate.
 #
 # While suspended the SoC wakes on:
-#  - a WoWLAN magic packet (the app on the LAN), through the IW612's
-#    WIFI_HOST_WAKE line (GPIO3_IO14 in the v2 device tree, armed by moal);
+#  - a WoWLAN magic packet (the app on the LAN), on v2 boards only: through the
+#    IW612's WIFI_HOST_WAKE line (GPIO3_IO14 in the v2 device tree, armed by
+#    moal). The v1 boards' LWB5 firmware is built without WoWL, so brcmfmac
+#    offers none and the app cannot wake them;
 #  - any byte from the ESP32 on UART1: a button or the dial woke it first;
 #  - the SNVS power key and the RTC alarm, which the kernel arms by itself.
 
@@ -32,6 +34,12 @@ log() {
 
 wifi_phy() {
     cat "${sysfs}/class/net/${wifi_iface}/phy80211/name" 2>/dev/null
+}
+
+# The driver behind the WiFi interface: wlan_sdio (moal, IW612) or brcmfmac (LWB5).
+wifi_driver() {
+    driver="$(readlink "${sysfs}/class/net/${wifi_iface}/device/driver" 2>/dev/null)"
+    echo "${driver##*/}"
 }
 
 mwlan_config() {
@@ -66,10 +74,15 @@ arm_wake_sources() {
         log "no ${wifi_iface}: WoWLAN not armed"
         return
     fi
-    set_wifi_wake_signal
-    # moal offers no disconnect trigger (only any and magic-packet), and cfg80211
-    # refuses the whole request when one trigger is missing.
-    iw phy "${phy}" wowlan enable magic-packet || log "iw wowlan enable failed"
+    driver="$(wifi_driver)"
+    if [ "${driver}" = wlan_sdio ]; then
+        set_wifi_wake_signal
+        # moal offers no disconnect trigger (only any and magic-packet), and
+        # cfg80211 refuses the whole request when one trigger is missing.
+        iw phy "${phy}" wowlan enable magic-packet || log "iw wowlan enable failed"
+    else
+        log "WiFi on ${driver:-an unknown driver}: WoWLAN not armed"
+    fi
     # NetworkManager keeps power save off while awake
     # (conf.d/99-wifi-powersave-off.conf); asleep, the radio only listens to beacons.
     iw dev "${wifi_iface}" set power_save on || log "iw power_save on failed"
