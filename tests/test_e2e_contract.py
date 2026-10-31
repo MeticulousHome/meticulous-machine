@@ -44,6 +44,22 @@ class E2EContractManifestTests(unittest.TestCase):
             VALIDATOR.validate_manifest(manifest),
         )
 
+    def test_a_journey_without_an_owner_is_refused(self):
+        journey = {k: v for k, v in self.manifest["journeys"][0].items() if k != "owner"}
+        manifest = dict(self.manifest, journeys=[journey])
+        self.assertIn(
+            f"Journey {journey['id']} needs an owner, one of "
+            "['meticulous-integration', 'meticulous-mobile'], not None",
+            VALIDATOR.validate_manifest(manifest),
+        )
+
+    def test_the_app_journeys_are_owned_by_the_app(self):
+        # meticulous-mobile's own gates run them; meticulous-integration must
+        # not fail for want of a test of its own.
+        owners = {journey["id"]: journey["owner"] for journey in self.manifest["journeys"]}
+        self.assertEqual(owners["app-add-machine"], "meticulous-mobile")
+        self.assertEqual(owners["app-reconnect"], "meticulous-mobile")
+
     def test_full_route_reachability_is_a_p0_target(self):
         journey = next(
             item

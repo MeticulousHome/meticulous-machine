@@ -60,12 +60,15 @@ Anything that needs the firmware runs in MeticulousHome/meticulous-integration
 (private); each component's pull request asks for it and receives a commit
 status. It pairs the components and uses the firmware's prebuilt fika-sil, so
 no firmware is compiled on a backend or Dial pull request. The Dial's journeys
-also run on backend and firmware pull requests (status `integration/dial`), so a
-change to either that breaks the Dial is caught before it merges.
+also run on backend pull requests (status `integration/dial`), so a backend
+change that breaks the Dial is caught before it merges. They do not run on
+firmware pull requests: the firmware reaches the Dial only through the backend,
+which `integration/backend` checks against it, and the image is where the three
+are checked together.
 
 ```
 backend PR ───┐                                  ┌──▶ integration/firmware, integration/dial on the backend commit
-firmware PR ──┼─▶ meticulous-integration ────────┼──▶ integration/backend, integration/dial on the firmware commit
+firmware PR ──┼─▶ meticulous-integration ────────┼──▶ integration/backend on the firmware commit
 Dial PR ──────┘   pair by branch, real backend,  └──▶ integration/e2e on the Dial commit
                   fika-sil and Dial of that branch
 image build ────▶ system tests, rootfs journeys ────▶ hil journeys on release candidates
@@ -112,11 +115,14 @@ The catalog and its rules are in
 - `hil`: a physical machine in the lab. Runs on release candidates.
 - Every journey test declares the journey and tier it covers (in pytest,
   `@pytest.mark.journey("espresso-complete", tier="simulated")`); the runner
-  refuses an id or tier the catalog does not list.
+  refuses an id or tier the catalog does not list. It reads the catalog of the
+  branch it pairs with, as it does the components.
 - Each tier of a journey has its own status. A tier is `implemented` once a test
-  declaring it runs in that tier's CI; the runner fails when the catalog claims
-  a tier no test declares, and warns when a test declares a tier still `planned`.
-  So `implemented` at `simulated` never reads as validated on a machine.
+  declaring it runs in that tier's CI; each journey names its `owner`, the
+  repository whose tests back it, and that runner fails when the catalog claims
+  a tier none of its own tests declares, and warns when a test declares a tier still
+  `planned`. So `implemented` at `simulated` never reads as validated on a
+  machine.
 
 ## The image per build
 
@@ -183,7 +189,7 @@ catalog change through a pull request to this document.
 | Firmware UART contract checked against itself | Done |
 | fika-sil published per branch by the firmware's CI | Done |
 | Backend × firmware on every PR, both directions, paired by branch | Done |
-| Dial journeys with the backend and the firmware, on Dial, backend and firmware PRs | Done (11 of 14 journeys at `simulated`); still to cover: every route, backend disconnection, Wi-Fi |
+| Dial journeys with the backend and the firmware, on Dial and backend PRs | Done (11 of 14 journeys at `simulated`); still to cover: every route, backend disconnection, Wi-Fi |
 | System tests and `rootfs` journeys per image | Informative on every build: the image boots and is what the build says; the backend × firmware journeys against it. Still to cover: the Dial's journeys, an update over the previous image |
 | `hil` journeys on a lab runner | To do |
 
