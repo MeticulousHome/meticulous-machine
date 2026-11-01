@@ -13,7 +13,7 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - `main` remains the central changelog and GitHub Pages branch, but it is no longer the manual image launcher.
 - Manual image builds are dispatched from the branch to build. The branch name must be the image name.
 - Custom images require their own branch with the same name as the image and a matching `images/<image>.versions.sh`.
-- Scheduled builds assume the repository default branch is `nightly`, because GitHub Actions schedules run from the default branch.
+- GitHub Actions schedules run from the default branch. A scheduled run on `nightly` builds directly; a scheduled run on any other branch (if `beta` or `stable` ever becomes the default) dispatches `build-nightly-image.yml` on `nightly` with `upload_emmc_to_hawkbit` and `skip-if-unchanged` set, and builds nothing itself.
 - Manual builds can set only `no-cache` and `upload_emmc_to_hawkbit`.
 
 ## Workflow Roles
