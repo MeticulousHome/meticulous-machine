@@ -533,5 +533,142 @@ class ApplyRolloutThresholdsTests(unittest.TestCase):
         self.assertFalse(result)
 
 
+class DeleteAllActionsForChannelTests(unittest.TestCase):
+    def setUp(self):
+        self.client = HAWKBIT_UPLOAD.HawkbitMgmtClient("hawkbit", 443)
+        self.client.get_all_targets_by_filter = lambda _query: [
+            {"controllerId": "machine-a", "name": "machine-a"},
+            {"controllerId": "machine-deleted", "name": "machine-deleted"},
+            {"controllerId": "machine-b", "name": "machine-b"},
+        ]
+        self.client.get_active_actions = mock.Mock(return_value=[{"id": 7}])
+        self.client.cancel_action = mock.Mock()
+
+    def test_get_reports_the_status_code_of_a_failed_request(self):
+        with mock.patch.object(
+            HAWKBIT_UPLOAD.r, "get", return_value=fake_response(404)
+        ):
+            with self.assertRaises(HAWKBIT_UPLOAD.HawkbitError) as raised:
+                self.client.get("targets/does-not-exist/attributes")
+
+        self.assertEqual(raised.exception.status_code, 404)
+
+    def test_skips_a_target_deleted_after_the_list_was_fetched(self):
+        def attributes(target_id):
+            if target_id == "machine-deleted":
+                raise HAWKBIT_UPLOAD.HawkbitError("HTTP error 404", 404)
+            return {"update_channel": "stable"}
+
+        self.client.get_attributes = attributes
+
+        self.client.deleteAllActionsForChannel("query", channel="stable")
+
+        self.assertEqual(
+            [call.args[1] for call in self.client.cancel_action.call_args_list],
+            ["machine-a", "machine-b"],
+        )
+
+    def test_skips_a_target_deleted_before_its_actions_are_read(self):
+        self.client.get_attributes = lambda _target_id: {"update_channel": "stable"}
+
+        def active_actions(target_id):
+            if target_id == "machine-deleted":
+                raise HAWKBIT_UPLOAD.HawkbitError("HTTP error 404", 404)
+            return [{"id": 7}]
+
+        self.client.get_active_actions = active_actions
+
+        self.client.deleteAllActionsForChannel("query", channel="stable")
+
+        self.assertEqual(
+            [call.args[1] for call in self.client.cancel_action.call_args_list],
+            ["machine-a", "machine-b"],
+        )
+
+    def test_other_errors_still_stop_the_run(self):
+        def attributes(target_id):
+            if target_id == "machine-deleted":
+                raise HAWKBIT_UPLOAD.HawkbitError("HTTP error 401", 401)
+            return {"update_channel": "stable"}
+
+        self.client.get_attributes = attributes
+
+        with self.assertRaises(HAWKBIT_UPLOAD.HawkbitError):
+            self.client.deleteAllActionsForChannel("query", channel="stable")
+
+
+class PushDistributionSetTests(unittest.TestCase):
+    def setUp(self):
+        self.client = HAWKBIT_UPLOAD.HawkbitMgmtClient(
+            "hawkbit", 443, version="2026M1511-stable"
+        )
+        self.client.add_or_update_artifact = mock.Mock(return_value=55)
+        self.client.delete_softwaremodule = mock.Mock()
+        self.client.post = mock.Mock()
+        self.client.get = mock.Mock()
+
+    def push(self):
+        return self.client.push_new_distribution_set_with_os(
+            "stable EMMC", "stable Rootfs EMMC", os_bundle_name="bundle.raucb"
+        )
+
+    def first_run(self):
+        self.client.get_softwaremodule_by_name = lambda *_args, **_kwargs: None
+        self.client.get_distributionsets_by_name = lambda _name: None
+
+    def rerun(self, assigned_module_ids):
+        self.client.get_softwaremodule_by_name = lambda *_args, **_kwargs: {"id": 11}
+        self.client.get_distributionsets_by_name = lambda _name: [
+            {"id": 30, "version": "2026M1509-stable"},
+            {"id": 31, "version": "2026M1511-stable"},
+        ]
+        self.client.get.return_value = {
+            "content": [{"id": module_id} for module_id in assigned_module_ids]
+        }
+
+    def test_first_run_creates_the_module_and_the_distribution_set(self):
+        self.first_run()
+        self.client.post.side_effect = [[{"id": 11}], [{"id": 31}]]
+
+        self.assertEqual(self.push(), (31, 11, "55"))
+        self.assertEqual(
+            [call.args[0] for call in self.client.post.call_args_list],
+            ["softwaremodules", "distributionsets"],
+        )
+
+    def test_first_run_rolls_back_the_module_it_created(self):
+        self.first_run()
+        self.client.post.side_effect = [
+            [{"id": 11}],
+            HAWKBIT_UPLOAD.HawkbitError("HTTP error 400", 400),
+        ]
+
+        self.assertEqual(self.push(), (None, None, None))
+        self.client.delete_softwaremodule.assert_called_once_with(11)
+
+    def test_rerun_reuses_the_distribution_set_an_earlier_attempt_created(self):
+        self.rerun(assigned_module_ids=[11])
+
+        self.assertEqual(self.push(), (31, 11, "55"))
+        self.client.post.assert_not_called()
+        self.client.get.assert_called_once_with("distributionsets/31/assignedSM")
+        self.client.delete_softwaremodule.assert_not_called()
+
+    def test_rerun_refuses_a_distribution_set_without_this_module(self):
+        self.rerun(assigned_module_ids=[10])
+
+        self.assertEqual(self.push(), (None, None, None))
+        self.client.post.assert_not_called()
+
+    def test_rerun_never_deletes_the_module_an_earlier_attempt_created(self):
+        self.rerun(assigned_module_ids=[11])
+        self.client.add_or_update_artifact.side_effect = HAWKBIT_UPLOAD.HawkbitError(
+            "HTTP error 500", 500
+        )
+
+        self.assertEqual(self.push(), (None, None, None))
+        self.client.delete_softwaremodule.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
