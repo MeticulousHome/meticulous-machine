@@ -108,7 +108,10 @@ def retry_delay() -> float:
 
 
 class HawkbitError(Exception):
-    pass
+    def __init__(self, message, status_code: int = None):
+        super().__init__(message)
+        # HTTP status hawkBit answered with, None when the error did not come from a response.
+        self.status_code = status_code
 
 
 def pin_attribute(threshold: dict, attribute_name: str, value: str):
@@ -272,10 +275,13 @@ class HawkbitMgmtClient:
         )
         if req.status_code != 200:
             try:
-                raise HawkbitError(f"HTTP error {req.status_code}: {req.json()}")
+                raise HawkbitError(
+                    f"HTTP error {req.status_code}: {req.json()}", req.status_code
+                )
             except:
                 raise HawkbitError(
-                    f"HTTP error {req.status_code}: {req.content.decode()}"
+                    f"HTTP error {req.status_code}: {req.content.decode()}",
+                    req.status_code,
                 )
 
         return req.json()
@@ -1070,13 +1076,25 @@ class HawkbitMgmtClient:
             if target_id:
                 print(f"Processing target: {target_name} (ID: {target_id})")
 
-                # Retrieve the target's attributes to verify their channel
-                target_attributes = self.get_attributes(target_id)
-                target_channel = target_attributes.get("update_channel")
+                # Retrieve the target's attributes to verify their channel. The target list is
+                # fetched once and walking it takes minutes, so a target deleted from hawkBit in
+                # the meantime answers 404: it has no actions left to cancel.
+                try:
+                    target_attributes = self.get_attributes(target_id)
+                    target_channel = target_attributes.get("update_channel")
+                    active_actions = (
+                        self.get_active_actions(target_id)
+                        if target_channel == channel
+                        else []
+                    )
+                except HawkbitError as e:
+                    if e.status_code != 404:
+                        raise
+                    print(f"Skipping target {target_name}: it no longer exists in hawkBit")
+                    continue
 
                 # Only cancel actions if the target belongs to the correct channel
                 if target_channel == channel:
-                    active_actions = self.get_active_actions(target_id)
                     for action in active_actions:
                         try:
                             if dry_run:
@@ -1256,7 +1274,7 @@ class HawkbitMgmtClient:
 
         for artifact in existing_artifacts:
             artifact_id = artifact.get("id")
-            artifact_name = artifact.get("filename", "Unknown filename")
+            artifact_name = artifact.get("providedFilename", "Unknown filename")
             if artifact_id:
                 print(f"Deleting existing artifact: {artifact_name}")
                 self.delete_artifact(artifact_id, module_id)
@@ -1274,6 +1292,10 @@ class HawkbitMgmtClient:
         self,
         name,
     ):
+        """
+        Returns `(module_id, created)`. `created` is False when an earlier run of the same build
+        already created the module, which is then reused.
+        """
         print(f"Creating new OS software module: {name}")
         # validate that both name and version does not exist
         existing_module = self.get_softwaremodule_by_name(name, version=self.version)
@@ -1281,13 +1303,14 @@ class HawkbitMgmtClient:
             print(
                 f"module {name} with version {self.version} already exists, using that"
             )
-            return existing_module["id"]
+            self.id["newSoftwaremodule"] = existing_module["id"]
+            return self.id["newSoftwaremodule"], False
 
         data = [{"name": name, "version": str(self.version), "type": "os"}]
 
         response = self.post("softwaremodules", data)
         self.id["newSoftwaremodule"] = response[0]["id"]
-        return self.id["newSoftwaremodule"]
+        return self.id["newSoftwaremodule"], True
 
     def push_new_distribution_set_with_os(
         self,
@@ -1299,7 +1322,9 @@ class HawkbitMgmtClient:
         os_bundle_name: str = None,
     ):
         # Create the corresponding software "OS" Module
-        new_module_id = self.push_new_os_softwaremodule(softwaremodule_name)
+        new_module_id, module_created = self.push_new_os_softwaremodule(
+            softwaremodule_name
+        )
 
         # define the corresponding data for the distribution set
         modules_list = [new_module_id]
@@ -1326,19 +1351,54 @@ class HawkbitMgmtClient:
             new_artifact_id = self.add_or_update_artifact(
                 os_bundle_name, str(new_module_id)
             )
-            response = self.post("distributionsets", data)
-            self.id["newDistributionset"] = response[0]["id"]
+            existing_dist = next(
+                (
+                    dist
+                    for dist in self.get_distributionsets_by_name(distribution_name)
+                    or []
+                    if dist.get("version") == str(self.version)
+                ),
+                None,
+            )
+            if existing_dist is None:
+                response = self.post("distributionsets", data)
+                self.id["newDistributionset"] = response[0]["id"]
+            else:
+                # hawkBit refuses a second distribution set with the same name and version, so
+                # a rerun reuses the one the earlier attempt created, if it holds this module.
+                assigned_modules = self.get(
+                    f"distributionsets/{existing_dist['id']}/assignedSM"
+                ).get("content", [])
+                assigned_module_ids = [module.get("id") for module in assigned_modules]
+                if new_module_id not in assigned_module_ids:
+                    raise HawkbitError(
+                        f"distribution set {distribution_name}:{self.version} "
+                        f"(id={existing_dist['id']}) already exists without module "
+                        f"{new_module_id}, it holds modules {assigned_module_ids}"
+                    )
+                print(
+                    f"Distribution set {distribution_name}:{self.version} already exists "
+                    f"as ID={existing_dist['id']}, using that"
+                )
+                self.id["newDistributionset"] = existing_dist["id"]
             return (
                 self.id["newDistributionset"],
                 self.id["newSoftwaremodule"],
                 str(new_artifact_id),
             )
         except Exception as e:
-            # in case the upload of the arftifact fails, delete the software module
             print(
-                f"Error uploading the artifact {os.path.basename(os_bundle_name)} for module {software_module_name}, deleting module"
+                f"Error pushing the artifact {os.path.basename(os_bundle_name)} for module {softwaremodule_name}: {e}"
             )
-            self.delete_softwaremodule(new_module_id)
+            # Only roll back a module this run created: one from an earlier run of the same
+            # build may already belong to that run's distribution set.
+            if module_created:
+                print(f"Deleting module {softwaremodule_name} (id={new_module_id})")
+                self.delete_softwaremodule(new_module_id)
+            else:
+                print(
+                    f"Keeping module {softwaremodule_name} (id={new_module_id}), an earlier run created it"
+                )
             return None, None, None
 
     def purge_distributionsets(self, distributionset_ids: list):
