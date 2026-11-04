@@ -82,6 +82,20 @@ class StandbySleepHookTest(unittest.TestCase):
         self.assertNotIn("mlanutl", "\n".join(calls))
         self.assertEqual((self.sdio_host / "power" / "wakeup").read_text(), "disabled\n")
 
+    def test_suspend_without_wowlan_keeps_the_wake_line_quiet(self):
+        # The magic packet filter replaces the host sleep conditions at suspend:
+        # without it, any broadcast on the wake line would wake the SoC.
+        iw = self.tmp / "bin" / "iw"
+        iw.write_text(
+            f'#!/bin/sh\necho "iw $*" >> "{self.calls}"\n'
+            'case "$*" in *wowlan*) echo "command failed: Invalid argument (-22)" >&2; exit 1 ;; esac\n'
+        )
+        result = subprocess.run([str(HOOK), "pre", "suspend"], env=self.env, capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.mwlan_config.read_text(), "hssetpara=0x7 0xff 200\n")
+        self.assertIn("iw wowlan enable failed: the app cannot wake the SoC", result.stdout)
+        self.assertIn("iw dev wlan0 set power_save on", self.calls.read_text().splitlines())
+
     def test_suspend_on_the_lwb5_leaves_its_sdio_host_alone(self):
         # Its firmware has no WoWL, and an SDIO host left armed as a wake-up
         # source loses the card on resume: WiFi stays down until a reboot.

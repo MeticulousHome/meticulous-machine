@@ -22,6 +22,7 @@ mlanutl="${MET_STANDBY_MLANUTL:-/usr/local/bin/mlanutl}"
 # IW612 GPIO that drives WIFI_HOST_WAKE (NXP AN14465). moal defaults to 0xff,
 # the in-band SDIO interrupt, which the SoC cannot see while suspended.
 wifi_wake_gpio="${MET_STANDBY_WIFI_WAKE_GPIO:-17}"
+wifi_default_wake_gpio=0xff
 # Host sleep conditions (broadcast, unicast, MAC event: moal's default; moal
 # replaces them with the magic packet filter at suspend) and the gap in ms
 # between raising the wake line and handing over the frame.
@@ -48,17 +49,18 @@ mwlan_config() {
     done
 }
 
+# $1: the GPIO the IW612 signals the host on.
 set_wifi_wake_signal() {
     config="$(mwlan_config)"
     if [ -n "${config}" ]; then
-        echo "hssetpara=${hs_conditions} ${wifi_wake_gpio} ${hs_gap_ms}" >"${config}" && return
+        echo "hssetpara=${hs_conditions} $1 ${hs_gap_ms}" >"${config}" && return
         log "hssetpara through ${config} failed"
     fi
     if [ -x "${mlanutl}" ]; then
-        "${mlanutl}" "${wifi_iface}" hssetpara "${hs_conditions}" "${wifi_wake_gpio}" "${hs_gap_ms}" >/dev/null && return
+        "${mlanutl}" "${wifi_iface}" hssetpara "${hs_conditions}" "$1" "${hs_gap_ms}" >/dev/null && return
         log "mlanutl hssetpara failed"
     fi
-    log "the IW612 keeps its default wake signal: the app cannot wake the SoC"
+    log "could not point the IW612's wake signal at GPIO $1"
 }
 
 arm_wake_sources() {
@@ -76,10 +78,16 @@ arm_wake_sources() {
     fi
     driver="$(wifi_driver)"
     if [ "${driver}" = wlan_sdio ]; then
-        set_wifi_wake_signal
         # moal offers no disconnect trigger (only any and magic-packet), and
         # cfg80211 refuses the whole request when one trigger is missing.
-        iw phy "${phy}" wowlan enable magic-packet || log "iw wowlan enable failed"
+        if iw phy "${phy}" wowlan enable magic-packet; then
+            set_wifi_wake_signal "${wifi_wake_gpio}"
+        else
+            # Without the magic packet filter the host sleep conditions stay
+            # in force, and any broadcast on the wake line would wake the SoC.
+            log "iw wowlan enable failed: the app cannot wake the SoC"
+            set_wifi_wake_signal "${wifi_default_wake_gpio}"
+        fi
     else
         log "WiFi on ${driver:-an unknown driver}: WoWLAN not armed"
     fi
