@@ -7,8 +7,9 @@
 # While suspended the SoC wakes on:
 #  - a WoWLAN magic packet (the app on the LAN), on v2 boards only: through the
 #    IW612's WIFI_HOST_WAKE line (GPIO3_IO14 in the v2 device tree, armed by
-#    moal). The v1 boards' LWB5 firmware is built without WoWL, so brcmfmac
-#    offers none and the app cannot wake them;
+#    moal, with the filters from program_wake_filters). The v1 boards' LWB5
+#    firmware is built without WoWL, so brcmfmac offers none and the app cannot
+#    wake them;
 #  - any byte from the ESP32 on UART1: a button or the dial woke it first;
 #  - the SNVS power key and the RTC alarm, which the kernel arms by itself.
 
@@ -31,6 +32,10 @@ hs_gap_ms=200
 
 log() {
     echo "meticulous-standby: $*"
+}
+
+wifi_ipv4() {
+    ip -4 -o addr show dev "${wifi_iface}" 2>/dev/null | awk '{ split($4, addr, "/"); print addr[1]; exit }'
 }
 
 wifi_phy() {
@@ -63,6 +68,101 @@ set_wifi_wake_signal() {
     log "could not point the IW612's wake signal at GPIO $1"
 }
 
+# The MEF entry that makes the firmware answer ARP for $1 while the host sleeps.
+arp_filter_entry() {
+    # shellcheck disable=SC2046 # splits the address into its four octets
+    ip_bytes="$(printf '%02x:%02x:%02x:%02x' $(echo "$1" | tr . ' '))"
+    cat <<EOF
+    mef_entry_$2={
+        mode=1
+        action=16
+        filter_num=2
+        RPN=Filter_0 && Filter_1
+        Filter_0={
+            type=0x41
+            repeat=1
+            byte=08:06
+            offset=20
+        }
+        Filter_1={
+            type=0x41
+            repeat=1
+            byte=${ip_bytes}
+            offset=46
+        }
+    }
+EOF
+}
+
+# The MEF entry that wakes the host on a magic packet for $1, sent over UDP
+# (offset 56) or as a raw ethertype frame (offset 28).
+magic_filter_entry() {
+    cat <<EOF
+    mef_entry_$2={
+        mode=1
+        action=3
+        filter_num=2
+        RPN=Filter_0 || Filter_1
+        Filter_0={
+            type=0x41
+            repeat=16
+            byte=$1
+            offset=56
+        }
+        Filter_1={
+            type=0x41
+            repeat=16
+            byte=$1
+            offset=28
+        }
+    }
+EOF
+}
+
+# moal only sends its wake filters to the firmware while configuring hs_auto_arp,
+# and by then woal_set_wake_on_mdns has replaced the magic packet filter with one
+# that matches any mDNS frame, which wakes the SoC within seconds on a busy LAN.
+# So the image runs with hs_auto_arp=0 and programs the filters here: moal then
+# sends none of its own, and these stay in the firmware through the suspend.
+program_wake_filters() {
+    mac="$(cat "${sysfs}/class/net/${wifi_iface}/address" 2>/dev/null)"
+    if [ -z "${mac}" ]; then
+        log "no MAC address on ${wifi_iface}: the app cannot wake the SoC"
+        return
+    fi
+    if [ ! -x "${mlanutl}" ]; then
+        log "no ${mlanutl}: the app cannot wake the SoC"
+        return
+    fi
+    ipv4="$(wifi_ipv4)"
+    conf="$(mktemp)" || {
+        log "could not write the wake filters: the app cannot wake the SoC"
+        return
+    }
+    {
+        # Broadcast, unicast and multicast frames all reach the filters.
+        echo "mefcfg={"
+        echo "    Criteria=0x0b"
+        if [ -n "${ipv4}" ]; then
+            echo "    NumEntries=2"
+            arp_filter_entry "${ipv4}" 0
+            magic_filter_entry "${mac}" 1
+        else
+            echo "    NumEntries=1"
+            magic_filter_entry "${mac}" 0
+        fi
+        echo "}"
+    } >"${conf}"
+    "${mlanutl}" "${wifi_iface}" mefcfg "${conf}" mefcfg >/dev/null ||
+        log "mlanutl mefcfg failed: the app cannot wake the SoC"
+    rm -f "${conf}"
+    # Bit 1 of the operation is the ARP response the first entry relies on.
+    if [ -n "${ipv4}" ]; then
+        "${mlanutl}" "${wifi_iface}" ipaddr "3;${ipv4}" >/dev/null ||
+            log "mlanutl ipaddr failed: the chip will not answer ARP while asleep"
+    fi
+}
+
 arm_wake_sources() {
     wakeup="${sysfs}/class/tty/${esp_tty}/power/wakeup"
     if [ -w "${wakeup}" ]; then
@@ -82,6 +182,7 @@ arm_wake_sources() {
         # cfg80211 refuses the whole request when one trigger is missing.
         if iw phy "${phy}" wowlan enable magic-packet; then
             set_wifi_wake_signal "${wifi_wake_gpio}"
+            program_wake_filters
         else
             # Without the magic packet filter the host sleep conditions stay
             # in force, and any broadcast on the wake line would wake the SoC.
@@ -99,6 +200,12 @@ arm_wake_sources() {
 restore_radio() {
     [ -n "$(wifi_phy)" ] || return 0
     iw dev "${wifi_iface}" set power_save off || log "iw power_save off failed"
+    # The filters only apply in host sleep, but the ARP offload is ours to take back.
+    [ "$(wifi_driver)" = wlan_sdio ] || return 0
+    ipv4="$(wifi_ipv4)"
+    if [ -n "${ipv4}" ] && [ -x "${mlanutl}" ]; then
+        "${mlanutl}" "${wifi_iface}" ipaddr "0;${ipv4}" >/dev/null || log "mlanutl ipaddr failed"
+    fi
 }
 
 case "$1" in
