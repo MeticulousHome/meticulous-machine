@@ -1,0 +1,37 @@
+channel: "nightly"
+timestamp: "2026-11-05T06-07-12"
+build-version: "2026M1525-nightly"
+versions:
+  meticulous-machine: "958881c9ecf3c76714bfdc6187bf3a4dd0cda7a5"
+  linux: "5315a4575a056e9aed91e45e482e697cc1c06a71"
+  uboot: "e0e3843b7d6745d03007baf8b956b71f5b6c1265"
+  atf: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+  imx-mkimage: "71b8c18af93a5eb972d80fbec290006066cff24f"
+  debian: "db279cf0c71d35b1a9930699bca0446414390549"
+  backend: "4cd2266ef89d1e5574a0eebf1ab297f384ac0acc"
+  dial: "501c247ffe6996e62ca213b14e3a365dbd34d470"
+  web-app: "c1be0bff59f5e99769e6a04963ff576827de80b5"
+  watcher: "198691006a52489cf308fdc37d047c2f610b2295"
+  firmware: "3011dcd91788963f490bc91a2287eb611ccff346"
+  rauc: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+  hawkbit: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+  psplash: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+  plotter-ui: "6ac2dce291b3c1e3c3b9bc051ac2929c6480ff5d"
+  crash-reporter: "ebf10c09c463575279f63d8f227e4b29f369f4d0"
+changes:
+  dial:
+    old_rev: "746ecaa6699b74895ba0405729c8d478657f8040"
+    new_rev: "501c247ffe6996e62ca213b14e3a365dbd34d470"
+    commits:
+      - hash: "501c247f"
+        message: "Merge pull request #663 from MeticulousHome/fix/scale-context-lockup"
+      - hash: "8a94a6bd"
+        message: "fix(qt): close the full scale on Context instead of locking the Dial"
+  plotter-ui:
+    old_rev: "6b65264cd7f7071bb556364615cbb00d933caae5"
+    new_rev: "6ac2dce291b3c1e3c3b9bc051ac2929c6480ff5d"
+    commits:
+      - hash: "6ac2dce"
+        message: "Merge pull request #121 from MeticulousHome/feat/tar-zst"
+      - hash: "85c74ef"
+        message: "Open .tar.zst archives such as the machine's bug reports"
