@@ -1,0 +1,45 @@
+channel: "erp_testing"
+timestamp: "2026-11-05T01-00-42"
+build-version: "2026M1523-erp_testing"
+versions:
+  meticulous-machine: "69a3ebd52d2350b7f74e70d6696157b72b77141f"
+  linux: "069876e3e15d607699319c77e582b89f1c6b4033"
+  uboot: "e0e3843b7d6745d03007baf8b956b71f5b6c1265"
+  atf: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+  imx-mkimage: "71b8c18af93a5eb972d80fbec290006066cff24f"
+  debian: "db279cf0c71d35b1a9930699bca0446414390549"
+  backend: "4a49342966267d8c614c88f7fd8321e648f4937e"
+  dial: "ecd758157a4a9af3f9e158c671fb6489a102ba81"
+  web-app: "c1be0bff59f5e99769e6a04963ff576827de80b5"
+  watcher: "198691006a52489cf308fdc37d047c2f610b2295"
+  firmware: "5a2b62c1ac14706aab5c707d37c6babb1111af3c"
+  rauc: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+  hawkbit: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+  psplash: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+  plotter-ui: "f2cba24402eb2dc2831db9f12d5a78482fe49cd3"
+  crash-reporter: "ebf10c09c463575279f63d8f227e4b29f369f4d0"
+changes:
+  meticulous-machine:
+    old_rev: "9844132ba582e501f2905bf25f185436e0320a2c"
+    new_rev: "69a3ebd52d2350b7f74e70d6696157b72b77141f"
+    commits:
+      - hash: "69a3ebd"
+        message: "image: Track the feat/erp-standby heads on erp_testing"
+      - hash: "92efdf3"
+        message: "Program the IW612 wake filters from the standby hook"
+  backend:
+    old_rev: "3d0d23db26d405c45a03c80b6a1b1aa3bbac6445"
+    new_rev: "4a49342966267d8c614c88f7fd8321e648f4937e"
+    commits:
+      - hash: "4a49342"
+        message: "Add a local endpoint that powers the machine off"
+      - hash: "ab7e738"
+        message: "Add a local endpoint that asks for standby"
+  dial:
+    old_rev: "1709de1ac146542bb84a5e6dd25dff8af1c497f1"
+    new_rev: "ecd758157a4a9af3f9e158c671fb6489a102ba81"
+    commits:
+      - hash: "ecd75815"
+        message: "feat(qt): add a power off option to the quick settings"
+      - hash: "c201462f"
+        message: "feat(qt): add a suspend option to the quick settings"
