@@ -13,8 +13,10 @@ Usage: sudo e2e/image/check_image.py --rootfs DIR --image CHANNEL
 """
 
 import argparse
+import ast
 import json
 import re
+import shlex
 import shutil
 import subprocess
 import time
@@ -26,6 +28,8 @@ HERE = Path(__file__).resolve().parent
 
 # The services a machine needs to work that need no hardware of their own.
 SERVICES = ("meticulous-backend", "meticulous-watcher", "nginx")
+UNIT_DIRS = ("etc/systemd/system", "usr/lib/systemd/system", "lib/systemd/system")
+SMOKE_REPORT_UNIT = "meticulous-smoke-report.service"
 
 
 def leader() -> str:
@@ -244,6 +248,155 @@ def check_dial(args):
     )
 
 
+def python_units(rootfs: Path) -> dict[str, list[str]]:
+    """The image's units whose ExecStart runs a Python interpreter: {unit: command}."""
+    units, folders = {}, set()
+    for folder in UNIT_DIRS:
+        path = (rootfs / folder).resolve()
+        # lib is usr/lib on a merged /usr; never follow a link out of the image.
+        if path in folders or not path.is_dir() or not path.is_relative_to(rootfs.resolve()):
+            continue
+        folders.add(path)
+        for unit in sorted(path.glob("*.service")):
+            # A link is an alias or a mask, and may point outside the image.
+            if unit.name in units or unit.is_symlink():
+                continue
+            for line in unit.read_text(errors="replace").splitlines():
+                key, _, value = line.strip().partition("=")
+                command = shlex.split(value.lstrip("-@:+!")) if key == "ExecStart" else []
+                if command and re.fullmatch(r"python3[.\d]*", Path(command[0]).name):
+                    units[unit.name] = command
+    return units
+
+
+def imported_modules(script: Path) -> list[str]:
+    """Every module a Python file imports, also inside functions, where an
+    import fails only when that function runs."""
+    modules = set()
+    for node in ast.walk(ast.parse(script.read_text(), str(script))):
+        if isinstance(node, ast.Import):
+            modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            modules.add(node.module)
+    return sorted(modules)
+
+
+IMPORT_PROBE = """\
+import importlib, json, sys
+failed = {}
+for name in sys.argv[1:]:
+    try:
+        importlib.import_module(name)
+    except Exception as error:
+        failed[name] = f"{type(error).__name__}: {error}"
+print(json.dumps(failed))
+"""
+
+
+def check_python_imports(args):
+    # /opt/meticulous-venv/bin/python3 was the Python backend's virtualenv; on
+    # images with the Rust backend it is the image's own python3, and the smoke
+    # report's Sentry alert died on `import sentry_sdk` inside a function that
+    # runs only when the Dial fails. Each module is imported here with the
+    # interpreter the unit runs. Only this repository's scripts (make-rootfs.sh
+    # copies scripts/ to /usr/local/bin): a packaged script may guard an
+    # optional import, which this would count as missing.
+    problems, fine = [], []
+    for unit, command in python_units(args.rootfs).items():
+        interpreter, script = command[0], command[1] if len(command) > 1 else ""
+        if not script.startswith("/usr/local/bin/"):
+            continue
+        modules = imported_modules(args.rootfs / script.lstrip("/"))
+        done = inside(interpreter, "-I", "-c", IMPORT_PROBE, *modules)
+        if done.returncode != 0:
+            problems.append(f"{unit}: `{interpreter}` did not run: {done.stderr.strip()[-200:]}")
+        elif failed := json.loads(done.stdout.strip().splitlines()[-1]):
+            missing = ", ".join(f"`{name}` ({error})" for name, error in failed.items())
+            problems.append(f"{unit}: {missing} with `{interpreter}`")
+        else:
+            fine.append(f"{unit} ({len(modules)} modules, `{interpreter}`)")
+    if not problems and not fine:
+        return None, "no unit runs a Python script from scripts/"
+    return not problems, "; ".join(problems) or "all import: " + ", ".join(fine)
+
+
+# Sentry, as far as the smoke report can tell, on the image's loopback (the
+# image has no other network). It runs the command it is given with both of the
+# report's DSNs pointing at itself and prints what it received.
+SENTRY_STAND_IN = """\
+import http.server, json, subprocess, sys, threading
+
+received = []
+
+
+class Sentry(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        received.append({"path": self.path, "body": body.decode("utf-8", "replace")})
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b"{}")
+
+    def log_message(self, *args):
+        pass
+
+
+server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Sentry)
+threading.Thread(target=server.serve_forever, daemon=True).start()
+port = server.server_address[1]
+env = {
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "METICULOUS_SMOKE_SENTRY_DSN": f"http://public@127.0.0.1:{port}/1",
+    "METICULOUS_SMOKE_SELF_HOSTED_SENTRY_DSN": f"http://public@127.0.0.1:{port}/8",
+}
+done = subprocess.run(sys.argv[1:], env=env, capture_output=True, text=True, timeout=240)
+print(json.dumps({"returncode": done.returncode, "stderr": done.stderr[-3000:], "received": received}))
+"""
+# The project numbers the stand-in's DSNs end in.
+SENTRY_PROJECTS = {"1": "sentry.io", "8": "self-hosted"}
+
+
+def check_smoke_report_sentry(args):
+    # What a machine whose Dial never shows its home screen sends: the Dial
+    # cannot start here, and its home-screen marker is removed besides. The
+    # report runs as its unit runs it, with a short wait for the checks; its
+    # publish to hawkBit fails without a network, which is not checked here.
+    command = python_units(args.rootfs).get(SMOKE_REPORT_UNIT)
+    if command is None:
+        return False, f"no {SMOKE_REPORT_UNIT} running a Python script"
+    inside("rm", "-f", "/run/meticulous-dial-home-ready", "/run/meticulous-smoke-dial-sentry-reported")
+    done = inside("/usr/bin/python3", "-I", "-c", SENTRY_STAND_IN, *command, "--timeout", "5", timeout=300)
+    if done.returncode != 0:
+        return False, f"the Sentry stand-in did not run: {done.stderr.strip()[-300:]}"
+    result = json.loads(done.stdout.strip().splitlines()[-1])
+
+    events = {}
+    for request in result["received"]:
+        project = re.fullmatch(r"/api/(\d+)/envelope/", request["path"].partition("?")[0])
+        lines = request["body"].split("\n")
+        try:
+            item, event = json.loads(lines[1]), json.loads(lines[2])
+        except (IndexError, ValueError):
+            continue
+        if project and item.get("type") == "event":
+            events[SENTRY_PROJECTS.get(project.group(1), project.group(1))] = event
+    missing = [name for name in SENTRY_PROJECTS.values() if name not in events]
+    if missing:
+        said = [line for line in result["stderr"].splitlines() if "Sentry" in line] or result["stderr"].splitlines()[-3:]
+        return False, f"no event for {', '.join(missing)}; the report said: {' / '.join(said)[-300:] or 'nothing'}"
+
+    event = events["self-hosted"]
+    tags = event.get("tags", {})
+    same = len({e.get("event_id") for e in events.values()}) == 1
+    ok = same and tags.get("dial_home_ready") == "false"
+    return ok, (
+        f"{' and '.join(events)} got `{event.get('message', {}).get('formatted')}`"
+        f"{'' if same else ' with different event ids'}: dial_home_ready={tags.get('dial_home_ready')}, "
+        f"serial `{tags.get('serial', '')}` ({tags.get('machine_identity_source')})"
+    )
+
+
 CHECKS = [
     ("The image boots", check_boots),
     ("No service fails, except what needs the machine", check_failed_units),
@@ -256,6 +409,8 @@ CHECKS = [
     ("A new machine follows its image's update channel", check_update_channel),
     ("Its RAUC accepts this build's update bundle", check_rauc_bundle),
     ("The Dial is installed", check_dial),
+    ("Every module the image's Python units import is there", check_python_imports),
+    ("A Dial that does not reach its home screen is reported to Sentry", check_smoke_report_sentry),
 ]
 
 
