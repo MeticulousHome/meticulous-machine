@@ -321,8 +321,8 @@ def check_python_imports(args):
 
 
 # Sentry, as far as the smoke report can tell, on the image's loopback (the
-# image has no other network). It runs the command it is given with both of the
-# report's DSNs pointing at itself and prints what it received.
+# image has no other network). It runs the command it is given with the
+# report's DSN pointing at itself and prints what it received.
 SENTRY_STAND_IN = """\
 import http.server, json, subprocess, sys, threading
 
@@ -347,14 +347,11 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 port = server.server_address[1]
 env = {
     "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-    "METICULOUS_SMOKE_SENTRY_DSN": f"http://public@127.0.0.1:{port}/1",
-    "METICULOUS_SMOKE_SELF_HOSTED_SENTRY_DSN": f"http://public@127.0.0.1:{port}/8",
+    "METICULOUS_SMOKE_SENTRY_DSN": f"http://public@127.0.0.1:{port}/8",
 }
 done = subprocess.run(sys.argv[1:], env=env, capture_output=True, text=True, timeout=240)
 print(json.dumps({"returncode": done.returncode, "stderr": done.stderr[-3000:], "received": received}))
 """
-# The project numbers the stand-in's DSNs end in.
-SENTRY_PROJECTS = {"1": "sentry.io", "8": "self-hosted"}
 
 
 def check_smoke_report_sentry(args):
@@ -371,28 +368,26 @@ def check_smoke_report_sentry(args):
         return False, f"the Sentry stand-in did not run: {done.stderr.strip()[-300:]}"
     result = json.loads(done.stdout.strip().splitlines()[-1])
 
-    events = {}
+    events = []
     for request in result["received"]:
-        project = re.fullmatch(r"/api/(\d+)/envelope/", request["path"].partition("?")[0])
         lines = request["body"].split("\n")
         try:
             item, event = json.loads(lines[1]), json.loads(lines[2])
         except (IndexError, ValueError):
             continue
-        if project and item.get("type") == "event":
-            events[SENTRY_PROJECTS.get(project.group(1), project.group(1))] = event
-    missing = [name for name in SENTRY_PROJECTS.values() if name not in events]
-    if missing:
+        if request["path"].partition("?")[0] == "/api/8/envelope/" and item.get("type") == "event":
+            events.append(event)
+    if len(events) != 1:
         said = [line for line in result["stderr"].splitlines() if "Sentry" in line] or result["stderr"].splitlines()[-3:]
-        return False, f"no event for {', '.join(missing)}; the report said: {' / '.join(said)[-300:] or 'nothing'}"
+        return False, (
+            f"Sentry got {len(events)} events ({len(result['received'])} requests); "
+            f"the report said: {' / '.join(said)[-300:] or 'nothing'}"
+        )
 
-    event = events["self-hosted"]
-    tags = event.get("tags", {})
-    same = len({e.get("event_id") for e in events.values()}) == 1
-    ok = same and tags.get("dial_home_ready") == "false"
-    return ok, (
-        f"{' and '.join(events)} got `{event.get('message', {}).get('formatted')}`"
-        f"{'' if same else ' with different event ids'}: dial_home_ready={tags.get('dial_home_ready')}, "
+    tags = events[0].get("tags", {})
+    return tags.get("dial_home_ready") == "false", (
+        f"Sentry got `{events[0].get('message', {}).get('formatted')}`: "
+        f"dial_home_ready={tags.get('dial_home_ready')}, "
         f"serial `{tags.get('serial', '')}` ({tags.get('machine_identity_source')})"
     )
 

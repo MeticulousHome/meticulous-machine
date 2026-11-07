@@ -29,12 +29,10 @@ DIAL_READY_MARKER = Path("/run/meticulous-dial-ready")
 DIAL_HOME_READY_MARKER = Path("/run/meticulous-dial-home-ready")
 VERSION_FILE = Path("/opt/image-build-version")
 SENTRY_DIAL_BOOT_FAILURE_MARKER = Path("/run/meticulous-smoke-dial-sentry-reported")
+# The self-hosted Sentry's meticulous-dial project, with the key the Dial
+# reports with (its first key, 7d1372b7..., is disabled).
 DEFAULT_DIAL_SENTRY_DSN = (
-    "https://8d8dbea1f60d65c201b7f40f8a5ee20c@"
-    "o4506723336060928.ingest.us.sentry.io/4511430165921792"
-)
-DEFAULT_SELF_HOSTED_SENTRY_DSN = (
-    "https://7d1372b7d47d3aec5a35a02da09dcd2f@sentry.meticulousespresso.com/8"
+    "https://d958eb514629903cf133ad2b19e80ead@sentry.meticulousespresso.com/8"
 )
 # Sent with every event in place of an SDK's name: the script posts Sentry's
 # envelope itself, so it runs on whichever python3 the image has (see
@@ -316,18 +314,6 @@ def publish_attributes(attributes):
         response.read()
 
 
-def sentry_dsns():
-    """Where a dial boot failure goes, by name. Each can be overridden from the
-    environment; an empty value turns that one off."""
-    dsns = {
-        "sentry": os.environ.get("METICULOUS_SMOKE_SENTRY_DSN", DEFAULT_DIAL_SENTRY_DSN),
-        "self_hosted_sentry": os.environ.get(
-            "METICULOUS_SMOKE_SELF_HOSTED_SENTRY_DSN", DEFAULT_SELF_HOSTED_SENTRY_DSN
-        ),
-    }
-    return {name: dsn.strip() for name, dsn in dsns.items() if dsn.strip()}
-
-
 def sentry_envelope_url(dsn):
     """The envelope endpoint and public key of a DSN,
     scheme://key@host[:port][/path]/project."""
@@ -418,9 +404,8 @@ def post_sentry_event(dsn, event):
         response.read()
 
 
-def send_sentry_event(dsns, checks, backend_status, attributes, machine_info):
-    """Send one event to every DSN; the names of those that accepted it, with
-    its id.
+def send_sentry_event(dsn, checks, backend_status, attributes, machine_info):
+    """Send the event; its id once Sentry has accepted it.
 
     No Sentry SDK: the unit runs /opt/meticulous-venv/bin/python3, which is the
     Python backend's virtualenv on some images and the image's own python3 on
@@ -429,28 +414,9 @@ def send_sentry_event(dsns, checks, backend_status, attributes, machine_info):
     library is enough.
     """
     event = dial_boot_failure_event(checks, backend_status, attributes, machine_info)
-    accepted = {}
-    for name, dsn in dsns.items():
-        try:
-            post_sentry_event(dsn, event)
-        except urllib.error.HTTPError as exc:
-            with exc:
-                body = exc.read().decode("utf-8", errors="replace")[:200]
-            print(
-                f"Failed to report dial boot smoke failure to Sentry ({name}): "
-                f"HTTP {exc.code} {body}",
-                file=sys.stderr,
-            )
-            continue
-        except Exception as exc:
-            print(
-                f"Failed to report dial boot smoke failure to Sentry ({name}): {exc}",
-                file=sys.stderr,
-            )
-            continue
-        print(f"Reported dial boot smoke failure to ({name}) with eventID: {event['event_id']}")
-        accepted[name] = event["event_id"]
-    return accepted
+    post_sentry_event(dsn, event)
+    print(f"Reported dial boot smoke failure to Sentry with eventID: {event['event_id']}")
+    return event["event_id"]
 
 
 def report_dial_boot_failure_to_sentry(checks, backend_status, attributes):
@@ -458,22 +424,23 @@ def report_dial_boot_failure_to_sentry(checks, backend_status, attributes):
         return
     if SENTRY_DIAL_BOOT_FAILURE_MARKER.exists():
         return
-    dsns = sentry_dsns()
-    if not dsns:
+    dsn = os.environ.get("METICULOUS_SMOKE_SENTRY_DSN", DEFAULT_DIAL_SENTRY_DSN).strip()
+    if not dsn:
         return
 
     try:
         machine_info = read_machine_info()
-        accepted = send_sentry_event(
-            dsns, checks, backend_status, attributes, machine_info
+        event_id = send_sentry_event(
+            dsn, checks, backend_status, attributes, machine_info
         )
-        # Once one Sentry has the event, the team has heard of this boot: a
-        # rerun of the unit does not send it again.
-        if accepted:
-            SENTRY_DIAL_BOOT_FAILURE_MARKER.write_text(
-                "".join(f"{name}: {event_id}\n" for name, event_id in accepted.items()),
-                encoding="utf-8",
-            )
+        SENTRY_DIAL_BOOT_FAILURE_MARKER.write_text(f"{event_id}\n", encoding="utf-8")
+    except urllib.error.HTTPError as exc:
+        with exc:
+            body = exc.read().decode("utf-8", errors="replace")[:200]
+        print(
+            f"Failed to report dial boot smoke failure to Sentry: HTTP {exc.code} {body}",
+            file=sys.stderr,
+        )
     except Exception as exc:
         print(
             f"Failed to report dial boot smoke failure to Sentry: {exc}",

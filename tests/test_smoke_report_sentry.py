@@ -110,11 +110,7 @@ class DialBootFailureSentryTests(unittest.TestCase):
         self.reporter.SENTRY_DIAL_BOOT_FAILURE_MARKER = self.marker
         self.reporter.read_machine_info = lambda: dict(MACHINE_INFO)
         environment = mock.patch.dict(
-            os.environ,
-            {
-                "METICULOUS_SMOKE_SENTRY_DSN": self.sentry.dsn("1"),
-                "METICULOUS_SMOKE_SELF_HOSTED_SENTRY_DSN": self.sentry.dsn("8"),
-            },
+            os.environ, {"METICULOUS_SMOKE_SENTRY_DSN": self.sentry.dsn("8")}
         )
         environment.start()
         self.addCleanup(environment.stop)
@@ -122,27 +118,20 @@ class DialBootFailureSentryTests(unittest.TestCase):
     def report(self):
         self.reporter.report_dial_boot_failure_to_sentry(FAILED_CHECKS, {}, ATTRIBUTES)
 
-    def envelope(self, request):
-        header, item, payload = request["body"].decode("utf-8").rstrip("\n").split("\n")
-        return json.loads(header), json.loads(item), json.loads(payload)
-
-    def test_both_sentries_get_the_same_event_as_an_envelope(self):
+    def test_the_event_reaches_sentry_as_an_envelope(self):
         self.report()
 
-        self.assertEqual(sorted(r["project"] for r in self.sentry.received), ["1", "8"])
-        events = []
-        for request in self.sentry.received:
-            self.assertEqual(request["path"], f"/api/{request['project']}/envelope/")
-            self.assertEqual(request["headers"]["Content-Type"], "application/x-sentry-envelope")
-            self.assertIn(f"sentry_key=public{request['project']}", request["headers"]["X-Sentry-Auth"])
-            header, item, event = self.envelope(request)
-            self.assertEqual(item["type"], "event")
-            self.assertEqual(item["length"], len(json.dumps(event).encode("utf-8")))
-            self.assertEqual(header["event_id"], event["event_id"])
-            events.append(event)
-        self.assertEqual(events[0]["event_id"], events[1]["event_id"])
+        self.assertEqual(len(self.sentry.received), 1)
+        request = self.sentry.received[0]
+        self.assertEqual(request["path"], "/api/8/envelope/")
+        self.assertEqual(request["headers"]["Content-Type"], "application/x-sentry-envelope")
+        self.assertIn("sentry_key=public8", request["headers"]["X-Sentry-Auth"])
+        header, item, payload = request["body"].decode("utf-8").rstrip("\n").split("\n")
+        header, item, event = json.loads(header), json.loads(item), json.loads(payload)
+        self.assertEqual(item["type"], "event")
+        self.assertEqual(item["length"], len(payload.encode("utf-8")))
+        self.assertEqual(header["event_id"], event["event_id"])
 
-        event = events[0]
         self.assertEqual(
             event["message"]["formatted"],
             "Dial did not reach ready state during boot smoke validation",
@@ -156,39 +145,28 @@ class DialBootFailureSentryTests(unittest.TestCase):
         self.assertEqual(event["tags"]["image_version"], "2026M1530-nightly")
         self.assertEqual(event["extra"]["failed_dial_checks"], ["dial_home_ready"])
         self.assertEqual(event["contexts"]["boot-checks"], FAILED_CHECKS)
-        self.assertEqual(
-            self.marker.read_text(),
-            f"sentry: {event['event_id']}\nself_hosted_sentry: {event['event_id']}\n",
-        )
+        self.assertEqual(self.marker.read_text(), f"{event['event_id']}\n")
 
-    def test_a_sentry_that_refuses_does_not_keep_the_event_from_the_other(self):
-        self.sentry.status["1"] = 500
+    def test_no_marker_when_sentry_refuses_the_event(self):
+        self.sentry.status["8"] = 403
 
         self.report()
 
-        self.assertEqual(sorted(r["project"] for r in self.sentry.received), ["1", "8"])
-        self.assertRegex(self.marker.read_text(), r"^self_hosted_sentry: [0-9a-f]{32}\n$")
-
-    def test_no_marker_when_no_sentry_accepts_the_event(self):
-        self.sentry.status.update({"1": 403, "8": 500})
-
-        self.report()
-
-        self.assertEqual(len(self.sentry.received), 2)
+        self.assertEqual(len(self.sentry.received), 1)
         self.assertFalse(self.marker.exists())
 
     def test_nothing_is_sent_again_once_this_boot_was_reported(self):
-        self.marker.write_text("sentry: earlier\n")
+        self.marker.write_text("earlier\n")
 
         self.report()
 
         self.assertEqual(self.sentry.received, [])
 
-    def test_an_empty_dsn_turns_that_sentry_off(self):
-        with mock.patch.dict(os.environ, {"METICULOUS_SMOKE_SELF_HOSTED_SENTRY_DSN": ""}):
+    def test_an_empty_dsn_turns_the_report_off(self):
+        with mock.patch.dict(os.environ, {"METICULOUS_SMOKE_SENTRY_DSN": ""}):
             self.report()
 
-        self.assertEqual([r["project"] for r in self.sentry.received], ["1"])
+        self.assertEqual(self.sentry.received, [])
 
     def test_a_passing_dial_sends_nothing(self):
         self.reporter.report_dial_boot_failure_to_sentry(
@@ -196,6 +174,13 @@ class DialBootFailureSentryTests(unittest.TestCase):
         )
 
         self.assertEqual(self.sentry.received, [])
+
+    def test_the_default_is_the_self_hosted_dial_project(self):
+        # The backend and the Dial report to the self-hosted Sentry only.
+        self.assertEqual(
+            self.reporter.sentry_envelope_url(self.reporter.DEFAULT_DIAL_SENTRY_DSN),
+            ("https://sentry.meticulousespresso.com/api/8/envelope/", "d958eb514629903cf133ad2b19e80ead"),
+        )
 
     def test_dsn_with_a_port_and_a_path(self):
         self.assertEqual(

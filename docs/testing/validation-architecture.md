@@ -143,8 +143,8 @@ informative for now: nothing waits for them, and they never fail the build.
    from its defaults), a new machine follows its image's update channel, the
    image's RAUC accepts the build's own bundle, every module a Python unit
    imports (inside functions too) imports with the interpreter that unit runs,
-   and the smoke report sends a Dial that never reaches its home screen to both
-   of its Sentry projects (a stand-in on the image's loopback).
+   and the smoke report sends a Dial that never reaches its home screen to
+   Sentry (a stand-in on the image's loopback).
 2. **The image works as a machine** (meticulous-integration's
    `image-journeys.yml`, private, because it runs the firmware). fika-sil is the
    ESP32 on `/dev/ttymxc0`, reporting the version of the firmware the image
