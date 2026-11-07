@@ -11,6 +11,7 @@ on:
       - "tests/test_e2e_contract.py"
       - "tests/test_hawkbit_device_identity.sh"
       - "tests/test_hawkbit_config_atomicity.py"
+      - "tests/test_smoke_report_sentry.py"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
@@ -29,6 +30,7 @@ on:
       - "tests/test_e2e_contract.py"
       - "tests/test_hawkbit_device_identity.sh"
       - "tests/test_hawkbit_config_atomicity.py"
+      - "tests/test_smoke_report_sentry.py"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
@@ -58,7 +60,7 @@ jobs:
           bash -n config/etc/hawkbit/device_identity.sh
           bash -n tests/test_hawkbit_device_identity.sh
           bash tests/test_hawkbit_device_identity.sh
-          python -m unittest -v tests/test_hawkbit_config_atomicity.py
+          python -m unittest -v tests/test_hawkbit_config_atomicity.py tests/test_smoke_report_sentry.py
 
       - name: Checkout Dial beta
         uses: actions/checkout@v4
