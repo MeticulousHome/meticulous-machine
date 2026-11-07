@@ -47,7 +47,8 @@
         "community",
         "tare_behavior",
         "experimentalSettings",
-        "helpUsImprove"
+        "helpUsImprove",
+        "disturbanceResilience"
       ],
       "wifi": [
         "wifiSettings",
