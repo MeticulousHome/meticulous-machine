@@ -4,6 +4,7 @@
 # SPDX-FileCopyrightText: 2021 Bastian Krause <bst@pengutronix.de>, Pengutronix
 # SPDX-FileCopyrightText: 2024 Mimoja <mimoja@meticuloushome.com>, MeticulousHome Inc.
 
+import math
 import time
 import os
 import random
@@ -88,6 +89,13 @@ ROLLOUT_GROUP_CONDITIONS = {
     "errorCondition": {"condition": "THRESHOLD", "expression": "10"},
     "errorAction": {"action": "PAUSE", "expression": ""},
 }
+
+# Targets per rollout group. Stable/beta ramp up through the sizes and then keep using
+# the last one; nightly uses a flat size.
+ROLLOUT_GROUP_SIZES = (10, 50, 100, 200)
+NIGHTLY_ROLLOUT_GROUP_SIZE = 100
+# hawkBit rejects a group whose targetPercentage is below 1%.
+MIN_ROLLOUT_GROUP_PERCENTAGE = 1.0
 
 INTERNAL_TESTING_TARGETS = [
     "meticulousFamousLungo-332233",
@@ -1002,39 +1010,64 @@ class HawkbitMgmtClient:
             if target_id not in manual_target_set
         ]
 
-        remaining_target_count = len(remaining_target_ids)
-
         groups = []
-        manual_group_query = self._controller_id_query(manual_target_ids)
+        # hawkBit ANDs a group's filter with the rollout's, so internal targets that are
+        # not on this channel would only leave an empty group behind.
+        matching_target_set = set(matching_target_ids)
+        manual_group_query = self._controller_id_query(
+            target_id
+            for target_id in manual_target_ids
+            if target_id in matching_target_set
+        )
         if manual_group_query is not None:
             groups.append(self._rollout_group(len(groups) + 1, manual_group_query))
 
-        cap_index = 0
-        while remaining_target_count > 0:
-            if channel == "nightly":
-                group_size = 100
-            elif cap_index == 0:
-                group_size = 10
-            elif cap_index == 1:
-                group_size = 50
-            elif cap_index == 2:
-                group_size = 100
+        # hawkBit (>= 0.5) reads targetPercentage as a share of every target matching the
+        # group's filter, and subtracts what earlier groups with the same filter already
+        # took. So each group asks for its size out of the total, and the last group asks
+        # for 100%, which hawkBit turns into "everything that is left".
+        remaining_target_count = len(remaining_target_ids)
+        group_sizes = self._rollout_group_sizes(channel, remaining_target_count)
+        for index, group_size in enumerate(group_sizes):
+            if index == len(group_sizes) - 1:
+                target_percentage = 100.0
             else:
-                group_size = 200
-
-            # Cap the group percentage to 100% and ensure it is at least 1%
-            target_percentage = min(100.0, group_size / remaining_target_count * 100)
-            target_percentage = max(1.0, target_percentage)
+                target_percentage = group_size * 100 / remaining_target_count
             groups.append(
                 self._rollout_group(
                     len(groups) + 1, target_filter_query, target_percentage
                 )
             )
 
-            remaining_target_count -= min(group_size, remaining_target_count)
-            cap_index += 1
-
         return groups
+
+    @staticmethod
+    def _rollout_group_sizes(channel, target_count):
+        if target_count <= 0:
+            return []
+
+        # Grow groups that would fall under hawkBit's minimum percentage, and fold a
+        # too-small remainder into the previous group, so every group stays expressible.
+        min_group_size = math.ceil(target_count * MIN_ROLLOUT_GROUP_PERCENTAGE / 100)
+
+        sizes = []
+        remaining = target_count
+        while remaining > 0:
+            if channel == "nightly":
+                group_size = NIGHTLY_ROLLOUT_GROUP_SIZE
+            else:
+                group_size = ROLLOUT_GROUP_SIZES[
+                    min(len(sizes), len(ROLLOUT_GROUP_SIZES) - 1)
+                ]
+            group_size = min(max(group_size, min_group_size), remaining)
+            sizes.append(group_size)
+            remaining -= group_size
+
+        if len(sizes) > 1 and sizes[-1] < min_group_size:
+            remainder = sizes.pop()
+            sizes[-1] += remainder
+
+        return sizes
 
     def update_target(self, target_id: str, target_name: str, controller_id: str):
         self.put(
@@ -1493,8 +1526,12 @@ def print_dry_run_rollout_group_summary(client, groups):
     print("\n[DRY RUN] Rollout groups:")
 
     selected_target_ids = set()
+    # Percent not yet handed out per group filter, mirroring hawkBit's
+    # RolloutHelper.toPercentFromTheRest.
+    percent_left_by_filter = {}
     for group in groups:
-        group_targets = client.get_all_targets_by_filter(group["targetFilterQuery"])
+        group_filter = group["targetFilterQuery"]
+        group_targets = client.get_all_targets_by_filter(group_filter)
         eligible_targets = []
         for target in group_targets:
             target_id = client._target_controller_id(target)
@@ -1502,7 +1539,15 @@ def print_dry_run_rollout_group_summary(client, groups):
                 eligible_targets.append(target)
 
         target_percentage = group.get("targetPercentage", 100.0)
-        expected_count = int(round(len(eligible_targets) * target_percentage / 100))
+        percent_left = percent_left_by_filter.get(group_filter, 100.0)
+        if percent_left <= 1:
+            percent_of_eligible = 100.0
+        else:
+            percent_of_eligible = min(100.0, target_percentage * 100 / percent_left)
+        percent_left_by_filter[group_filter] = percent_left - target_percentage
+
+        # Java's Math.round rounds halves up.
+        expected_count = math.floor(len(eligible_targets) * percent_of_eligible / 100 + 0.5)
         expected_count = min(expected_count, len(eligible_targets))
         expected_targets = eligible_targets[:expected_count]
 
