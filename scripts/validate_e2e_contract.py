@@ -108,6 +108,15 @@ def validate_manifest(manifest: dict) -> list[str]:
         if duplicates:
             errors.append(f"{section_name} contains duplicates: {duplicates}")
 
+    for header, directives in manifest["image"].get(
+        "nginx_location_contracts", {}
+    ).items():
+        if not header.endswith("{") or not directives:
+            errors.append(
+                f"image.nginx_location_contracts[{header!r}] needs a header ending "
+                "in '{' and at least one directive"
+            )
+
     if not any(
         journey.get("screen_groups") == ["*"] for journey in manifest["journeys"]
     ):
@@ -302,6 +311,78 @@ def discover_machine(machine_root: Path) -> dict[str, set[str]]:
     return {"component_sources": component_sources}
 
 
+def _strip_nginx_comments(source: str) -> str:
+    """Drop `#` comments so a commented-out directive does not satisfy a contract."""
+    lines = []
+    for line in source.splitlines():
+        quote = None
+        for index, char in enumerate(line):
+            if quote:
+                if char == quote and line[index - 1] != "\\":
+                    quote = None
+            elif char in "'\"":
+                quote = char
+            elif char == "#":
+                line = line[:index]
+                break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def nginx_block(source: str, header: str) -> str | None:
+    """Return the body of the first block opened by `header`, or None.
+
+    `header` ends with the opening brace. Braces inside quoted strings (the
+    JSON body of a `return 401 '{...}'`) do not count towards nesting.
+    """
+    source = _strip_nginx_comments(source)
+    start = source.find(header)
+    if start < 0 or not header.endswith("{"):
+        return None
+    body_start = start + len(header)
+    depth = 1
+    quote = None
+    for index in range(body_start, len(source)):
+        char = source[index]
+        if quote:
+            if char == quote and source[index - 1] != "\\":
+                quote = None
+        elif char in "'\"":
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[body_start:index]
+    return None
+
+
+def validate_nginx(manifest: dict, nginx_source: str) -> list[str]:
+    errors: list[str] = []
+    for contract in manifest["image"]["nginx_contracts"]:
+        if contract not in nginx_source:
+            errors.append(f"Machine Nginx contract is missing: {contract}")
+
+    # Directives that only protect anything inside one location, such as the
+    # X-Real-IP the device-auth subrequest must set itself (the backend treats
+    # a missing one as the machine), are checked inside that block: the same
+    # line elsewhere in the file says nothing about the subrequest.
+    for header, directives in manifest["image"].get(
+        "nginx_location_contracts", {}
+    ).items():
+        block = nginx_block(nginx_source, header)
+        if block is None:
+            errors.append(f"Machine Nginx location is missing: {header}")
+            continue
+        for directive in directives:
+            if directive not in block:
+                errors.append(
+                    f"Machine Nginx location {header!r} is missing: {directive}"
+                )
+    return errors
+
+
 def validate_sources(
     manifest: dict,
     machine_root: Path,
@@ -359,12 +440,12 @@ def validate_sources(
         if not any((root / service).is_file() for root in service_roots):
             errors.append(f"Machine required service is missing: {service}")
 
-    nginx_source = (
-        machine_root / "config/etc/nginx/sites-available/default"
-    ).read_text(encoding="utf-8")
-    for contract in manifest["image"]["nginx_contracts"]:
-        if contract not in nginx_source:
-            errors.append(f"Machine Nginx contract is missing: {contract}")
+    errors += validate_nginx(
+        manifest,
+        (machine_root / "config/etc/nginx/sites-available/default").read_text(
+            encoding="utf-8"
+        ),
+    )
 
     for channel in ("beta", "stable"):
         if not (machine_root / f"images/{channel}.versions.sh").is_file():
