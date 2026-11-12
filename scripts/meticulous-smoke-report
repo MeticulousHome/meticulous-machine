@@ -22,6 +22,9 @@ HAWKBIT_CONFIG_GENERATOR = Path("/etc/hawkbit/create_config.sh")
 HAWKBIT_CONFIG_LOCK = Path("/run/meticulous-hawkbit-config.lock")
 HAWKBIT_ATTRIBUTE_CACHE = Path("/run/meticulous-hawkbit-attributes.json")
 HAWKBIT_CHANNEL_FILE = Path("/etc/hawkbit/channel")
+# The boot smoke result of this boot. On tmpfs, so it never outlives the boot
+# it describes.
+BOOT_ATTRIBUTE_CACHE = Path("/run/meticulous-boot-smoke-attributes.json")
 BACKEND_URL = "http://127.0.0.1:8080/api/v1/smoke-validation"
 MACHINE_INFO_URL = "http://127.0.0.1:8080/api/v1/machine"
 HOSTNAME_FILE = Path("/etc/hostname")
@@ -187,6 +190,42 @@ def make_boot_attributes(timeout):
     }
     report_dial_boot_failure_to_sentry(checks, backend_status, attributes)
     return attributes
+
+
+def store_boot_attributes(attributes):
+    """Keep the boot smoke result so later publishes can send it again.
+
+    The checks run once per boot, but their one publish can fail (no network
+    yet, hawkBit unreachable), and hawkBit would then keep the result of an
+    earlier boot. Every later run republishes this copy instead.
+    """
+    try:
+        temp_path = BOOT_ATTRIBUTE_CACHE.with_name(BOOT_ATTRIBUTE_CACHE.name + ".tmp")
+        temp_path.write_text(json.dumps(attributes, sort_keys=True), encoding="utf-8")
+        temp_path.replace(BOOT_ATTRIBUTE_CACHE)
+    except Exception as exc:
+        print(f"Failed to write {BOOT_ATTRIBUTE_CACHE}: {exc}", file=sys.stderr)
+
+
+def load_boot_attributes():
+    """The boot smoke result of this boot, or nothing when the checks have not
+    finished yet: the boot run is then still to publish it."""
+    try:
+        cached = json.loads(BOOT_ATTRIBUTE_CACHE.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except Exception as exc:
+        print(f"Failed to read {BOOT_ATTRIBUTE_CACHE}: {exc}", file=sys.stderr)
+        return {}
+    if not isinstance(cached, dict):
+        return {}
+    # Empty values are kept: an empty boot_smoke_failed_checks has to replace
+    # the failed checks of an earlier boot.
+    return {
+        key: value
+        for key, value in cached.items()
+        if key.startswith("boot_smoke_") and isinstance(value, str)
+    }
 
 
 def make_device_attributes():
@@ -467,6 +506,10 @@ def main():
     attributes = {}
     if args.boot or not (args.shot or args.attributes):
         attributes.update(make_boot_attributes(args.timeout))
+        store_boot_attributes(attributes)
+    else:
+        # Evaluated once per boot, sent again on every later publish.
+        attributes.update(load_boot_attributes())
     # Device attributes ride along on every publish: each one is a full
     # synchronisation, so a machine that reaches hawkBit at all reports a
     # complete, current set.
