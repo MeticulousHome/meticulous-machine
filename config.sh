@@ -99,6 +99,15 @@ readonly WEB_APP_GIT="git@github.com:MeticulousHome/meticulous-web-ui"
 export   WEB_APP_BRANCH="nightly"
 export   WEB_APP_REV="HEAD"
 
+# The web app takes @meticulous-home/espresso-api from npm. An image that needs an unreleased
+# client sets ESPRESSO_API_BRANCH in its images/<image>.versions.sh: update-sources.sh --web then
+# checks out meticulous-typescript-api, and build-components.sh --web builds it and installs it
+# into the web app in place of the npm release.
+readonly ESPRESSO_API_SRC_DIR="${COMPONENTS_DIR}/meticulous-typescript-api"
+readonly ESPRESSO_API_GIT="git@github.com:MeticulousHome/meticulous-typescript-api"
+export   ESPRESSO_API_BRANCH=""
+export   ESPRESSO_API_REV="HEAD"
+
 readonly WATCHER_SRC_DIR="${COMPONENTS_DIR}/meticulous-watcher"
 readonly WATCHER_BUILD_DIR="${COMPONENTS_DIR}/meticulous-watcher-build"
 export   WATCHER_GIT="git@github.com:MeticulousHome/meticulous-watcher"

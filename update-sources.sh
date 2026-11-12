@@ -155,6 +155,16 @@ function update_web() {
     echo "Cloning / Updating WebApp Repository"
     get_git_src ${WEB_APP_GIT} ${WEB_APP_BRANCH} \
         ${WEB_APP_SRC_DIR} ${WEB_APP_REV}
+
+    # The checkout is what makes build_web use it, so an image without ESPRESSO_API_BRANCH drops
+    # a previous one and the web app gets the npm release.
+    if [ -n "${ESPRESSO_API_BRANCH}" ]; then
+        echo "Cloning / Updating espresso-api Repository for the WebApp"
+        get_git_src ${ESPRESSO_API_GIT} ${ESPRESSO_API_BRANCH} \
+            ${ESPRESSO_API_SRC_DIR} ${ESPRESSO_API_REV}
+    else
+        rm -rf "${ESPRESSO_API_SRC_DIR}"
+    fi
 }
 
 function update_firmware() {
@@ -255,7 +265,8 @@ Available options:
     --watcher                       Checkout / Update Watcher repository
     --dial                          Checkout / Update Dial repository
     --dash / --dashboard            Checkout / Update Dashboard repository
-    --web / --webapp                Checkout / Update WebApp repository
+    --web / --webapp                Checkout / Update WebApp repository (and espresso-api when
+                                    the image sets ESPRESSO_API_BRANCH)
     --linux / --kernel              Checkout / Update Linux Kernel repository
     --uboot / --bootloader          Checkout / Update U-Boot repository
     --rauc                          Checkout / Update rauc and rauc-hawkbit-updater repositories
