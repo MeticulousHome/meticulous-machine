@@ -1,0 +1,13 @@
+#!/bin/bash
+export BACKEND_BRANCH="feat/device-auth"
+export BACKEND_REV="HEAD"
+export DIAL_BRANCH="feat/device-auth"
+export DIAL_REV="HEAD"
+export WEB_APP_BRANCH="feat/device-auth"
+export WEB_APP_REV="HEAD"
+export ESPRESSO_API_BRANCH="feat/device-auth"
+export ESPRESSO_API_REV="HEAD"
+export WATCHER_BRANCH="feat/device-auth"
+export WATCHER_REV="HEAD"
+export PLOTTER_UI_BRANCH="feat/device-auth"
+export PLOTTER_UI_REV="HEAD"

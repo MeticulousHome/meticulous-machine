@@ -139,3 +139,7 @@ tag_component "hawkbit" "$HAWKBIT_SRC_DIR" "$HAWKBIT_GIT"
 tag_component "psplash" "$PSPLASH_SRC_DIR" "$PSPLASH_GIT"
 tag_component "plotter-ui" "$PLOTTER_UI_SRC_DIR" "$PLOTTER_UI_GIT"
 tag_component "crash-reporter" "$CRASH_REPORTER_SRC_DIR" "$CRASH_REPORTER_GIT"
+# Checked out only for an image that builds the web app against it (ESPRESSO_API_BRANCH).
+if [[ -e "${ESPRESSO_API_SRC_DIR}/.git" ]]; then
+    tag_component "espresso-api" "$ESPRESSO_API_SRC_DIR" "$ESPRESSO_API_GIT"
+fi

@@ -71,19 +71,21 @@ fi
 COMPONENT_NAMES=(
     meticulous-machine linux uboot atf imx-mkimage debian
     backend dial web-app watcher firmware
-    rauc hawkbit psplash history-ui plotter-ui crash-reporter
+    rauc hawkbit psplash history-ui plotter-ui crash-reporter espresso-api
 )
 
 COMPONENT_DIRS=(
     "$MACHINE_SRC_DIR" "$LINUX_SRC_DIR" "$UBOOT_SRC_DIR" "$ATF_SRC_DIR" "$IMX_MKIMAGE_SRC_DIR" "$DEBIAN_SRC_DIR"
     "$BACKEND_SRC_DIR" "$DIAL_SRC_DIR" "$WEB_APP_SRC_DIR" "$WATCHER_SRC_DIR" "$FIRMWARE_SRC_DIR"
     "$RAUC_SRC_DIR" "$HAWKBIT_SRC_DIR" "$PSPLASH_SRC_DIR" "$HISTORY_UI_SRC_DIR" "$PLOTTER_UI_SRC_DIR" "$CRASH_REPORTER_SRC_DIR"
+    "$ESPRESSO_API_SRC_DIR"
 )
 
 COMPONENT_OPTIONAL=(
     false false false false false false
     false false false false false
     false false false true true false
+    true
 )
 
 REPORT_DIR="components/repo-info"

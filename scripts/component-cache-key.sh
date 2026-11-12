@@ -41,7 +41,13 @@ case "${component}" in
     psplash)        repos=(PSPLASH) ;;
     rauc)           repos=(RAUC HAWKBIT) ;;
     dial)           repos=(DIAL) ;;
-    web)            repos=(WEB_APP) ;;
+    web)
+        repos=(WEB_APP)
+        # Built against a checked-out espresso-api (an image that sets ESPRESSO_API_BRANCH).
+        if [[ -e "${ESPRESSO_API_SRC_DIR}/.git" ]]; then
+            repos+=(ESPRESSO_API)
+        fi
+        ;;
     firmware)       repos=(FIRMWARE) ;;
     plotter)        repos=(PLOTTER_UI) ;;
     crash-reporter) repos=(CRASH_REPORTER) ;;

@@ -27,10 +27,28 @@ function build_dial() {
     popd >/dev/null
 }
 
+# With an espresso-api checkout (update-sources.sh --web, for an image that sets ESPRESSO_API_BRANCH),
+# the web app is built against that client instead of the npm release: it is built and packed, and
+# the tarball is installed without saving, so package.json and the lockfile stay as committed.
 function build_web() {
+    local espresso_api=""
+    if [ -d "${ESPRESSO_API_SRC_DIR}/.git" ]; then
+        echo "Building espresso-api for the WebApp"
+        pushd $ESPRESSO_API_SRC_DIR >/dev/null
+        npm ci
+        npm run build
+        rm -f meticulous-home-espresso-api-*.tgz
+        espresso_api="$(pwd)/$(npm pack --silent | tail -n1)"
+        popd >/dev/null
+    fi
+
     echo "Building WebApp"
     pushd $WEB_APP_SRC_DIR >/dev/null
-    npm install
+    if [ -n "${espresso_api}" ]; then
+        npm install --no-save "${espresso_api}"
+    else
+        npm install
+    fi
     npm run build
     popd >/dev/null
 }

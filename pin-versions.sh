@@ -404,6 +404,25 @@ pin_component() {
     append_pin "$rev_var" "$final_rev" "$current_commit"
 }
 
+# The web app's espresso-api is checked out only for an image that sets ESPRESSO_API_BRANCH, and that
+# branch is what turns the local build on, so it is pinned along with the commit. The repository has
+# no channel branches: it is never merged or pushed.
+pin_espresso_api() {
+    local current_rev current_commit branch_name
+
+    if [[ ! -e "${ESPRESSO_API_SRC_DIR}/.git" ]]; then
+        return
+    fi
+
+    current_rev="$(git -C "$ESPRESSO_API_SRC_DIR" rev-parse HEAD)"
+    current_commit="$(git -C "$ESPRESSO_API_SRC_DIR" log --format=%B -n 1 HEAD | head -n1)"
+    branch_name="$(git -C "$ESPRESSO_API_SRC_DIR" rev-parse --abbrev-ref HEAD)"
+
+    echo "Pinning espresso-api: ${current_rev} (${current_commit})"
+    append_pin "ESPRESSO_API_BRANCH" "$branch_name"
+    append_pin "ESPRESSO_API_REV" "$current_rev" "$current_commit"
+}
+
 pin_all_components() {
     pin_component "linux" "$LINUX_SRC_DIR" "$LINUX_GIT" "LINUX_BRANCH" "LINUX_REV"
     pin_component "uboot" "$UBOOT_SRC_DIR" "$UBOOT_GIT" "UBOOT_BRANCH" "UBOOT_REV"
@@ -415,6 +434,7 @@ pin_all_components() {
         pin_component "dial" "$DIAL_SRC_DIR" "$DIAL_GIT" "DIAL_BRANCH" "DIAL_REV"
     fi
     pin_component "web-app" "$WEB_APP_SRC_DIR" "$WEB_APP_GIT" "WEB_APP_BRANCH" "WEB_APP_REV"
+    pin_espresso_api
     pin_component "watcher" "$WATCHER_SRC_DIR" "$WATCHER_GIT" "WATCHER_BRANCH" "WATCHER_REV"
     pin_component "firmware" "$FIRMWARE_SRC_DIR" "$FIRMWARE_GIT" "FIRMWARE_BRANCH" "FIRMWARE_REV"
     pin_component "rauc" "$RAUC_SRC_DIR" "$RAUC_GIT" "RAUC_BRANCH" "RAUC_REV"
@@ -435,6 +455,7 @@ pin_single_component() {
         "$BACKEND_SRC_DIR") pin_component "backend" "$BACKEND_SRC_DIR" "$BACKEND_GIT" "BACKEND_BRANCH" "BACKEND_REV" ;;
         "$DIAL_SRC_DIR") pin_component "dial" "$DIAL_SRC_DIR" "$DIAL_GIT" "DIAL_BRANCH" "DIAL_REV" ;;
         "$WEB_APP_SRC_DIR") pin_component "web-app" "$WEB_APP_SRC_DIR" "$WEB_APP_GIT" "WEB_APP_BRANCH" "WEB_APP_REV" ;;
+        "$ESPRESSO_API_SRC_DIR") pin_espresso_api ;;
         "$WATCHER_SRC_DIR") pin_component "watcher" "$WATCHER_SRC_DIR" "$WATCHER_GIT" "WATCHER_BRANCH" "WATCHER_REV" ;;
         "$FIRMWARE_SRC_DIR") pin_component "firmware" "$FIRMWARE_SRC_DIR" "$FIRMWARE_GIT" "FIRMWARE_BRANCH" "FIRMWARE_REV" ;;
         "$RAUC_SRC_DIR") pin_component "rauc" "$RAUC_SRC_DIR" "$RAUC_GIT" "RAUC_BRANCH" "RAUC_REV" ;;
