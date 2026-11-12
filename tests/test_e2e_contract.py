@@ -8,6 +8,8 @@ SCRIPT_PATH = Path(__file__).parents[1] / "scripts" / "validate_e2e_contract.py"
 SPEC = importlib.util.spec_from_file_location("validate_e2e_contract", SCRIPT_PATH)
 VALIDATOR = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VALIDATOR)
+NGINX_SITE = Path(__file__).parents[1] / "config/etc/nginx/sites-available/default"
+DEVICE_AUTH_REAL_IP = "\t\tproxy_set_header X-Real-IP $remote_addr;\n"
 
 
 class E2EContractManifestTests(unittest.TestCase):
@@ -118,6 +120,55 @@ class E2EContractManifestTests(unittest.TestCase):
         self.assertEqual(dial["api_methods"], {"getSettings"})
         self.assertEqual(dial["socket_receives"], {"status", "sensors"})
         self.assertEqual(dial["socket_emits"], {"action", "profileHover"})
+
+    def test_the_shipped_nginx_site_meets_its_contracts(self):
+        source = NGINX_SITE.read_text(encoding="utf-8")
+        self.assertEqual(VALIDATOR.validate_nginx(self.manifest, source), [])
+
+    def test_the_device_auth_subrequest_must_set_x_real_ip_itself(self):
+        # Without it the backend sees no X-Real-IP, which it treats as the
+        # machine, or one the client forged, so /health opens to the LAN. The
+        # same line in the /api and /health blocks must not stand in for it.
+        source = NGINX_SITE.read_text(encoding="utf-8")
+        start = source.index("location = /_device_auth {")
+        line = source.index(DEVICE_AUTH_REAL_IP, start)
+        stripped = source[:line] + source[line + len(DEVICE_AUTH_REAL_IP):]
+        self.assertNotIn(
+            DEVICE_AUTH_REAL_IP.strip(),
+            VALIDATOR.nginx_block(stripped, "location = /_device_auth {"),
+        )
+        self.assertIn(DEVICE_AUTH_REAL_IP.strip(), stripped)
+        self.assertIn(
+            "Machine Nginx location 'location = /_device_auth {' is missing: "
+            "proxy_set_header X-Real-IP $remote_addr;",
+            VALIDATOR.validate_nginx(self.manifest, stripped),
+        )
+
+    def test_a_commented_out_directive_does_not_meet_a_location_contract(self):
+        source = NGINX_SITE.read_text(encoding="utf-8").replace(
+            "\t\tauth_request /_device_auth;", "\t\t# auth_request /_device_auth;"
+        )
+        self.assertIn(
+            "Machine Nginx location 'location ~* ^/health {' is missing: "
+            "auth_request /_device_auth;",
+            VALIDATOR.validate_nginx(self.manifest, source),
+        )
+
+    def test_a_location_block_ends_at_its_own_closing_brace(self):
+        source = (
+            "server {\n"
+            "    location @denied {\n"
+            "        return 401 '{\"error\":{\"code\":\"X\"}}'; # } not a brace\n"
+            "        if ($a) { set $b 1; }\n"
+            "    }\n"
+            "    location /after { deny all; }\n"
+            "}\n"
+        )
+        block = VALIDATOR.nginx_block(source, "location @denied {")
+        self.assertIn("return 401", block)
+        self.assertIn("set $b 1;", block)
+        self.assertNotIn("deny all;", block)
+        self.assertIsNone(VALIDATOR.nginx_block(source, "location /missing {"))
 
 
 if __name__ == "__main__":

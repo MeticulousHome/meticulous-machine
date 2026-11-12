@@ -64,13 +64,53 @@ server {
         gzip_min_length 1000;  # skip tiny responses
     }
 
+	# Device authorization for the watcher. nginx asks the backend whether
+	# this request may continue, using the same rule as /api: the machine
+	# itself is exempt and every other client needs a Bearer token. /api and
+	# /socket.io are not gated here because the backend enforces it itself.
+	location = /_device_auth {
+		internal;
+		proxy_pass http://127.0.0.1:8080/api/v1/auth/validate;
+		proxy_method GET;
+		proxy_pass_request_body off;
+		proxy_set_header Content-Length "";
+		proxy_set_header Host $host;
+		proxy_set_header Authorization $http_authorization;
+		# Required: without it the backend sees no X-Real-IP (which it treats
+		# as the machine itself) or whatever X-Real-IP the client sent.
+		proxy_set_header X-Real-IP $remote_addr;
+		# Fail fast so a stuck backend does not hang diagnostics requests.
+		proxy_connect_timeout 2s;
+		proxy_send_timeout 5s;
+		proxy_read_timeout 5s;
+	}
+
+	# Same body as the backend's own 401, so clients can tell they need pairing.
+	location @device_unauthorized {
+		default_type application/json;
+		add_header WWW-Authenticate Bearer always;
+		add_header Cache-Control "no-store" always;
+		return 401 '{"status":"error","error":"This device is not authorized","data":{"code":"UNAUTHORIZED"}}';
+	}
+
+	# The watcher serves logs and the shot history archive, so it needs a token.
+	# Loopback callers (the backend's bug reports, the image checks) pass the
+	# access rules without asking the backend, so they keep working while it
+	# restarts.
 	location ~* ^/health {
-       rewrite ^/health/(.*) /$1 break;
-       proxy_pass http://localhost:3000;
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-       proxy_read_timeout 1800s;
+		satisfy any;
+		allow 127.0.0.0/8;
+		allow ::1;
+		deny all;
+		auth_request /_device_auth;
+		error_page 401 = @device_unauthorized;
+
+		rewrite ^/health/(.*) /$1 break;
+		proxy_pass http://127.0.0.1:3000;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_read_timeout 1800s;
 	}
 }
