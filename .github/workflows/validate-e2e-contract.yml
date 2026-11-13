@@ -12,6 +12,7 @@ on:
       - "tests/test_hawkbit_device_identity.sh"
       - "tests/test_hawkbit_config_atomicity.py"
       - "tests/test_smoke_report_sentry.py"
+      - "tests/test_smoke_report_boot_resync.py"
       - "tests/test_iw612_driver_config.py"
       - "scripts/met-iw612-set-region"
       - "config/usr/lib/firmware/nxp/var_wifi_mod_para.conf"
@@ -34,6 +35,7 @@ on:
       - "tests/test_hawkbit_device_identity.sh"
       - "tests/test_hawkbit_config_atomicity.py"
       - "tests/test_smoke_report_sentry.py"
+      - "tests/test_smoke_report_boot_resync.py"
       - "tests/test_iw612_driver_config.py"
       - "scripts/met-iw612-set-region"
       - "config/usr/lib/firmware/nxp/var_wifi_mod_para.conf"
@@ -67,7 +69,7 @@ jobs:
           bash -n tests/test_hawkbit_device_identity.sh
           bash -n scripts/met-iw612-set-region
           bash tests/test_hawkbit_device_identity.sh
-          python -m unittest -v tests/test_hawkbit_config_atomicity.py tests/test_smoke_report_sentry.py tests/test_iw612_driver_config.py
+          python -m unittest -v tests/test_hawkbit_config_atomicity.py tests/test_smoke_report_sentry.py tests/test_smoke_report_boot_resync.py tests/test_iw612_driver_config.py
 
       - name: Checkout Dial beta
         uses: actions/checkout@v4
