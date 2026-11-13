@@ -1,6 +1,8 @@
 import importlib.util
 import json
+import math
 import re
+import struct
 from pathlib import Path
 import unittest
 from unittest import mock
@@ -531,6 +533,105 @@ class ApplyRolloutThresholdsTests(unittest.TestCase):
         )
 
         self.assertFalse(result)
+
+
+
+def float32(value):
+    return struct.unpack("f", struct.pack("f", value))[0]
+
+
+def simulate_hawkbit_group_fill(groups, matching_target_ids, rollout_filter):
+    """Port of hawkBit 1.0.x JpaRolloutExecutor.fillRolloutGroupWithTargets for new-style rollouts.
+
+    Groups are filled in order, each out of the targets that match the rollout filter AND the
+    group filter and that no earlier group took. targetPercentage is stored as a Java float.
+    """
+    stored_percentages = [float32(group["targetPercentage"]) for group in groups]
+    taken = set()
+    sizes = []
+    for index, group in enumerate(groups):
+        group_filter = group["targetFilterQuery"]
+        if group_filter == rollout_filter:
+            candidates = list(matching_target_ids)
+        else:
+            listed = re.fullmatch(r"CONTROLLERID=in=\((.*)\)", group_filter).group(1)
+            listed = set(listed.split(","))
+            candidates = [t for t in matching_target_ids if t in listed]
+        candidates = [t for t in candidates if t not in taken]
+
+        to_serve = 100.0
+        for previous_index in range(index):
+            if groups[previous_index]["targetFilterQuery"] == group_filter:
+                to_serve -= stored_percentages[previous_index]
+        percent = stored_percentages[index]
+        percent_from_rest = 100 if to_serve <= 1 else min(100, percent * 100 / to_serve)
+
+        expected = math.floor(percent_from_rest * len(candidates) / 100 + 0.5)
+        chosen = candidates[:expected]
+        taken.update(chosen)
+        sizes.append(len(chosen))
+    return sizes
+
+
+class RolloutGroupTests(unittest.TestCase):
+    QUERY = 'attribute.update_channel == "stable" and attribute.boot_mode == "emmc"'
+
+    def groups_for(self, channel, target_count, manual_ids=(), on_channel_manual_ids=()):
+        client = HAWKBIT_UPLOAD.HawkbitMgmtClient("hawkbit", 443)
+        target_ids = [f"machine-{i}" for i in range(target_count)] + list(on_channel_manual_ids)
+        client.get_all_targets_by_filter = lambda _query: [
+            {"controllerId": target_id} for target_id in target_ids
+        ]
+        groups = client.generate_rollout_groups(
+            channel, self.QUERY, manual_target_ids=list(manual_ids)
+        )
+        return groups, simulate_hawkbit_group_fill(groups, target_ids, self.QUERY)
+
+    def test_stable_ramp_has_no_empty_groups(self):
+        # The fleet from rollout #237, which ended with four empty groups.
+        groups, sizes = self.groups_for("stable", 1965)
+        self.assertEqual(sizes, [20, 50, 100] + [200] * 8 + [195])
+        self.assertEqual(len(groups), len(sizes))
+
+    def test_beta_ramp_has_no_empty_groups(self):
+        # The fleet from rollout #236: one internal target on the channel.
+        groups, sizes = self.groups_for(
+            "beta",
+            424,
+            manual_ids=["internal-a", "internal-b"],
+            on_channel_manual_ids=["internal-a"],
+        )
+        self.assertEqual(sizes, [1, 10, 50, 100, 200, 64])
+        self.assertEqual(groups[0]["targetFilterQuery"], "CONTROLLERID=in=(internal-a)")
+
+    def test_internal_group_is_dropped_when_none_are_on_the_channel(self):
+        groups, sizes = self.groups_for("stable", 30, manual_ids=["internal-a"])
+        self.assertEqual(sizes, [10, 20])
+        self.assertTrue(all(g["targetFilterQuery"] == self.QUERY for g in groups))
+
+    def test_nightly_uses_flat_groups(self):
+        _groups, sizes = self.groups_for("nightly", 250)
+        self.assertEqual(sizes, [100, 100, 50])
+
+    def test_a_remainder_under_one_percent_joins_the_previous_group(self):
+        # 1% of 1961 is 20 targets, so the trailing single target is folded in.
+        _groups, sizes = self.groups_for("stable", 1961)
+        self.assertEqual(sizes, [20, 50, 100] + [200] * 8 + [191])
+
+    def test_every_group_is_filled_and_within_hawkbits_percentage_range(self):
+        for channel in ("stable", "beta", "nightly"):
+            for target_count in list(range(1, 400)) + [999, 1000, 1001, 5000, 12345]:
+                with self.subTest(channel=channel, target_count=target_count):
+                    groups, sizes = self.groups_for(channel, target_count)
+                    self.assertEqual(sum(sizes), target_count)
+                    self.assertNotIn(0, sizes)
+                    for group in groups:
+                        self.assertGreaterEqual(group["targetPercentage"], 1.0)
+                        self.assertLessEqual(group["targetPercentage"], 100.0)
+
+    def test_no_groups_without_targets(self):
+        groups, _sizes = self.groups_for("stable", 0, manual_ids=["internal-a"])
+        self.assertEqual(groups, [])
 
 
 if __name__ == "__main__":
