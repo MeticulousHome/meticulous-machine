@@ -69,7 +69,7 @@ fi
 
 section "firmware config"
 if [ -r "${mod_para}" ]; then
-    grep -E 'fw_name|init_hostcmd_cfg|txpwrlimit_cfg' "${mod_para}" || true
+    grep -E 'fw_name|fw_serial|init_hostcmd_cfg|txpwrlimit_cfg' "${mod_para}" || true
 else
     echo "${mod_para} is missing"
 fi
@@ -93,6 +93,7 @@ fi
 section "core files"
 for file in \
     /lib/firmware/nxp/sduart_nw61x_v1.bin.se \
+    /lib/firmware/nxp/sd_w61x_v1.bin.se \
     /lib/firmware/nxp/ed_mac.conf \
     /lib/firmware/regulatory.db \
     /lib/firmware/regulatory.db.p7s; do

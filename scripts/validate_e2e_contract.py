@@ -142,6 +142,8 @@ def _compare(label: str, actual: Iterable[str], expected: Iterable[str]) -> list
 
 
 def discover_dial(dial_root: Path) -> dict[str, set[str]]:
+    if not (dial_root / "src").is_dir() and (dial_root / "qt/qml").is_dir():
+        return discover_qt_dial(dial_root)
     screen_source = (
         dial_root / "src/components/store/features/screens/screens-slice.ts"
     ).read_text(encoding="utf-8")
@@ -165,6 +167,39 @@ def discover_dial(dial_root: Path) -> dict[str, set[str]]:
     socket_emits = set(re.findall(r"socket\.emit\(\s*['\"]([^'\"]+)['\"]", source))
     return {
         "screens": screens,
+        "routes": routes,
+        "api_methods": api_methods,
+        "socket_receives": socket_receives,
+        "socket_emits": socket_emits,
+    }
+
+
+def discover_qt_dial(dial_root: Path) -> dict[str, set[str]]:
+    """The same inventory from the Qt Dial (qt/qml), which replaced the React Dial."""
+    route_source = (dial_root / "qt/qml/Dial/Core/Routes.qml").read_text(encoding="utf-8")
+    order = re.search(
+        r"readonly property var order:\s*\[(?P<body>.*?)\]", route_source, re.DOTALL
+    )
+    if not order:
+        raise ValueError("Could not find the Qt Dial's route order")
+    # One route per screen: the Qt Dial has no separate screen type.
+    routes = set(re.findall(r'"([^"]+)"', order.group("body")))
+
+    source = _read_tree(dial_root / "qt/qml", "**/*.qml")
+    source += "\n" + _read_tree(dial_root / "qt/qml", "**/*.js")
+    # Api.qml's own helpers are not espresso-api methods.
+    helpers = {"get", "post", "put", "del", "request", "url", "query"}
+    api_methods = set(re.findall(r"\b[Aa]pi\.([A-Za-z][A-Za-z0-9_]*)\s*\(", source)) - helpers
+    backend_source = (dial_root / "qt/qml/Dial/Core/Backend.qml").read_text(encoding="utf-8")
+    handler = re.search(
+        r"function onEvent\(.*?switch\s*\(name\)\s*\{(?P<body>.*?)\n\s*\}\n", backend_source, re.DOTALL
+    )
+    socket_receives = set(re.findall(r'case\s+"([^"]+)"\s*:', handler.group("body"))) if handler else set()
+    socket_emits = set(
+        re.findall(r"\b(?:Socket|Backend)\.emitEvent\(\s*['\"]([^'\"]+)['\"]", source)
+    )
+    return {
+        "screens": routes,
         "routes": routes,
         "api_methods": api_methods,
         "socket_receives": socket_receives,

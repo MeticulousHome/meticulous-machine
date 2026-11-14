@@ -66,7 +66,8 @@ function b_copy_components() {
 
     # Install meticulous components
     # Install Dial app
-    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/:/opt/meticulous-dial" bash -c "apt -y install --reinstall --no-install-recommends /opt/meticulous-dial/meticulous-dial.deb"
+    # Its Qt 6.4 runtime comes from bookworm through the package's Depends.
+    systemd-nspawn -D ${ROOTFS_DIR} --bind-ro "${DIAL_SRC_DIR}/qt/build/machine/:/opt/meticulous-dial" bash -c "apt -y install --reinstall --no-install-recommends /opt/meticulous-dial/meticulous-dial.deb"
 
     # Install Backend
     echo "Installing Backend"

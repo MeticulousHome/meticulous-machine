@@ -13,17 +13,28 @@ This repo builds Meticulous machine images with GitHub Actions. Image builds now
 - `main` remains the central changelog and GitHub Pages branch, but it is no longer the manual image launcher.
 - Manual image builds are dispatched from the branch to build. The branch name must be the image name.
 - Custom images require their own branch with the same name as the image and a matching `images/<image>.versions.sh`.
-- Scheduled builds assume the repository default branch is `nightly`, because GitHub Actions schedules run from the default branch.
-- Manual builds can set only `no-cache` and `upload_emmc_to_hawkbit`.
+- GitHub Actions schedules run from the default branch. A scheduled run on `nightly` builds directly; a scheduled run on any other branch (if `beta` or `stable` ever becomes the default) dispatches `build-nightly-image.yml` on `nightly` with `upload_emmc_to_hawkbit` and `skip-if-unchanged` set, and builds nothing itself.
+- Manual builds can set only `no-cache`, `upload_emmc_to_hawkbit` and `skip-if-unchanged`.
 
 ## Workflow Roles
 
 - `.github/workflows/build-nightly-image.yml` is the user-facing image build workflow on each build branch.
 - `.github/workflows/build-nightly-image.yml` passes `github.ref_name` directly to `.github/workflows/build-image-channel.yml` through a local reusable workflow call.
-- `.github/workflows/build-image-channel.yml` contains the real image build and accepts `image`, `machine-ref`, `no-cache`, and `upload_emmc_to_hawkbit`.
+- `.github/workflows/build-image-channel.yml` contains the real image build and accepts `image`, `machine-ref`, `no-cache`, `upload_emmc_to_hawkbit`, and `skip-if-unchanged`.
 - `.github/workflows/build-all-components.yml` calls `.github/workflows/build-component.yml` by local reusable workflow path so the channel branch supplies the component workflow implementation.
 - All checkouts of this repository inside the image build path must use `machine-ref`. Private repo checkouts, such as `rauc-secrets`, are separate and should not use `machine-ref`.
 - Component builds receive `machine-ref` through `build-all-components.yml` and `build-component.yml`; `build-component.yml` falls back to `github.ref_name` only for direct/manual component runs.
+
+## Unchanged-Image Skip
+
+- `build-image-channel.yml` starts with a `fingerprint` job that checks out every component source and runs `scripts/image-fingerprint.sh <image>`.
+- The fingerprint hashes this repo's commit, the URL, branch and checked-out commit of every repository declared in `config.sh` (overlaid by `images/<image>.versions.sh`) that `update-sources.sh` checked out, and the `InRelease` file of each Debian suite the rootfs upgrades against (`<distro>`, `-updates`, `-backports`, `-security`, and `trixie`). The suite list mirrors `debian-fika/create_rootfs.sh`; `make-rootfs.sh` runs `apt dist-upgrade`, so archive uploads change the image even when every component cache hits.
+- There is no second list of repositories. `scripts/image-config.sh` discovers every `<NAME>_GIT` / `<NAME>_SRC_DIR` pair from `config.sh`, so adding or re-pointing a repository there is enough. A declared repository that is not checked out (the mobile app, the dashboard) is reported and left out.
+- `scripts/component-cache-key.sh <component> <image>` keys each component build on the checked-out commits of its repositories, grouped the same way as the `update_<component>` functions in `update-sources.sh` (linux also covers mwifiex and mlanutl, bootloader covers ATF, imx-mkimage, the vendored `imx-boot-tools` and `rauc-config/u-boot.cmd`, rauc covers the hawkBit updater). Branch names are not part of the key, so a promotion that re-points a branch at the same commit keeps hitting the cache. `build-component.yml` uses the same script.
+- `record-fingerprint` saves `image-fingerprint-<image>-<sha>` to actions/cache only after the deployment image was built and the hawkBit upload succeeded. A build without `upload_emmc_to_hawkbit`, or with a failed upload, leaves no fingerprint, so the next scheduled run builds and uploads it.
+- When `skip-if-unchanged` is true and the fingerprint already exists, the `fingerprint` job sets `skip=true`, no component or image job runs, and the reusable workflow reports `skipped=true`; `build-nightly-image.yml` then skips tagging and the changelog commit too.
+- `build-nightly-image.yml` enables `skip-if-unchanged` only on the `nightly` branch, for scheduled runs or when the dispatch input is checked. `beta`, `stable` and custom image branches always build, because those runs are requested by hand.
+- If a Debian `InRelease` cannot be fetched, the fingerprint is made unique so the build proceeds rather than skipping on incomplete information.
 
 ## Image Validation
 

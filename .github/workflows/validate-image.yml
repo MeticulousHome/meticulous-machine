@@ -70,12 +70,19 @@ jobs:
     - name: The versions it was built against
       run: |
         commit=$(awk '/^## meticulous-machine ##/ {found=1} found && /^Commit:/ {print $2; exit}' "$WORK/rootfs/opt/summary.txt")
-        git show "$commit:images/$IMAGE.versions.sh" > build/versions.sh
+        # nightly has no versions file: it builds from config.sh's defaults.
+        if git cat-file -e "$commit:images/$IMAGE.versions.sh" 2>/dev/null; then
+          versions="images/$IMAGE.versions.sh"
+        else
+          versions=config.sh
+        fi
+        git show "$commit:$versions" > "build/$(basename "$versions")"
+        echo "VERSIONS=build/$(basename "$versions")" >> "$GITHUB_ENV"
 
     - name: Check it
       run: >
         sudo python3 e2e/image/check_image.py --rootfs "$WORK/rootfs" --image "$IMAGE"
-        --versions build/versions.sh --bundle "$(ls build/bundle/*.raucb)"
+        --versions "$VERSIONS" --bundle "$(ls build/bundle/*.raucb)"
         --summary "$GITHUB_STEP_SUMMARY" --report build/report.json
 
     - name: Keep what the image logged
