@@ -16,6 +16,8 @@ case "$1" in
                 # Copy over the config
                 cp -rv /etc/hostname              "$RAUC_SLOT_MOUNT_POINT/etc/"
                 cp -rv /etc/timezone              "$RAUC_SLOT_MOUNT_POINT/etc/"
+                # libc reads the /etc/localtime symlink, not /etc/timezone
+                cp -Pv --remove-destination /etc/localtime "$RAUC_SLOT_MOUNT_POINT/etc/localtime"
                 cp -rv /etc/machine-id            "$RAUC_SLOT_MOUNT_POINT/etc/"
 
                 # Keep the SSH host keys stable for this machine
