@@ -1011,14 +1011,15 @@ class HawkbitMgmtClient:
         ]
 
         groups = []
-        # hawkBit ANDs a group's filter with the rollout's, so internal targets that are
-        # not on this channel would only leave an empty group behind.
-        matching_target_set = set(matching_target_ids)
-        manual_group_query = self._controller_id_query(
-            target_id
-            for target_id in manual_target_ids
-            if target_id in matching_target_set
-        )
+        if not matching_target_ids:
+            return groups
+
+        # The first group always lists every internal testing target, even the ones
+        # not on this channel. hawkBit ANDs a group's filter with the rollout's, so it
+        # may come out empty, and that is on purpose: the rollout starts on our own
+        # machines (or on nobody) and pauses there until someone resumes it after
+        # testing by hand, instead of going straight to customers.
+        manual_group_query = self._controller_id_query(manual_target_ids)
         if manual_group_query is not None:
             groups.append(self._rollout_group(len(groups) + 1, manual_group_query))
 
@@ -1522,8 +1523,17 @@ def target_display_name(target):
     return controller_id
 
 
-def print_dry_run_rollout_group_summary(client, groups):
+def print_dry_run_rollout_group_summary(client, groups, rollout_filter_query=None):
     print("\n[DRY RUN] Rollout groups:")
+
+    # hawkBit ANDs each group's filter with the rollout's, so a group only gets
+    # targets that also match the rollout.
+    rollout_target_ids = None
+    if rollout_filter_query is not None:
+        rollout_target_ids = {
+            client._target_controller_id(target)
+            for target in client.get_all_targets_by_filter(rollout_filter_query)
+        }
 
     selected_target_ids = set()
     # Percent not yet handed out per group filter, mirroring hawkBit's
@@ -1535,6 +1545,8 @@ def print_dry_run_rollout_group_summary(client, groups):
         eligible_targets = []
         for target in group_targets:
             target_id = client._target_controller_id(target)
+            if rollout_target_ids is not None and target_id not in rollout_target_ids:
+                continue
             if target_id and target_id not in selected_target_ids:
                 eligible_targets.append(target)
 
@@ -1807,7 +1819,7 @@ if __name__ == "__main__":
         manual_target_ids=INTERNAL_TESTING_TARGETS,
     )
     if args.dry_run:
-        print_dry_run_rollout_group_summary(client, groups)
+        print_dry_run_rollout_group_summary(client, groups, target_filter_query)
 
     rollout = client.createOrUpdateRollout(
         name=rollout_name,

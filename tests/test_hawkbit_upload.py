@@ -602,12 +602,31 @@ class RolloutGroupTests(unittest.TestCase):
             on_channel_manual_ids=["internal-a"],
         )
         self.assertEqual(sizes, [1, 10, 50, 100, 200, 64])
-        self.assertEqual(groups[0]["targetFilterQuery"], "CONTROLLERID=in=(internal-a)")
+        self.assertEqual(
+            groups[0]["targetFilterQuery"], "CONTROLLERID=in=(internal-a,internal-b)"
+        )
 
-    def test_internal_group_is_dropped_when_none_are_on_the_channel(self):
+    def test_internal_group_stays_first_when_none_are_on_the_channel(self):
+        # The empty first group is the gate: the rollout pauses on it before any
+        # customer machine gets the update.
         groups, sizes = self.groups_for("stable", 30, manual_ids=["internal-a"])
-        self.assertEqual(sizes, [10, 20])
-        self.assertTrue(all(g["targetFilterQuery"] == self.QUERY for g in groups))
+        self.assertEqual(sizes, [0, 10, 20])
+        self.assertEqual(groups[0]["targetFilterQuery"], "CONTROLLERID=in=(internal-a)")
+        self.assertEqual(groups[0]["successAction"]["action"], "PAUSE")
+        self.assertTrue(all(g["targetFilterQuery"] == self.QUERY for g in groups[1:]))
+
+    def test_upload_gates_every_channel_on_the_internal_targets(self):
+        for channel in ("stable", "beta", "nightly"):
+            with self.subTest(channel=channel):
+                groups, _sizes = self.groups_for(
+                    channel, 30, manual_ids=HAWKBIT_UPLOAD.INTERNAL_TESTING_TARGETS
+                )
+                self.assertEqual(
+                    groups[0]["targetFilterQuery"],
+                    "CONTROLLERID=in=("
+                    + ",".join(HAWKBIT_UPLOAD.INTERNAL_TESTING_TARGETS)
+                    + ")",
+                )
 
     def test_nightly_uses_flat_groups(self):
         _groups, sizes = self.groups_for("nightly", 250)
