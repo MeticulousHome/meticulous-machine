@@ -150,6 +150,16 @@ write_driver_config() {
     validate_profile_files "${profile}"
 
     mkdir -p "$(dirname "${mod_para}")"
+    # No fw_name: with fw_serial=1 the driver picks the combo firmware
+    # (nxp/sduart_nw61x_v1.bin.se, Wi-Fi and Bluetooth) from the chip strap at
+    # load time, and the Wi-Fi-only firmware (nxp/sd_w61x_v1.bin.se) for the
+    # in-band reset after a firmware hang. A fw_name is used for both, so the
+    # reset reloads the combo firmware, the download times out ("Firmware Init
+    # Failed"), wlan0 disappears and Bluetooth breaks until a reboot.
+    # Drivers from 540.p33 (NXP lf-6.12.49-2.2.0) also read wifi_fw_name, the
+    # firmware for the reset, before fw_name. The machine's driver (505.p14)
+    # ignores that key, and without fw_name both versions pick the same
+    # firmware, so this config sets neither.
     {
         cat <<EOF
 SDIW612 = {
@@ -159,7 +169,6 @@ SDIW612 = {
 	ps_mode=1
 	auto_ds=1
 	host_mlme=1
-	fw_name=nxp/sduart_nw61x_v1.bin.se
 EOF
         if [ -n "${profile}" ]; then
             printf '\tinit_hostcmd_cfg=nxp/rutxpower_%s.bin\n' "${profile}"
@@ -167,7 +176,7 @@ EOF
         fi
         cat <<EOF
 	sta_name=wlan
-	fw_serial=0
+	fw_serial=1
 	indrstcfg=0xFF02
 }
 EOF
@@ -246,7 +255,7 @@ show_region() {
     printf 'bt_power_profile=%s\n' "${bt_profile:-none}"
     printf 'mod_para=%s\n' "${mod_para}"
     if [ -r "${mod_para}" ]; then
-        grep -E 'fw_name|init_hostcmd_cfg|txpwrlimit_cfg' "${mod_para}" || true
+        grep -E 'fw_name|fw_serial|init_hostcmd_cfg|txpwrlimit_cfg' "${mod_para}" || true
     else
         echo "mod_para is missing"
     fi

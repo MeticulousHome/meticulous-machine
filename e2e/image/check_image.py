@@ -8,13 +8,15 @@ built-in ESP32 emulator. Each check prints one line and goes into a Markdown
 table (--summary); the exit status is 1 when one fails.
 
 Usage: sudo e2e/image/check_image.py --rootfs DIR --image CHANNEL
-           [--versions images/<channel>.versions.sh] [--bundle emmc-bundle.raucb]
+           [--versions images/<channel>.versions.sh | config.sh] [--bundle emmc-bundle.raucb]
            [--summary FILE] [--report FILE]
 """
 
 import argparse
+import ast
 import json
 import re
+import shlex
 import shutil
 import subprocess
 import time
@@ -26,6 +28,8 @@ HERE = Path(__file__).resolve().parent
 
 # The services a machine needs to work that need no hardware of their own.
 SERVICES = ("meticulous-backend", "meticulous-watcher", "nginx")
+UNIT_DIRS = ("etc/systemd/system", "usr/lib/systemd/system", "lib/systemd/system")
+SMOKE_REPORT_UNIT = "meticulous-smoke-report.service"
 
 
 def leader() -> str:
@@ -152,9 +156,10 @@ def summary_components(rootfs: Path) -> dict[str, dict[str, str]]:
 
 
 def pinned(versions: Path) -> dict[str, dict[str, str]]:
-    """What images/<channel>.versions.sh asks for: {component: {branch, rev}}."""
+    """What images/<channel>.versions.sh, or config.sh for nightly, asks for:
+    {component: {branch, rev}}. config.sh aligns its values after `export`."""
     pins = {}
-    for m in re.finditer(r'^export (\w+?)_(BRANCH|REV)="([^"]*)"', versions.read_text(), re.M):
+    for m in re.finditer(r'^export[ \t]+(\w+?)_(BRANCH|REV)="([^"]*)"', versions.read_text(), re.M):
         pins.setdefault(m.group(1).lower().replace("_", "-"), {})[m.group(2).lower()] = m.group(3)
     return pins
 
@@ -163,11 +168,13 @@ def check_versions(args):
     if not args.versions:
         return None, "no versions.sh given"
     built = summary_components(args.rootfs)
-    problems = []
+    problems, unrecorded = [], []
     for component, pin in pinned(args.versions).items():
         got = built.get(component)
         if got is None:
-            problems.append(f"{component}: not in /opt/summary.txt")
+            # generate-build-info.sh records a fixed list of components, and
+            # config.sh declares a few more (mwifiex, mlanutl, dash, mobile).
+            unrecorded.append(component)
             continue
         if "branch" in pin and got.get("branch") != pin["branch"]:
             problems.append(f"{component}: branch `{got.get('branch')}`, pinned `{pin['branch']}`")
@@ -175,7 +182,9 @@ def check_versions(args):
         if rev != "HEAD" and not (got.get("commit") or "").startswith(rev):
             problems.append(f"{component}: commit `{(got.get('commit') or '')[:12]}`, pinned `{rev[:12]}`")
     empty = sorted(c for c, info in built.items() if not info)
-    seen = "; ".join(problems) or f"{len(built)} components as pinned"
+    seen = "; ".join(problems) or f"{len(built)} components as {args.versions.name} pins them"
+    if unrecorded:
+        seen += f" (not in /opt/summary.txt, so not checked: {', '.join(sorted(unrecorded))})"
     if empty:
         seen += f" (no branch or commit recorded: {', '.join(empty)})"
     return not problems, seen
@@ -226,13 +235,161 @@ def check_rauc_bundle(args):
 
 
 def check_dial(args):
-    binary = args.rootfs / "usr/bin/meticulous-dial"
+    binary = args.rootfs / "usr/bin/meticulous-dial-qt"
     if not binary.is_file():
-        return False, "/usr/bin/meticulous-dial missing"
+        return False, "/usr/bin/meticulous-dial-qt missing"
     head = binary.read_bytes()[:20]
     arm64 = head[:4] == b"\x7fELF" and head[18:20] == b"\xb7\x00"
+    qml = (args.rootfs / "usr/share/meticulous-dial-qt/qml/main.qml").is_file()
     state = inside("systemctl", "is-active", "meticulous-dial").stdout.strip()
-    return arm64, f"ARM64 binary installed: {arm64}; service `{state}` (it needs Weston, which needs a display)"
+    return arm64 and qml, (
+        f"ARM64 binary installed: {arm64}; QML installed: {qml}; service `{state}` "
+        "(it needs the machine's DRM device)"
+    )
+
+
+def python_units(rootfs: Path) -> dict[str, list[str]]:
+    """The image's units whose ExecStart runs a Python interpreter: {unit: command}."""
+    units, folders = {}, set()
+    for folder in UNIT_DIRS:
+        path = (rootfs / folder).resolve()
+        # lib is usr/lib on a merged /usr; never follow a link out of the image.
+        if path in folders or not path.is_dir() or not path.is_relative_to(rootfs.resolve()):
+            continue
+        folders.add(path)
+        for unit in sorted(path.glob("*.service")):
+            # A link is an alias or a mask, and may point outside the image.
+            if unit.name in units or unit.is_symlink():
+                continue
+            for line in unit.read_text(errors="replace").splitlines():
+                key, _, value = line.strip().partition("=")
+                command = shlex.split(value.lstrip("-@:+!")) if key == "ExecStart" else []
+                if command and re.fullmatch(r"python3[.\d]*", Path(command[0]).name):
+                    units[unit.name] = command
+    return units
+
+
+def imported_modules(script: Path) -> list[str]:
+    """Every module a Python file imports, also inside functions, where an
+    import fails only when that function runs."""
+    modules = set()
+    for node in ast.walk(ast.parse(script.read_text(), str(script))):
+        if isinstance(node, ast.Import):
+            modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            modules.add(node.module)
+    return sorted(modules)
+
+
+IMPORT_PROBE = """\
+import importlib, json, sys
+failed = {}
+for name in sys.argv[1:]:
+    try:
+        importlib.import_module(name)
+    except Exception as error:
+        failed[name] = f"{type(error).__name__}: {error}"
+print(json.dumps(failed))
+"""
+
+
+def check_python_imports(args):
+    # /opt/meticulous-venv/bin/python3 was the Python backend's virtualenv; on
+    # images with the Rust backend it is the image's own python3, and the smoke
+    # report's Sentry alert died on `import sentry_sdk` inside a function that
+    # runs only when the Dial fails. Each module is imported here with the
+    # interpreter the unit runs. Only this repository's scripts (make-rootfs.sh
+    # copies scripts/ to /usr/local/bin): a packaged script may guard an
+    # optional import, which this would count as missing.
+    problems, fine = [], []
+    for unit, command in python_units(args.rootfs).items():
+        interpreter, script = command[0], command[1] if len(command) > 1 else ""
+        if not script.startswith("/usr/local/bin/"):
+            continue
+        modules = imported_modules(args.rootfs / script.lstrip("/"))
+        done = inside(interpreter, "-I", "-c", IMPORT_PROBE, *modules)
+        if done.returncode != 0:
+            problems.append(f"{unit}: `{interpreter}` did not run: {done.stderr.strip()[-200:]}")
+        elif failed := json.loads(done.stdout.strip().splitlines()[-1]):
+            missing = ", ".join(f"`{name}` ({error})" for name, error in failed.items())
+            problems.append(f"{unit}: {missing} with `{interpreter}`")
+        else:
+            fine.append(f"{unit} ({len(modules)} modules, `{interpreter}`)")
+    if not problems and not fine:
+        return None, "no unit runs a Python script from scripts/"
+    return not problems, "; ".join(problems) or "all import: " + ", ".join(fine)
+
+
+# Sentry, as far as the smoke report can tell, on the image's loopback (the
+# image has no other network). It runs the command it is given with the
+# report's DSN pointing at itself and prints what it received.
+SENTRY_STAND_IN = """\
+import http.server, json, subprocess, sys, threading
+
+received = []
+
+
+class Sentry(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        received.append({"path": self.path, "body": body.decode("utf-8", "replace")})
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b"{}")
+
+    def log_message(self, *args):
+        pass
+
+
+server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Sentry)
+threading.Thread(target=server.serve_forever, daemon=True).start()
+port = server.server_address[1]
+env = {
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "METICULOUS_SMOKE_SENTRY_DSN": f"http://public@127.0.0.1:{port}/8",
+}
+done = subprocess.run(sys.argv[1:], env=env, capture_output=True, text=True, timeout=240)
+print(json.dumps({"returncode": done.returncode, "stderr": done.stderr[-3000:], "received": received}))
+"""
+
+
+def check_smoke_report_sentry(args):
+    # What a machine whose Dial never shows its home screen sends: the Dial
+    # cannot start here, and its home-screen marker is removed besides. The
+    # report runs as its unit runs it, with a short wait for the checks; its
+    # publish to hawkBit fails without a network, which is not checked here.
+    command = python_units(args.rootfs).get(SMOKE_REPORT_UNIT)
+    if command is None:
+        return False, f"no {SMOKE_REPORT_UNIT} running a Python script"
+    inside("rm", "-f", "/run/meticulous-dial-home-ready", "/run/meticulous-smoke-dial-sentry-reported")
+    done = inside("/usr/bin/python3", "-I", "-c", SENTRY_STAND_IN, *command, "--timeout", "5", timeout=300)
+    if done.returncode != 0:
+        return False, f"the Sentry stand-in did not run: {done.stderr.strip()[-300:]}"
+    result = json.loads(done.stdout.strip().splitlines()[-1])
+
+    events = []
+    for request in result["received"]:
+        lines = request["body"].split("\n")
+        try:
+            item, event = json.loads(lines[1]), json.loads(lines[2])
+        except (IndexError, ValueError):
+            continue
+        if request["path"].partition("?")[0] == "/api/8/envelope/" and item.get("type") == "event":
+            events.append(event)
+    if len(events) != 1:
+        said = [line for line in result["stderr"].splitlines() if "Sentry" in line] or result["stderr"].splitlines()[-3:]
+        return False, (
+            f"Sentry got {len(events)} events ({len(result['received'])} requests); "
+            f"the report said: {' / '.join(said)[-300:] or 'nothing'}"
+        )
+
+    tags = events[0].get("tags", {})
+    return tags.get("dial_home_ready") == "false", (
+        f"Sentry got `{events[0].get('message', {}).get('formatted')}`: "
+        f"dial_home_ready={tags.get('dial_home_ready')}, "
+        f"serial `{tags.get('serial', '')}` ({tags.get('machine_identity_source')})"
+    )
 
 
 CHECKS = [
@@ -242,11 +399,13 @@ CHECKS = [
     ("The backend answers", check_backend_api),
     ("nginx routes the web app, the API and /health", check_nginx_routes),
     ("The image is the channel it was built for", check_identity),
-    ("Every component as images/<channel>.versions.sh pins it", check_versions),
+    ("Every component as images/<channel>.versions.sh, or config.sh for nightly, pins it", check_versions),
     ("It carries the firmware it was built with", check_firmware),
     ("A new machine follows its image's update channel", check_update_channel),
     ("Its RAUC accepts this build's update bundle", check_rauc_bundle),
     ("The Dial is installed", check_dial),
+    ("Every module the image's Python units import is there", check_python_imports),
+    ("A Dial that does not reach its home screen is reported to Sentry", check_smoke_report_sentry),
 ]
 
 

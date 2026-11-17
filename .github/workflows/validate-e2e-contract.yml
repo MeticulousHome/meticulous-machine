@@ -11,6 +11,11 @@ on:
       - "tests/test_e2e_contract.py"
       - "tests/test_hawkbit_device_identity.sh"
       - "tests/test_hawkbit_config_atomicity.py"
+      - "tests/test_smoke_report_sentry.py"
+      - "tests/test_smoke_report_boot_resync.py"
+      - "tests/test_iw612_driver_config.py"
+      - "scripts/met-iw612-set-region"
+      - "config/usr/lib/firmware/nxp/var_wifi_mod_para.conf"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
@@ -29,6 +34,11 @@ on:
       - "tests/test_e2e_contract.py"
       - "tests/test_hawkbit_device_identity.sh"
       - "tests/test_hawkbit_config_atomicity.py"
+      - "tests/test_smoke_report_sentry.py"
+      - "tests/test_smoke_report_boot_resync.py"
+      - "tests/test_iw612_driver_config.py"
+      - "scripts/met-iw612-set-region"
+      - "config/usr/lib/firmware/nxp/var_wifi_mod_para.conf"
       - "config.sh"
       - "images/*.versions.sh"
       - "system-services/**"
@@ -57,8 +67,9 @@ jobs:
           bash -n config/etc/hawkbit/config_writer.sh
           bash -n config/etc/hawkbit/device_identity.sh
           bash -n tests/test_hawkbit_device_identity.sh
+          bash -n scripts/met-iw612-set-region
           bash tests/test_hawkbit_device_identity.sh
-          python -m unittest -v tests/test_hawkbit_config_atomicity.py
+          python -m unittest -v tests/test_hawkbit_config_atomicity.py tests/test_smoke_report_sentry.py tests/test_smoke_report_boot_resync.py tests/test_iw612_driver_config.py
 
       - name: Checkout Dial beta
         uses: actions/checkout@v4

@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
-  "captured_at": "2026-08-10",
+  "captured_at": "2026-09-30",
   "source_snapshot": {
-    "meticulous-machine": "220dbcbc41d64069c85f98f46b7c2808c86ee20d",
-    "meticulous-dial": "7f4482871d4feb73a5518f26954f33256c3c3d19",
-    "meticulous-backend": "69086ade492fffdb4d304b47281239ca560bb485",
-    "EspressoFirmware": "f201fbbd4a85cc7c47127f900268700e21468a03"
+    "meticulous-machine": "84b1ae63f0956896e3e25f37e9bfa46cf5141946",
+    "meticulous-dial": "74ca42cb33a64e7ee5df377a06a21453699fd885",
+    "meticulous-backend": "e37dcf3539eef2bf43f0e83e62a7e5b8f982d8bc",
+    "EspressoFirmware": "63a967c8269650791f17bdc88bdcc1ccd717eda9"
   },
   "dial": {
     "screen_groups": {
@@ -47,7 +47,8 @@
         "community",
         "tare_behavior",
         "experimentalSettings",
-        "helpUsImprove"
+        "helpUsImprove",
+        "disturbanceResilience"
       ],
       "wifi": [
         "wifiSettings",
@@ -330,8 +331,7 @@
       "meticulous-dial.service",
       "meticulous-watcher.service",
       "pulseaudio.service",
-      "rauc-hawkbit-updater.service",
-      "weston.service"
+      "rauc-hawkbit-updater.service"
     ],
     "nginx_contracts": [
       "location / {",

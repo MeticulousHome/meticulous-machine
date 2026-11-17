@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -84,6 +85,39 @@ class E2EContractManifestTests(unittest.TestCase):
                 "example: not inventoried: ['new']",
             ],
         )
+
+    def test_a_qt_dial_is_inventoried_from_its_qml(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            core = Path(tmp) / "qt/qml/Dial/Core"
+            core.mkdir(parents=True)
+            (core / "Routes.qml").write_text(
+                'QtObject {\n    readonly property var order: [\n        "profileHome", "settings"\n    ]\n}\n'
+            )
+            (core / "Backend.qml").write_text(
+                "QtObject {\n"
+                "    function action(name) { Socket.emitEvent(\"action\", name) }\n"
+                "    property Connections _socket: Connections {\n"
+                "        function onEvent(name, data) {\n"
+                "            switch (name) {\n"
+                '            case "status": break\n'
+                '            case "sensors": break\n'
+                "            }\n"
+                "        }\n"
+                "    }\n"
+                "}\n"
+            )
+            (core / "Api.qml").write_text(
+                'QtObject {\n    function getSettings(name) { return get(v + "/settings/" + name) }\n}\n'
+            )
+            (Path(tmp) / "qt/qml/Dial/Home.qml").write_text(
+                'Item { Component.onCompleted: { Api.getSettings(); Api.get("/x"); Backend.emitEvent("profileHover", {}) } }\n'
+            )
+            dial = VALIDATOR.discover_dial(Path(tmp))
+        self.assertEqual(dial["screens"], {"profileHome", "settings"})
+        self.assertEqual(dial["routes"], {"profileHome", "settings"})
+        self.assertEqual(dial["api_methods"], {"getSettings"})
+        self.assertEqual(dial["socket_receives"], {"status", "sensors"})
+        self.assertEqual(dial["socket_emits"], {"action", "profileHover"})
 
 
 if __name__ == "__main__":
