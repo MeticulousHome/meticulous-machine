@@ -1,0 +1,37 @@
+channel: "nightly"
+timestamp: "2026-11-18T06-57-14"
+build-version: "2026M1558-nightly"
+versions:
+  meticulous-machine: "ab7748f47a34cffefe213c85e24a2d96c3c05845"
+  linux: "5315a4575a056e9aed91e45e482e697cc1c06a71"
+  uboot: "e0e3843b7d6745d03007baf8b956b71f5b6c1265"
+  atf: "bed39c167c883b335d5fc1046ce16e10a611b4c4"
+  imx-mkimage: "71b8c18af93a5eb972d80fbec290006066cff24f"
+  debian: "db279cf0c71d35b1a9930699bca0446414390549"
+  backend: "b5556e418f6cf7131380c3861189b0ffb2e86fcf"
+  dial: "0e8441326f66217618f2947592440500ae1f0e1a"
+  web-app: "11bc8c1b360469b9543e6add0ec04142230818d6"
+  watcher: "198691006a52489cf308fdc37d047c2f610b2295"
+  firmware: "27f40cc5ef41b2291c20ce4f7db96043e230236f"
+  rauc: "269e1721b3c5f6512f7dfb7fd19f9108515c2a98"
+  hawkbit: "60f34c8cdd0dbad3b97373080e642478724bfc30"
+  psplash: "5b0085b559f1aac09c0a88f85f203ab332bbe1c9"
+  plotter-ui: "6ac2dce291b3c1e3c3b9bc051ac2929c6480ff5d"
+  crash-reporter: "ebf10c09c463575279f63d8f227e4b29f369f4d0"
+changes:
+  meticulous-machine:
+    old_rev: "deee476dbefe2ba5d0dfa9667766be507495c24e"
+    new_rev: "ab7748f47a34cffefe213c85e24a2d96c3c05845"
+    commits:
+      - hash: "ab7748f"
+        message: "Merge pull request #166 from MeticulousHome/fix/rollout-internal-gate-group"
+      - hash: "45335e2"
+        message: "fix(hawkbit-upload): always start the rollout on the internal testing group"
+  backend:
+    old_rev: "a43835b913249112841ce165d1e807479ec606a3"
+    new_rev: "b5556e418f6cf7131380c3861189b0ffb2e86fcf"
+    commits:
+      - hash: "b5556e4"
+        message: "Merge pull request #486 from MeticulousHome/feat/keep-simple-profile-on-unlock"
+      - hash: "ce2a2a9"
+        message: "feat(limited-access): keep the Simple profile after unlocking"
