@@ -8,7 +8,7 @@ on:
       - .github/workflows/build-debian-docker.yml
 jobs:
   build-debian-docker-and-push:
-    runs-on: ubuntu-latest
+    runs-on: [Linux, x64, office, self-hosted]
 
     steps:
       - name: Checkout code

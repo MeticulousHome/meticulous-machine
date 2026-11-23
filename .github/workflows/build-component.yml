@@ -19,7 +19,7 @@ on:
       runner:
           description: "Overwrite the default runner"
           type: string
-          default: "ubuntu-24.04"
+          default: "self-hosted"
       no-cache:
         description: 'Force rebuild, ignoring cache'
         type: boolean
@@ -46,7 +46,7 @@ on:
       runner:
         description: "Overwrite the default runner"
         type: string
-        default: "ubuntu-24.04"
+        default: "self-hosted"
       no-cache:
         description: 'Force rebuild, ignoring cache'
         type: boolean
@@ -61,11 +61,12 @@ permissions:
   actions: read
   id-token: write
 
-run-name: "Build ${{ inputs['build-option'] || github.event.inputs.build-option }} from '${{ inputs['image'] || github.event.inputs.image || 'unset' }}' on ${{ inputs['runner'] || github.event.inputs.runner || 'ubuntu-24.04' }}"
+run-name: "Build ${{ inputs['build-option'] || github.event.inputs.build-option }} from '${{ inputs['image'] || github.event.inputs.image || 'unset' }}' on ${{ inputs['runner'] || github.event.inputs.runner || 'self-hosted' }}"
 
 jobs:
   build-component:
-    runs-on: ${{ inputs['runner'] || 'ubuntu-24.04' }}
+    # `runner` is one label, or a JSON list of them; empty or "self-hosted" is the office runner.
+    runs-on: ${{ startsWith(inputs['runner'], '[') && fromJSON(inputs['runner']) || (inputs['runner'] == '' || inputs['runner'] == 'self-hosted') && fromJSON('["Linux", "x64", "office", "self-hosted"]') || inputs['runner'] }}
     name: Build ${{ inputs['build-option'] }}
     env:
       needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' && inputs['build-option'] != 'backend' && inputs['build-option'] != 'watcher'}}
@@ -145,7 +146,7 @@ jobs:
 
     - name: 'Exporting pio'
       if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
-      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
+      run: echo "$HOME/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Setup ccache
       if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
@@ -157,10 +158,10 @@ jobs:
     - name: Create additional ccache symlinks
       if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
       run: |
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
 
     - name: Build components
       if: ${{ fromJSON(steps.build-check.outputs.needed) }}

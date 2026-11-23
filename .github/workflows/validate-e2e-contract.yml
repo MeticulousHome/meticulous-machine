@@ -53,7 +53,7 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    runs-on: [Linux, x64, office, self-hosted]
     steps:
       - name: Checkout meticulous-machine
         uses: actions/checkout@v4
