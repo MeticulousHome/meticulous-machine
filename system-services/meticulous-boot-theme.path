@@ -1,0 +1,11 @@
+[Unit]
+Description=Follow the Dial's theme for the kernel's boot logo
+ConditionHost=meticulous*
+
+[Path]
+# The Dial rewrites this file when its theme changes (light, or dark).
+PathChanged=/var/lib/meticulous-dial/boot-theme
+Unit=meticulous-boot-theme.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep the kernel's boot logo on the Dial's theme
+ConditionHost=meticulous*
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/meticulous-boot-theme
+
+[Install]
+WantedBy=multi-user.target

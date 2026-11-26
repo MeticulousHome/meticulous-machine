@@ -1,0 +1,24 @@
+#!/bin/bash
+# Keeps the kernel's boot logo on the Dial's theme. The kernel draws its logo before any file system can be
+# read, so it learns the theme from its command line: linux-fika shows the light logo for
+# meticulous.theme=light, and U-Boot appends its kernelargs variable to the command line (optargs). The Dial
+# writes its theme to /var/lib/meticulous-dial/boot-theme (psplash reads that file itself); this copies it into
+# kernelargs. Only the meticulous.theme= word there is ours, the rest is kept, and the environment is written
+# only when it changes. Run by meticulous-boot-theme.path when the file changes, and once at boot.
+set -euo pipefail
+
+file="${BOOT_THEME_FILE:-/var/lib/meticulous-dial/boot-theme}"
+theme=$({ tr -d "[:space:]" < "$file"; } 2>/dev/null || true)
+current=$(fw_printenv -n kernelargs 2>/dev/null || true)
+
+words=()
+for word in $current; do
+    [[ $word == meticulous.theme=* ]] || words+=("$word")
+done
+[ "$theme" = light ] && words+=("meticulous.theme=light")
+wanted="${words[*]:-}"
+
+if [ "$wanted" != "$current" ]; then
+    fw_setenv kernelargs "$wanted"
+    echo "kernelargs: '$current' -> '$wanted'"
+fi
