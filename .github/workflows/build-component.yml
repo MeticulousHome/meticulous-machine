@@ -19,7 +19,7 @@ on:
       runner:
           description: "Overwrite the default runner"
           type: string
-          default: "self-hosted"
+          default: "ubuntu-24.04"
       no-cache:
         description: 'Force rebuild, ignoring cache'
         type: boolean
@@ -46,7 +46,7 @@ on:
       runner:
         description: "Overwrite the default runner"
         type: string
-        default: "self-hosted"
+        default: "ubuntu-24.04"
       no-cache:
         description: 'Force rebuild, ignoring cache'
         type: boolean
@@ -61,12 +61,12 @@ permissions:
   actions: read
   id-token: write
 
-run-name: "Build ${{ inputs['build-option'] || github.event.inputs.build-option }} from '${{ inputs['image'] || github.event.inputs.image || 'unset' }}' on ${{ inputs['runner'] || github.event.inputs.runner || 'self-hosted' }}"
+run-name: "Build ${{ inputs['build-option'] || github.event.inputs.build-option }} from '${{ inputs['image'] || github.event.inputs.image || 'unset' }}' on ${{ inputs['runner'] || github.event.inputs.runner || 'ubuntu-24.04' }}"
 
 jobs:
   build-component:
-    # `runner` is one label, or a JSON list of them; empty or "self-hosted" is the office runner.
-    runs-on: ${{ startsWith(inputs['runner'], '[') && fromJSON(inputs['runner']) || (inputs['runner'] == '' || inputs['runner'] == 'self-hosted') && fromJSON('["Linux", "x64", "office", "self-hosted"]') || inputs['runner'] }}
+    # OFFICE_RUNNERS=on: x64 Ubuntu 24.04 and 22.04 are the office runners
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && ((inputs['runner'] || 'ubuntu-24.04') == 'ubuntu-24.04' && '["self-hosted","Linux","x64","office"]' || inputs['runner'] == 'ubuntu-22.04' && '["self-hosted","Linux","x64","ubuntu-22.04"]') || format('"{0}"', inputs['runner'] || 'ubuntu-24.04')) }}
     name: Build ${{ inputs['build-option'] }}
     env:
       needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' && inputs['build-option'] != 'backend' && inputs['build-option'] != 'watcher'}}

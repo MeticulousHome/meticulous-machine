@@ -28,7 +28,7 @@ run-name: "Promote ${{ github.event.inputs.target_image || 'nightly' }} to ${{ g
 jobs:
   promote-or-pin-image:
     name: Promote or pin image
-    runs-on: [Linux, x64, office, self-hosted]
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

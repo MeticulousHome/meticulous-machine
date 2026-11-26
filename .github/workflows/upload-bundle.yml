@@ -6,7 +6,7 @@ on:
 jobs:
   upload-bundle:
     # needs: build-bundle
-    runs-on: [Linux, x64, office, self-hosted]
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout code

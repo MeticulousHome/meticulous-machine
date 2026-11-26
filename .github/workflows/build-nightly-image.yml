@@ -35,7 +35,7 @@ jobs:
   trigger-nightly:
     name: Hand scheduled run over to nightly
     if: ${{ github.event_name == 'schedule' && github.ref_name != 'nightly' }}
-    runs-on: [Linux, x64, office, self-hosted]
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office"]' || '"ubuntu-24.04"') }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -66,7 +66,7 @@ jobs:
     name: Tag controlled component repos
     needs: build-image
     if: ${{ needs.build-image.outputs.skipped != 'true' }}
-    runs-on: [Linux, x64, office, self-hosted]
+    runs-on: ubuntu-24.04
     env:
       IMAGE: ${{ github.ref_name }}
       BUILD_VERSION_NUMBER: ${{ needs.build-image.outputs.build_version_number }}
@@ -92,7 +92,7 @@ jobs:
     name: Commit changelog to main
     needs: build-image
     if: ${{ needs.build-image.outputs.skipped != 'true' && (github.event_name != 'workflow_dispatch' || inputs.upload_emmc_to_hawkbit) }}
-    runs-on: [Linux, x64, office, self-hosted]
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout main
         uses: actions/checkout@v4

@@ -107,7 +107,7 @@ jobs:
 
   journeys:
     name: Ask meticulous-integration for the image journeys
-    runs-on: [Linux, x64, office, self-hosted]
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office"]' || '"ubuntu-24.04"') }}
     continue-on-error: true
     steps:
     - name: Dispatch image-built
