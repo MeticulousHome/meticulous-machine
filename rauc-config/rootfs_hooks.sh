@@ -35,6 +35,13 @@ case "$1" in
                         cp -rv /root/.ssh/authorized_keys "$RAUC_SLOT_MOUNT_POINT/root/.ssh/"
                 fi
 
+                # The Dial's theme for the boot splash: psplash reads it from the rootfs, before
+                # /meticulous-user is mounted
+                if [ -e /var/lib/meticulous-dial/boot-theme ]; then
+                        mkdir -p "$RAUC_SLOT_MOUNT_POINT/var/lib/meticulous-dial"
+                        cp -v /var/lib/meticulous-dial/boot-theme "$RAUC_SLOT_MOUNT_POINT/var/lib/meticulous-dial/"
+                fi
+
                 #Keep the log redactions keys stable
                 if [ -e /root/.redaction_key ]; then
                         echo "Copying log redaction key to installed rootfs"
