@@ -39,7 +39,7 @@ permissions:
 jobs:
   preflight:
     name: Validate image config
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office"]' || '"ubuntu-24.04"') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
   fingerprint:
     name: Fingerprint image inputs
     needs: preflight
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office"]' || '"ubuntu-24.04"') }}
     outputs:
       key: ${{ steps.fingerprint.outputs.key }}
       skip: ${{ steps.decide.outputs.skip }}
@@ -140,7 +140,7 @@ jobs:
       - preflight
       - fingerprint
     if: ${{ needs.fingerprint.outputs.skip != 'true' }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office"]' || '"ubuntu-24.04"') }}
     outputs:
       build_version_number: ${{ steps.generate-build-number.outputs.build_version_number }}
     steps:
@@ -184,7 +184,7 @@ jobs:
 
   build-root:
     name: Build RootFS
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office-image"]' || '"ubuntu-24.04"') }}
     needs:
       - build-components
       - generate-version-info
@@ -289,7 +289,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Export pio
-        run: echo "/home/runner/.platformio/penv/bin" >> "$GITHUB_PATH"
+        run: echo "$HOME/.platformio/penv/bin" >> "$GITHUB_PATH"
 
       - name: Write build channel to image-build-channel
         run: |
@@ -458,7 +458,7 @@ jobs:
   build-deployment-image:
     name: Build Deployment Image
     needs: build-root
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office-image"]' || '"ubuntu-24.04"') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -512,7 +512,7 @@ jobs:
     # artifact exists. A build without upload, or with a failed upload, leaves
     # no fingerprint behind so the next scheduled run builds and uploads it.
     if: ${{ !cancelled() && inputs.upload_emmc_to_hawkbit && needs.deploy-emmc-bundle.result == 'success' && needs.build-deployment-image.result == 'success' }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && '["self-hosted","Linux","x64","office"]' || '"ubuntu-24.04"') }}
     steps:
       - name: Write fingerprint marker
         run: echo "${{ needs.fingerprint.outputs.key }}" > .image-fingerprint

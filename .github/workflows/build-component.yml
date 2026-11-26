@@ -65,7 +65,8 @@ run-name: "Build ${{ inputs['build-option'] || github.event.inputs.build-option 
 
 jobs:
   build-component:
-    runs-on: ${{ inputs['runner'] || 'ubuntu-24.04' }}
+    # OFFICE_RUNNERS=on: x64 Ubuntu 24.04 and 22.04 are the office runners
+    runs-on: ${{ fromJSON(vars.OFFICE_RUNNERS == 'on' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && ((inputs['runner'] || 'ubuntu-24.04') == 'ubuntu-24.04' && '["self-hosted","Linux","x64","office"]' || inputs['runner'] == 'ubuntu-22.04' && '["self-hosted","Linux","x64","ubuntu-22.04"]') || format('"{0}"', inputs['runner'] || 'ubuntu-24.04')) }}
     name: Build ${{ inputs['build-option'] }}
     env:
       needs-deps: ${{ inputs['build-option'] != 'dial' && inputs['build-option'] != 'web' &&  inputs['build-option'] != 'plotter' && inputs['build-option'] != 'crash-reporter' && inputs['build-option'] != 'backend' && inputs['build-option'] != 'watcher'}}
@@ -145,7 +146,7 @@ jobs:
 
     - name: 'Exporting pio'
       if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
-      run: echo "/home/runner/.platformio/penv/bin" >> $GITHUB_PATH
+      run: echo "$HOME/.platformio/penv/bin" >> $GITHUB_PATH
 
     - name: Setup ccache
       if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
@@ -157,10 +158,10 @@ jobs:
     - name: Create additional ccache symlinks
       if: ${{ fromJSON(steps.build-check.outputs.needed) && fromJSON(env.needs-deps) }}
       run: |
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
-        ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-gcc
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-g++
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-cpp
+        sudo ln -svf /usr/bin/ccache /usr/local/bin/aarch64-linux-gnu-c++
 
     - name: Build components
       if: ${{ fromJSON(steps.build-check.outputs.needed) }}
