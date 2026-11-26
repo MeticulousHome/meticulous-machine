@@ -119,6 +119,61 @@ class E2EContractManifestTests(unittest.TestCase):
         self.assertEqual(dial["socket_receives"], {"status", "sensors"})
         self.assertEqual(dial["socket_emits"], {"action", "profileHover"})
 
+    def test_react_files_left_in_src_do_not_hide_the_qt_dial(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            core = Path(tmp) / "qt/qml/Dial/Core"
+            core.mkdir(parents=True)
+            (core / "Routes.qml").write_text(
+                'QtObject {\n    readonly property var order: [\n        "settings"\n    ]\n}\n'
+            )
+            (core / "Backend.qml").write_text(
+                "QtObject {\n"
+                "    property Connections _socket: Connections {\n"
+                "        function onEvent(name, data) {\n"
+                "            switch (name) {\n"
+                '            case "status": break\n'
+                "            }\n"
+                "        }\n"
+                "    }\n"
+                "}\n"
+            )
+            leftover = Path(tmp) / "src/components/Settings"
+            leftover.mkdir(parents=True)
+            (leftover / "Old.tsx").write_text("export const Old = () => null;\n")
+            dial = VALIDATOR.discover_dial(Path(tmp))
+        self.assertEqual(dial["routes"], {"settings"})
+
+    def test_a_rust_backend_is_inventoried_from_its_contracts_and_crates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            contracts = root / "tests/contracts"
+            contracts.mkdir(parents=True)
+            (contracts / "http_routes.json").write_text(
+                '[{"path": "/api/v1/action/(.*)"}, {"path": "/api/v1/settings"}, {"path": "/health"}]'
+            )
+            (contracts / "socketio_events.json").write_text(
+                '{"listens": ["action", "connect", "disconnect"], "emits": ["status", "sensors"]}'
+            )
+            esp = root / "crates/esp/src"
+            esp.mkdir(parents=True)
+            (esp / "encode.rs").write_text(
+                'pub const ALLOWED_ESP_ACTIONS: [&str; 2] = [\n    "start",\n    "home",\n];\n'
+                'pub const ALLOWED_BACKEND_ACTIONS: [&str; 1] = ["reset"];\n'
+            )
+            machine = root / "crates/backend/src/machine"
+            machine.mkdir(parents=True)
+            (machine / "emulator.rs").write_text(
+                'let next = if has(b"action,start") {\n    Some(Source::Espresso)\n'
+                '} else if has(b"action,stop") {\n    Some(Source::Idle)\n'
+                '} else if has(b"action,home") {\n    Some(Source::Home)\n} else {\n    None\n};\n'
+            )
+            backend = VALIDATOR.discover_backend(root)
+        self.assertEqual(backend["api_routes"], {"/action/(.*)", "/settings"})
+        self.assertEqual(backend["socket_receives"], {"action"})
+        self.assertEqual(backend["socket_emits"], {"status", "sensors"})
+        self.assertEqual(backend["allowed_actions"], {"start", "home", "reset"})
+        self.assertEqual(backend["emulation_scenarios"], {"idle", "espresso", "home"})
+
 
 if __name__ == "__main__":
     unittest.main()

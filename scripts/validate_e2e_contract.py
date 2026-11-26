@@ -142,7 +142,9 @@ def _compare(label: str, actual: Iterable[str], expected: Iterable[str]) -> list
 
 
 def discover_dial(dial_root: Path) -> dict[str, set[str]]:
-    if not (dial_root / "src").is_dir() and (dial_root / "qt/qml").is_dir():
+    # The Qt Dial replaced the React one. A few React files can outlive it in
+    # src/, so the Qt sources decide, not whether src/ is gone.
+    if (dial_root / "qt/qml").is_dir():
         return discover_qt_dial(dial_root)
     screen_source = (
         dial_root / "src/components/store/features/screens/screens-slice.ts"
@@ -207,7 +209,56 @@ def discover_qt_dial(dial_root: Path) -> dict[str, set[str]]:
     }
 
 
+def discover_rust_backend(backend_root: Path) -> dict[str, set[str]]:
+    """The same inventory from the Rust backend, which replaced the Python one.
+
+    Its routes and Socket.IO events come from the contract it publishes in
+    tests/contracts, the rest from its sources.
+    """
+    contracts = backend_root / "tests/contracts"
+    route_entries = json.loads((contracts / "http_routes.json").read_text(encoding="utf-8"))
+    routes = {
+        entry["path"].removeprefix("/api/v1")
+        for entry in route_entries
+        if entry["path"].startswith("/api/v1/")
+    }
+    events = json.loads((contracts / "socketio_events.json").read_text(encoding="utf-8"))
+    # connect and disconnect are Socket.IO's own, not part of the contract.
+    socket_receives = set(events["listens"]) - {"connect", "disconnect"}
+    socket_emits = set(events["emits"])
+
+    encode_source = (backend_root / "crates/esp/src/encode.rs").read_text(encoding="utf-8")
+    actions: set[str] = set()
+    for name in ("ALLOWED_BACKEND_ACTIONS", "ALLOWED_ESP_ACTIONS"):
+        match = re.search(
+            rf"const {name}\s*:[^=]*=\s*\[(?P<body>.*?)\]", encode_source, re.DOTALL
+        )
+        if not match:
+            raise ValueError(f"Could not find the backend's {name}")
+        actions.update(re.findall(r'"([^"]+)"', match.group("body")))
+
+    emulator_source = (
+        backend_root / "crates/backend/src/machine/emulator.rs"
+    ).read_text(encoding="utf-8")
+    # Each command the emulator reacts to starts one of its recordings.
+    scenarios = {"idle"}
+    for _, source in re.findall(
+        r'has\(b"action,(\w+)"\)\s*\{.*?Some\(Source::(\w+)\)', emulator_source, re.DOTALL
+    ):
+        scenarios.add(source.lower())
+
+    return {
+        "api_routes": routes,
+        "socket_receives": socket_receives,
+        "socket_emits": socket_emits,
+        "allowed_actions": actions,
+        "emulation_scenarios": scenarios,
+    }
+
+
 def discover_backend(backend_root: Path) -> dict[str, set[str]]:
+    if not (backend_root / "machine.py").is_file() and (backend_root / "crates").is_dir():
+        return discover_rust_backend(backend_root)
     api_source = _read_tree(backend_root / "api", "**/*.py")
     source = _read_tree(backend_root, "*.py") + "\n" + api_source
     routes = set(
